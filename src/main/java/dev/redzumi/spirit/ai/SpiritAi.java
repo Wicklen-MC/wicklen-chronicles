@@ -27,8 +27,8 @@ import java.util.concurrent.TimeUnit;
  * слухи сервера (последние события от SpiritRumors).
  */
 public final class SpiritAi {
-    private static final long COOLDOWN_MS = 15_000;
-    private static final int MAX_TURNS_PER_HOUR = 30;
+    private static long cooldownMs() { return SpiritConfig.get().cooldownMs; }
+    private static int maxTurnsPerHour() { return SpiritConfig.get().maxTurnsPerHour; }
     // память диалога — в SpiritMemoryStore (8 пар, 7 дней, на диске)
 
     /** «Дух спит», если ни один провайдер не настроен (нет ключей/явного выбора). */
@@ -47,9 +47,9 @@ public final class SpiritAi {
     private static boolean allow(UUID id) {
         var st = STATES.computeIfAbsent(id, k -> new PlayerState());
         long now = System.currentTimeMillis();
-        if (now - st.lastCall < COOLDOWN_MS) return false;
+        if (now - st.lastCall < cooldownMs()) return false;
         st.recentTurns.removeIf(t -> now - t > TimeUnit.HOURS.toMillis(1));
-        return st.recentTurns.size() < MAX_TURNS_PER_HOUR;
+        return st.recentTurns.size() < maxTurnsPerHour();
     }
 
     private static void mark(UUID id) {
@@ -180,7 +180,8 @@ public final class SpiritAi {
         }
         messages.add(LlmMessage.user(message));
 
-        provider.complete(new LlmRequest(system, messages, maxTokens, 0.8))
+        var cfg = SpiritConfig.get();
+        provider.complete(new LlmRequest(system, messages, maxTokens, cfg.temperature))
             .whenComplete((content, err) -> server.execute(() -> {
                 if (err != null) {
                     RedzSpirit.LOGGER.warn("LLM call failed ({}): {}", provider.id(), err.toString());

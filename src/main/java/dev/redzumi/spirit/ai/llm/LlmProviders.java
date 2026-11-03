@@ -1,58 +1,52 @@
 package dev.redzumi.spirit.ai.llm;
 
 import dev.redzumi.spirit.RedzSpirit;
+import dev.redzumi.spirit.ai.SpiritConfig;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Реестр провайдеров LLM. У каждого провайдера — свой namespace env-переменных
- * (<PROVIDER>_API_KEY / _MODEL / _BASE_URL); активный выбирается SPIRIT_PROVIDER.
+ * Реестр провайдеров LLM. Основной источник — config/redzspirit.json
+ * (см. SpiritConfig); env-переменные работают как override/фолбэк.
  *
- * DeepSeek дополнительно принимает старые SPIRIT_API_KEY/SPIRIT_MODEL/SPIRIT_BASE_URL
- * как alias (обратная совместимость).
- *
- * Добавление нового провайдера: реализовать LlmProvider и вписать пресет ниже.
+ * Приоритет для deepseek: конфиг (с "env:"-ссылками) → legacy env
+ * (SPIRIT_API_KEY/SPIRIT_MODEL/SPIRIT_BASE_URL).
  */
 public final class LlmProviders {
     private LlmProviders() {}
 
-    /** Собрать доступные пресеты из окружения. */
+    /** Собрать доступные пресеты из конфига и окружения. */
     public static Map<String, LlmProvider> presets() {
+        var cfg = SpiritConfig.get();
         var map = new LinkedHashMap<String, LlmProvider>();
 
-        // DeepSeek: DEEPSEEK_* (alias SPIRIT_*)
-        String deepseekKey = env("DEEPSEEK_API_KEY", env("SPIRIT_API_KEY", null));
+        // DeepSeek (+ legacy SPIRIT_* env override)
+        String deepseekKey = SpiritConfig.resolveSecret(cfg.deepseek.apiKey);
+        if (deepseekKey == null) deepseekKey = env("SPIRIT_API_KEY", null);
         if (deepseekKey != null) {
             map.put("deepseek", new OpenAiCompatibleProvider("deepseek",
-                env("DEEPSEEK_BASE_URL", env("SPIRIT_BASE_URL", "https://api.deepseek.com")),
-                env("DEEPSEEK_MODEL", env("SPIRIT_MODEL", "deepseek-flash")),
+                env("SPIRIT_BASE_URL", cfg.deepseek.baseUrl),
+                env("SPIRIT_MODEL", cfg.deepseek.model),
                 deepseekKey));
         }
 
-        // OpenAI: OPENAI_*
-        String openaiKey = env("OPENAI_API_KEY", null);
+        // OpenAI
+        String openaiKey = SpiritConfig.resolveSecret(cfg.openai.apiKey);
         if (openaiKey != null) {
             map.put("openai", new OpenAiCompatibleProvider("openai",
-                env("OPENAI_BASE_URL", "https://api.openai.com/v1"),
-                env("OPENAI_MODEL", "gpt-4o-mini"),
-                openaiKey));
+                cfg.openai.baseUrl, cfg.openai.model, openaiKey));
         }
 
-        // Ollama: локальный, без ключа; только по явному выбору или заданному OLLAMA_BASE_URL
-        if ("ollama".equals(env("SPIRIT_PROVIDER", null)) || env("OLLAMA_BASE_URL", null) != null) {
-            map.put("ollama", new OllamaProvider(
-                env("OLLAMA_BASE_URL", "http://127.0.0.1:11434"),
-                env("OLLAMA_MODEL", "qwen2.5:3b")));
+        // Ollama: локальный без ключа — по явному выбору
+        if ("ollama".equals(cfg.provider) || "ollama".equals(env("SPIRIT_PROVIDER", null))) {
+            map.put("ollama", new OllamaProvider(cfg.ollama.baseUrl, cfg.ollama.model));
         }
 
-        // произвольный OpenAI-совместимый endpoint: CUSTOM_*
-        String customUrl = env("CUSTOM_BASE_URL", null);
-        if (customUrl != null) {
+        // произвольный OpenAI-совместимый endpoint
+        if (cfg.custom.baseUrl != null && !cfg.custom.baseUrl.isBlank()) {
             map.put("custom", new OpenAiCompatibleProvider("custom",
-                customUrl,
-                env("CUSTOM_MODEL", "model"),
-                env("CUSTOM_API_KEY", null)));
+                cfg.custom.baseUrl, cfg.custom.model, SpiritConfig.resolveSecret(cfg.custom.apiKey)));
         }
 
         return map;
@@ -61,7 +55,7 @@ public final class LlmProviders {
     /** Активный провайдер или null, если ни один не настроен. */
     public static LlmProvider active() {
         var presets = presets();
-        String wanted = env("SPIRIT_PROVIDER", "deepseek");
+        String wanted = env("SPIRIT_PROVIDER", SpiritConfig.get().provider);
         var provider = presets.get(wanted);
         if (provider == null && !presets.isEmpty()) {
             provider = presets.values().iterator().next();
