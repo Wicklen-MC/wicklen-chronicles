@@ -23,19 +23,31 @@ public final class SpiritWorldEvents {
     private static long lastEventAt;
     private static String lastPhase = "";
 
+    public static void reset() { wasNight = false; lastEventAt = 0; lastPhase = ""; }
+
     public static void register() {
         ServerTickEvents.END_SERVER_TICK.register(SpiritWorldEvents::onTick);
         registerCombat();
 
         // смерть игрока — слух для всех духов + личный комментарий погибшему
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
+            if (entity.level() instanceof ServerLevel level
+                    && entity instanceof net.minecraft.world.entity.TamableAnimal pet && pet.isTame()) {
+                var ownerRef = pet.getOwnerReference();
+                var owner = ownerRef == null ? null : ownerRef.getEntity(level, LivingEntity.class);
+                if (owner instanceof ServerPlayer player) {
+                    String description = pet.getDisplayName().getString();
+                    dev.redzumi.spirit.ai.SpiritMemorial.add(player.getUUID(), description);
+                    dev.redzumi.spirit.ai.SpiritRumors.add(
+                        "Слух: у " + player.getScoreboardName() + " погиб питомец (" + description + ").");
+                }
+            }
             if (entity instanceof ServerPlayer player && player.level() instanceof ServerLevel level) {
                 String deathMsg = source.getLocalizedDeathMessage(player).getString();
                 dev.redzumi.spirit.ai.SpiritRumors.add("Слух: " + deathMsg + ".");
 
                 MinecraftServer server = level.getServer();
-                if (!SpiritAi.enabled() || !cooldownPassed()) return;
-                markEvent();
+                if (!dev.redzumi.spirit.ai.SpiritConfig.get().proactive || !SpiritAi.enabled()) return;
                 SpiritAi.narrate(server, player,
                     "Твой игрок (%s) только что погиб: %s. Скажи ему одну краткую фразу соболезнования с лёгкой надеждой."
                         .formatted(player.getScoreboardName(), deathMsg));
@@ -46,19 +58,6 @@ public final class SpiritWorldEvents {
     private static void registerCombat() {
         // погиб питомец → памятник + слух; игрок убил моба → прогресс slay-квеста
         ServerEntityCombatEvents.AFTER_KILLED_OTHER_ENTITY.register((world, killer, killed, source) -> {
-            // питомец убит кем-то/чем-то
-            if (killed instanceof net.minecraft.world.entity.TamableAnimal pet && pet.isTame()) {
-                var ownerRef = pet.getOwnerReference();
-                if (ownerRef != null) {
-                    var owner = ownerRef.getEntity(world, net.minecraft.world.entity.LivingEntity.class);
-                    if (owner instanceof ServerPlayer sp) {
-                        String desc = pet.getType().toString().replace("entity.minecraft.", "");
-                        dev.redzumi.spirit.ai.SpiritMemorial.add(sp.getUUID(), desc);
-                        dev.redzumi.spirit.ai.SpiritRumors.add(
-                            "Слух: у " + sp.getScoreboardName() + " погиб питомец (" + desc + ").");
-                    }
-                }
-            }
             // игрок убил моба — прогресс квеста slay
             if (killer instanceof ServerPlayer sp) {
                 String mobId = net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE
@@ -71,6 +70,7 @@ public final class SpiritWorldEvents {
     private static void onTick(MinecraftServer server) {
         // проверяем раз в 100 тиков (5 c)
         if (server.getTickCount() % 100 != 0) return;
+        if (!dev.redzumi.spirit.ai.SpiritConfig.get().proactive) return;
         for (ServerLevel level : server.getAllLevels()) {
             if (!level.dimension().equals(net.minecraft.world.level.Level.OVERWORLD)) continue;
 
@@ -99,7 +99,7 @@ public final class SpiritWorldEvents {
             }
 
             // полнолуние — раз за лунный цикл
-            if (moonPhase(level) == 0 && !lastPhase.equals("full") && !level.players().isEmpty()
+            if (night && moonPhase(level) == 0 && !lastPhase.equals("full") && !level.players().isEmpty()
                     && cooldownPassed()) {
                 lastPhase = "full";
                 markEvent();

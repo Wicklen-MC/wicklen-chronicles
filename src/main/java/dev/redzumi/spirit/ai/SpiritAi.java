@@ -1,7 +1,6 @@
 package dev.redzumi.spirit.ai;
 
 import dev.redzumi.spirit.RedzSpirit;
-import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import dev.redzumi.spirit.ai.llm.LlmMessage;
@@ -9,13 +8,10 @@ import dev.redzumi.spirit.ai.llm.LlmProvider;
 import dev.redzumi.spirit.ai.llm.LlmProviders;
 import dev.redzumi.spirit.ai.llm.LlmRequest;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * LLM-слой духа: провайдер выбирается абстракцией LlmProviders
@@ -36,27 +32,12 @@ public final class SpiritAi {
         return LlmProviders.active() != null;
     }
 
-    // --- состояние на игрока: троттлинг ---
-    private static final class PlayerState {
-        long lastCall;
-        final ArrayDeque<Long> recentTurns = new ArrayDeque<>();
-    }
+    private static final RequestLimiter LIMITER = new RequestLimiter();
+    public static void reset() { LIMITER.clear(); }
 
-    private static final Map<UUID, PlayerState> STATES = new ConcurrentHashMap<>();
-
-    private static boolean allow(UUID id) {
-        var st = STATES.computeIfAbsent(id, k -> new PlayerState());
-        long now = System.currentTimeMillis();
-        if (now - st.lastCall < cooldownMs()) return false;
-        st.recentTurns.removeIf(t -> now - t > TimeUnit.HOURS.toMillis(1));
-        return st.recentTurns.size() < maxTurnsPerHour();
-    }
-
-    private static void mark(UUID id) {
-        var st = STATES.get(id);
-        if (st == null) return;
-        st.recentTurns.add(System.currentTimeMillis());
-        st.lastCall = System.currentTimeMillis();
+    public static boolean canNarrate(ServerPlayer player) {
+        return enabled() && LIMITER.check(player.getUUID(), System.currentTimeMillis(), cooldownMs(), maxTurnsPerHour())
+            == RequestLimiter.Result.ACCEPTED;
     }
 
     /** Память диалога — постоянное хранилище (переживает рестарты). */
@@ -80,47 +61,64 @@ public final class SpiritAi {
 
     private static void call(MinecraftServer server, ServerPlayer player, String message, boolean isChat) {
         if (!enabled()) {
-            if (isChat) reply(player, SpiritPersonas.of(player.getUUID()), "…дух спит. (LLM-провайдер не настроен)");
+            if (isChat) reply(player, "…дух спит. (LLM-провайдер не настроен)");
             return;
         }
-        var persona = SpiritPersonas.of(player.getUUID());
-        callInternal(server, player, message, isChat, text -> reply(player, persona, text));
+        callInternal(server, player, message, isChat, text -> reply(player, text));
     }
 
     /** Диалог из окна: ответ уходит в окно (S2C) и облачком, не в чат. */
     public static void chatWindow(MinecraftServer server, ServerPlayer player, String message,
                                   java.util.function.Consumer<String> responder) {
-        if (!enabled()) {
-            responder.accept("…дух спит. (LLM-провайдер не настроен)");
-            return;
-        }
-        callInternal(server, player, message, true, text -> {
+        java.util.function.Consumer<String> deliver = text -> {
             responder.accept(text);
             var persona = SpiritPersonas.of(player.getUUID());
             dev.redzumi.spirit.SpiritBubbles.show(player, persona.color(), text);
-        });
+        };
+        if (!enabled()) {
+            deliver.accept("…дух спит. (LLM-провайдер не настроен)");
+            return;
+        }
+        callInternal(server, player, message, true, deliver);
     }
 
     private static void callInternal(MinecraftServer server, ServerPlayer player, String message,
                                      boolean isChat, java.util.function.Consumer<String> responder) {
-        if (!allow(player.getUUID())) return; // молча троттлим
+        UUID playerId = player.getUUID();
+        var result = LIMITER.acquire(playerId, System.currentTimeMillis(), cooldownMs(), maxTurnsPerHour());
+        if (result != RequestLimiter.Result.ACCEPTED) {
+            if (isChat) responder.accept(switch (result) {
+                case BUSY -> "Я ещё обдумываю предыдущий вопрос. Подожди немного…";
+                case COOLDOWN -> "Дай мне несколько секунд собраться с мыслями…";
+                default -> "Я устал. Давай продолжим чуть позже — лимит разговоров за час исчерпан.";
+            });
+            return;
+        }
         var persona = SpiritPersonas.of(player.getUUID());
 
-        String context = SpiritSenses.context(player);
-
-        request(server, persona, player.getScoreboardName(), memory(player.getUUID()), context, message,
-            language(player), 150, text -> {
-                mark(player.getUUID());
-                if (isChat) remember(player.getUUID(), message, text);
-                responder.accept(text);
-            }, isChat);
+        try {
+            String context = SpiritSenses.context(player);
+            request(server, persona, player.getScoreboardName(), memory(playerId), context, message,
+                language(player), SpiritConfig.get().maxTokens, text -> {
+                    if (isChat) remember(playerId, message, text);
+                    responder.accept(text);
+                }, isChat ? responder : ignored -> {}, () -> LIMITER.complete(playerId),
+                () -> {
+                    var current = server.getPlayerList().getPlayer(playerId);
+                    return current != null && current.connection == player.connection;
+                });
+        } catch (RuntimeException error) {
+            LIMITER.complete(playerId);
+            RedzSpirit.LOGGER.warn("[redz-spirit] context failed: {}", error.toString());
+            if (isChat) responder.accept("Не могу собраться с мыслями. Попробуй чуть позже.");
+        }
     }
 
     /** Летопись: раз в день глава из слухов (без игрока, длинный ответ). */
     public static void chronicle(MinecraftServer server, String prompt, java.util.function.Consumer<String> responder) {
         if (!enabled()) return;
         request(server, SpiritPersonas.ALL.get("owl"), "chronicle", List.of(), null, prompt,
-            "русский", 700, responder, false);
+            "русский", 700, responder, ignored -> {}, () -> {}, () -> true);
     }
 
     /** Язык ответа — по клиентской локали игрока. */
@@ -149,17 +147,20 @@ public final class SpiritAi {
             responder.accept("LLM disabled: провайдер не настроен (SPIRIT_PROVIDER/SPIRIT_API_KEY)");
             return;
         }
-        request(server, SpiritPersonas.ALL.get("owl"), "console", List.of(), null, message, "русский", 150, responder, true);
+        request(server, SpiritPersonas.ALL.get("owl"), "console", List.of(), null, message, "русский",
+            SpiritConfig.get().maxTokens, responder, responder, () -> {}, () -> true);
     }
 
     private static void request(MinecraftServer server, SpiritPersonas.Persona persona, String playerName,
                                 List<SpiritMemoryStore.Turn> history, String context, String message,
                                 String language, int maxTokens,
-                                java.util.function.Consumer<String> responder, boolean reportErrors) {
+                                java.util.function.Consumer<String> responder, java.util.function.Consumer<String> errors,
+                                Runnable finished, java.util.function.BooleanSupplier recipientOnline) {
 
         LlmProvider provider = LlmProviders.active();
         if (provider == null) {
-            if (reportErrors) responder.accept("…дух спит. (LLM-провайдер не настроен)");
+            finished.run();
+            errors.accept("…дух спит. (LLM-провайдер не настроен)");
             return;
         }
 
@@ -181,23 +182,33 @@ public final class SpiritAi {
         messages.add(LlmMessage.user(message));
 
         var cfg = SpiritConfig.get();
-        provider.complete(new LlmRequest(system, messages, maxTokens, cfg.temperature))
+        CompletableFuture<String> future;
+        try {
+            future = provider.complete(new LlmRequest(system, messages, maxTokens, cfg.temperature));
+        } catch (RuntimeException error) {
+            future = CompletableFuture.failedFuture(error);
+        }
+        future
             .whenComplete((content, err) -> server.execute(() -> {
-                if (err != null) {
-                    RedzSpirit.LOGGER.warn("LLM call failed ({}): {}", provider.id(), err.toString());
-                    if (reportErrors) responder.accept("…дух улетел за мыслями и не вернулся.");
-                    return;
+                try {
+                    if (!recipientOnline.getAsBoolean()) return;
+                    if (err != null || content == null || content.isBlank()) {
+                        RedzSpirit.LOGGER.warn("LLM call failed ({}): {}", provider.id(),
+                            err == null ? "empty response" : err.toString());
+                        errors.accept("…дух улетел за мыслями и не вернулся.");
+                        return;
+                    }
+                    String text = content.length() > 2000 ? content.substring(0, 2000) + "…" : content;
+                    RedzSpirit.LOGGER.info("[redz-spirit] answer via {} -> {}: {}", provider.id(), playerName, text);
+                    responder.accept(text);
+                } finally {
+                    finished.run();
                 }
-                RedzSpirit.LOGGER.info("[redz-spirit] answer via {} -> {}: {}", provider.id(), playerName, content);
-                responder.accept(content);
             }));
     }
 
-    private static void reply(ServerPlayer player, SpiritPersonas.Persona persona, String text) {
-        player.sendSystemMessage(
-            Component.literal("✦ " + persona.title() + ": ").withStyle(s -> s.withColor(persona.color()))
-                .append(Component.literal(text)));
-        dev.redzumi.spirit.SpiritBubbles.show(player, persona.color(), text);
+    private static void reply(ServerPlayer player, String text) {
+        dev.redzumi.spirit.SpiritBubbles.speak(player, text);
     }
 
     private SpiritAi() {}

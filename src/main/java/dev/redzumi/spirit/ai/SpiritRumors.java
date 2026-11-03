@@ -17,6 +17,7 @@ public final class SpiritRumors {
     private static final ArrayDeque<Rumor> RUMORS = new ArrayDeque<>();
 
     private SpiritRumors() {}
+    public static synchronized void reset() { RUMORS.clear(); }
 
     public static synchronized void add(String text) {
         if (RUMORS.size() >= MAX) RUMORS.pollFirst();

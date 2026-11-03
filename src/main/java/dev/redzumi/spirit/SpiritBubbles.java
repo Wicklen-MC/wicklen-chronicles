@@ -9,6 +9,7 @@ import dev.redzumi.spirit.ai.SpiritPersonas;
 import dev.redzumi.spirit.net.SpiritBubblePayload;
 import dev.redzumi.spirit.net.SpiritChatC2SPayload;
 import dev.redzumi.spirit.net.SpiritDialogS2CPayload;
+import net.minecraft.network.chat.Component;
 
 /** Сетевой слой духа: облачка (S2C), окно диалога (C2S/S2C). */
 public final class SpiritBubbles {
@@ -27,8 +28,7 @@ public final class SpiritBubbles {
                 if (text.isEmpty() || text.length() > 300) return;
                 var persona = SpiritPersonas.of(player.getUUID());
                 SpiritAi.chatWindow(context.server(), player, text, answer ->
-                    ServerPlayNetworking.send(player,
-                        new SpiritDialogS2CPayload(persona.title(), persona.color(), answer)));
+                    sendDialog(player, persona.title(), persona.color(), answer));
             }));
     }
 
@@ -36,14 +36,32 @@ public final class SpiritBubbles {
 
     /** Кэш id духа игрока: обновляется при спавне/удалении (SpiritManager). */
     public static void spiritId(java.util.UUID playerId, Integer entityId) {
+        if (playerId == null) return;
         if (entityId == null) SPIRIT_IDS.remove(playerId); else SPIRIT_IDS.put(playerId, entityId);
+    }
+
+    public static void clear() { SPIRIT_IDS.clear(); }
+
+    public static void sendDialog(ServerPlayer player, String title, int color, String text) {
+        if (ServerPlayNetworking.canSend(player, SpiritDialogS2CPayload.TYPE)) {
+            ServerPlayNetworking.send(player, new SpiritDialogS2CPayload(title, color, text));
+        }
+    }
+
+    /** All spoken lines share the same chat, history and bubble delivery path. */
+    public static void speak(ServerPlayer player, String text) {
+        var persona = SpiritPersonas.of(player.getUUID());
+        player.sendSystemMessage(Component.literal("✦ " + persona.title() + ": ")
+            .withStyle(style -> style.withColor(persona.color())).append(Component.literal(text)));
+        sendDialog(player, persona.title(), persona.color(), text);
+        show(player, persona.color(), text);
     }
 
     /** Повесить текст над духом игрока (если дух есть). */
     public static void show(ServerPlayer player, int color, String text) {
         Integer id = SPIRIT_IDS.get(player.getUUID());
-        if (id == null) return; // дух спрятан — носителя нет
-        long ttl = Math.min(12_000, 4_000 + text.length() * 45L);
+        if (id == null || text.isBlank() || !ServerPlayNetworking.canSend(player, SpiritBubblePayload.TYPE)) return;
+        long ttl = Math.min(20_000, 6_000 + text.length() * 60L);
         ServerPlayNetworking.send(player, new SpiritBubblePayload(id, text, color, ttl));
     }
 }

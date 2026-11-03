@@ -25,7 +25,7 @@ public final class OllamaProvider implements LlmProvider {
     private final String model;
 
     public OllamaProvider(String baseUrl, String model) {
-        this.baseUrl = baseUrl;
+        this.baseUrl = baseUrl == null ? "" : baseUrl.replaceAll("/+$", "");
         this.model = model;
     }
 

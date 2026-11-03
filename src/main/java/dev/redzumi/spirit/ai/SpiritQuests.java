@@ -135,6 +135,18 @@ public final class SpiritQuests {
     }
 
     private static void complete(ServerPlayer player, Quest quest) {
+        if ("collect".equals(quest.type())) {
+            int remaining = quest.need();
+            for (int i = 0; i < player.getInventory().getContainerSize() && remaining > 0; i++) {
+                var stack = player.getInventory().getItem(i);
+                if (!stack.isEmpty() && BuiltInRegistries.ITEM.getKey(stack.getItem()).toString().equals(quest.target())) {
+                    int take = Math.min(remaining, stack.getCount());
+                    stack.shrink(take);
+                    remaining -= take;
+                }
+            }
+            player.getInventory().setChanged();
+        }
         // награда из whitelist'а
         var itemId = REWARDS.get(RND.nextInt(REWARDS.size()));
         var item = BuiltInRegistries.ITEM.get(Identifier.parse(itemId));
@@ -143,11 +155,10 @@ public final class SpiritQuests {
             if (!player.getInventory().add(stack)) player.spawnAtLocation((net.minecraft.server.level.ServerLevel) player.level(), stack);
         });
 
-        // дух поздравляет
-        var server = player.level().getServer();
-        SpiritAi.narrate(server, player,
-            "Игрок выполнил твоё задание «%s»! Поздравь его одной короткой торжественной фразой и упомяни награду."
-                .formatted(quest.describe()));
+        // Completion and reward feedback also work while the LLM is offline.
+        dev.redzumi.spirit.SpiritBubbles.speak(player,
+            "Задание выполнено: «%s»! Твоя награда: %d× %s.".formatted(
+                quest.describe(), REWARD_COUNT, item.map(ref -> new ItemStack(ref.value()).getHoverName().getString()).orElse(itemId)));
         RedzSpirit.LOGGER.info("[redz-spirit] quest done by {}: {}", player.getScoreboardName(), quest.describe());
     }
 

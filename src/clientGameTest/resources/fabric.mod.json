@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "redzspirit-test",
+  "version": "1.0.0",
+  "name": "Redz Spirit client regression tests",
+  "environment": "client",
+  "entrypoints": {
+    "fabric-client-gametest": ["dev.redzumi.spirit.client.SpiritClientGameTest"]
+  }
+}

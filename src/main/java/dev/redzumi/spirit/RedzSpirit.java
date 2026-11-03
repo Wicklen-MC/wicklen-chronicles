@@ -40,6 +40,16 @@ public class RedzSpirit implements ModInitializer {
         SpiritBubbles.register();
         net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents.SERVER_STOPPING.register(
             server -> dev.redzumi.spirit.ai.SpiritMemoryStore.flush());
+        net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
+            dev.redzumi.spirit.ai.SpiritAi.reset();
+            dev.redzumi.spirit.ai.SpiritRumors.reset();
+            dev.redzumi.spirit.ai.SpiritMemoryStore.reset();
+            dev.redzumi.spirit.ai.JsonStore.resetAll();
+            dev.redzumi.spirit.ai.SpiritConfig.reset();
+            dev.redzumi.spirit.ai.llm.LlmProviders.reset();
+            SpiritProactive.reset();
+            SpiritWorldEvents.reset();
+        });
         var active = dev.redzumi.spirit.ai.llm.LlmProviders.active();
         LOGGER.info("[redz-spirit] initialized, LLM provider: {}",
             active == null ? "none (дух спит)" : active.id());

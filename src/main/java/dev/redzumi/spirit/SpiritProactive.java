@@ -81,16 +81,26 @@ public final class SpiritProactive {
         ServerTickEvents.END_SERVER_TICK.register(SpiritProactive::onTick);
     }
 
+    public static void reset() { WATCH.clear(); LAST_FIRED.clear(); LAST_ADV.clear(); }
+
     private static void onTick(MinecraftServer server) {
         if (server.getTickCount() % CHECK_EVERY_TICKS != 0) return;
-        if (!SpiritAi.enabled()) return;
-
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            // Deterministic quest progress must work without an LLM or proactive speech.
+            dev.redzumi.spirit.ai.SpiritQuests.tickProgress(player);
+            if (!dev.redzumi.spirit.ai.SpiritConfig.get().proactive
+                    || dev.redzumi.spirit.ai.SpiritPrefs.isHidden(player.getUUID())
+                    || !SpiritAi.canNarrate(player)) continue;
             if (!(player.level() instanceof ServerLevel level)) continue;
             var watch = WATCH.computeIfAbsent(player.getUUID(),
                 k -> new PlayerWatch(SpiritSenses.biomeName(player), player.getY() < 0,
                     level.isThundering(), SpiritRumors.stamp()));
-            // в конце цикла WATCH обновится актуальными значениями (см. ниже)
+            String biomeNow = SpiritSenses.biomeName(player);
+            boolean deep = player.getY() < 0;
+            boolean thunder = level.isThundering();
+            long stamp = SpiritRumors.stamp();
+            // Update before branches: continue must not leave stale observations behind.
+            WATCH.put(player.getUUID(), new PlayerWatch(biomeNow, deep, thunder, stamp));
 
             // --- опасность: мало HP и враги рядом ---
             int hostiles = SpiritSenses.countHostiles(player);
@@ -111,35 +121,29 @@ public final class SpiritProactive {
             }
 
             // --- гроза началась ---
-            boolean thunder = level.isThundering();
             if (thunder && !watch.thunder() && ready(player, "thunder", TRIGGER_COOLDOWN_MS)) {
                 SpiritAi.narrate(server, player,
                     "Началась гроза. Одна короткая атмосферная реплика про грозу и молнии.");
-                WATCH.put(player.getUUID(), new PlayerWatch(watch.biome(), watch.deep(), true, watch.lastRumorSeen()));
                 continue;
             }
 
             // --- новый биом ---
-            String biomeNow = SpiritSenses.biomeName(player);
             if (!biomeNow.equals(watch.biome()) && !biomeNow.equals("unknown")
                     && ready(player, "biome", TRIGGER_COOLDOWN_MS)) {
                 String pretty = biomeNow.substring(biomeNow.indexOf(':') + 1).replace('_', ' ');
                 SpiritAi.narrate(server, player,
                     "Игрок вошёл в новый биом: %s. Одна короткая живая реплика об этом месте.".formatted(pretty));
-                continue; // WATCH обновится актуальными значениями в конце
+                continue;
             }
 
             // --- ушёл глубоко под землю ---
-            boolean deep = player.getY() < 0;
             if (deep && !watch.deep() && ready(player, "deep", TRIGGER_COOLDOWN_MS)) {
                 SpiritAi.narrate(server, player,
                     "Игрок спустился глубоко под землю (y=%d). Короткая реплика про глубину и темноту.".formatted((int) player.getY()));
-                WATCH.put(player.getUUID(), new PlayerWatch(watch.biome(), true, watch.thunder(), watch.lastRumorSeen()));
                 continue;
             }
 
             // --- свежий слух ---
-            long stamp = SpiritRumors.stamp();
             if (stamp != watch.lastRumorSeen()
                     && ready(player, "rumor", TRIGGER_COOLDOWN_MS)) {
                 var rumors = SpiritRumors.recent(1);
@@ -147,7 +151,6 @@ public final class SpiritProactive {
                     SpiritAi.narrate(server, player,
                         "До тебя дошёл слух: «%s». Перескажи его игроку одной короткой фразой в своей манере."
                             .formatted(rumors.get(0)));
-                    WATCH.put(player.getUUID(), new PlayerWatch(watch.biome(), watch.deep(), watch.thunder(), stamp));
                     continue;
                 }
             }
@@ -166,16 +169,14 @@ public final class SpiritProactive {
             // --- проводник: новые достижения игрока ---
             int advDone = countAdvancements(server, player);
             var lastAdv = LAST_ADV.getOrDefault(player.getUUID(), -1);
+            LAST_ADV.put(player.getUUID(), advDone);
             if (lastAdv >= 0 && advDone > lastAdv
                     && ready(player, "guide", 5 * 60_000)) {
                 SpiritAi.narrate(server, player,
                     "Игрок только что получил новое достижение (всего %d). Коротко поздравь и намекни, куда можно двигаться дальше."
                         .formatted(advDone));
+                continue;
             }
-            LAST_ADV.put(player.getUUID(), advDone);
-
-            // --- квесты: прогресс collect/visit ---
-            dev.redzumi.spirit.ai.SpiritQuests.tickProgress(player);
 
             // --- скука: редкая спонтанная реплика ---
             if (RND.nextInt(1000) < BORED_CHANCE_PER_MILLE
@@ -184,9 +185,6 @@ public final class SpiritProactive {
                     "Ничего особенного не происходит. Скажи одну короткую спонтанную фразу по ситуации вокруг игрока.");
             }
 
-            // обновить слежение АКТУАЛЬНЫМИ значениями (ветки выше могли не отработать)
-            WATCH.put(player.getUUID(), new PlayerWatch(
-                biomeNow, player.getY() < 0, level.isThundering(), watch.lastRumorSeen()));
         }
     }
 

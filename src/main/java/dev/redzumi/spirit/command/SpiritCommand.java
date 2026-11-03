@@ -20,19 +20,16 @@ public final class SpiritCommand {
                         var player = ctx.getSource().getPlayerOrException();
                         dev.redzumi.spirit.ai.SpiritPrefs.setHidden(player.getUUID(), false);
                         dev.redzumi.spirit.SpiritManager.ensureSpirit(player);
+                        dev.redzumi.spirit.SpiritBubbles.speak(player, "Я здесь. Нажми G — поговорим!");
                         ctx.getSource().sendSuccess(() -> Component.literal("Дух призван и кружит рядом."), false);
                         return 1;
                     }))
                 .then(Commands.literal("dismiss")
                     .executes(ctx -> {
                         var player = ctx.getSource().getPlayerOrException();
-                        int removed = 0;
-                        for (var e : player.level().getEntities(player, player.getBoundingBox().inflate(32),
-                                ent -> ent instanceof SpiritEntity s && player.getScoreboardName().equals(s.ownerName()))) {
-                            e.discard();
-                            removed++;
-                        }
                         dev.redzumi.spirit.ai.SpiritPrefs.setHidden(player.getUUID(), true);
+                        int removed = dev.redzumi.spirit.SpiritManager.discardSpirits(
+                            player.getScoreboardName(), ctx.getSource().getServer());
                         int r = removed;
                         ctx.getSource().sendSuccess(() -> Component.literal("Дух отпущен (" + r + "). Вернуть: /spirit summon"), false);
                         return r;
@@ -61,6 +58,8 @@ public final class SpiritCommand {
                                 return 0;
                             }
                             dev.redzumi.spirit.ai.SpiritPersonas.set(player.getUUID(), id);
+                            dev.redzumi.spirit.SpiritManager.refreshAppearance(player);
+                            dev.redzumi.spirit.SpiritBubbles.speak(player, p.joinLine().replaceFirst("^✦\\s*", ""));
                             ctx.getSource().sendSuccess(() -> Component.literal(
                                 "Дух сменил облик: " + p.title() + ". " + p.joinLine()), false);
                             return 1;
@@ -99,7 +98,7 @@ public final class SpiritCommand {
                         } catch (Exception ignored) {}
                         var last = recent.stream().skip(Math.max(0, recent.size() - 6)).toList();
                         dev.redzumi.spirit.ai.SpiritAi.narrate(server, player,
-                            "Игрок просит совета-проводника. Его недавние достижения: %s. Подскажи одной-двумя короткими фразами, куда двигаться дальше по духу сборки."
+                            "Игрок просит совета-проводника. Некоторые его выполненные достижения: %s. Подскажи одной-двумя короткими фразами, куда двигаться дальше по духу сборки."
                                 .formatted(String.join(", ", last)));
                         ctx.getSource().sendSuccess(() -> Component.literal("Дух думает над советом…"), false);
                         return 1;

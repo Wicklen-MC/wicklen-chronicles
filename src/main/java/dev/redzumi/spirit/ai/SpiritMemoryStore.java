@@ -43,7 +43,7 @@ public final class SpiritMemoryStore {
     }
 
     public static void append(UUID playerId, String user, String spirit) {
-        var turns = new ArrayList<>(mem().getOrDefault(playerId.toString(), new Entry(0, List.of())).turns());
+        var turns = new ArrayList<>(turns(playerId));
         if (turns.size() >= MAX_TURNS) turns.remove(0);
         turns.add(new Turn(user, spirit));
         mem().put(playerId.toString(), new Entry(System.currentTimeMillis(), List.copyOf(turns)));
@@ -54,6 +54,8 @@ public final class SpiritMemoryStore {
     public static void flush() {
         STORE.save();
     }
+
+    public static void reset() { lastSave = 0; }
 
     private static void saveThrottled() {
         long now = System.currentTimeMillis();

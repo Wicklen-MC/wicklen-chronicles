@@ -7,6 +7,10 @@ import net.fabricmc.loader.api.FabricLoader;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.function.Supplier;
 
 /**
@@ -18,19 +22,31 @@ import java.util.function.Supplier;
  */
 public final class JsonStore<T> {
     private static final Gson GSON = new Gson();
+    private static final List<JsonStore<?>> STORES = new ArrayList<>();
 
     private final String fileName;
     private final TypeToken<T> type;
+    private final Supplier<Path> directory;
     private T data;
     private boolean loaded;
 
     public JsonStore(String fileName, TypeToken<T> type) {
+        this(fileName, type, () -> FabricLoader.getInstance().getGameDir().resolve("redzspirit"));
+    }
+
+    JsonStore(String fileName, TypeToken<T> type, Path directory) {
+        this(fileName, type, () -> directory);
+    }
+
+    private JsonStore(String fileName, TypeToken<T> type, Supplier<Path> directory) {
         this.fileName = fileName;
         this.type = type;
+        this.directory = directory;
+        synchronized (STORES) { STORES.add(this); }
     }
 
     private Path file() {
-        return FabricLoader.getInstance().getGameDir().resolve("redzspirit").resolve(fileName);
+        return directory.get().resolve(fileName);
     }
 
     /** Данные: лениво читает файл, при ошибке/отсутствии — def (один раз). */
@@ -55,11 +71,26 @@ public final class JsonStore<T> {
 
     /** Записать текущие данные на диск. */
     public synchronized void save() {
+        if (!loaded) return; // flushing an unused store must not overwrite existing data with null
         try {
             Files.createDirectories(file().getParent());
-            Files.writeString(file(), GSON.toJson(data, type.getType()));
+            Path pending = file().resolveSibling(fileName + ".tmp");
+            Files.writeString(pending, GSON.toJson(data, type.getType()));
+            try {
+                Files.move(pending, file(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+            } catch (AtomicMoveNotSupportedException ignored) {
+                Files.move(pending, file(), StandardCopyOption.REPLACE_EXISTING);
+            }
         } catch (Exception e) {
             RedzSpirit.LOGGER.warn("[redz-spirit] {} save failed: {}", fileName, e.toString());
         }
     }
+
+    public static void resetAll() {
+        synchronized (STORES) {
+            for (var store : STORES) store.reset();
+        }
+    }
+
+    private synchronized void reset() { loaded = false; data = null; }
 }

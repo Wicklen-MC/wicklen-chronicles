@@ -57,12 +57,16 @@ public final class SpiritConfig {
         try {
             if (Files.exists(file)) {
                 instance = GSON.fromJson(Files.readString(file), SpiritConfig.class);
-                if (instance != null) return instance;
+                if (instance != null) {
+                    instance.normalize();
+                    return instance;
+                }
             }
         } catch (Exception e) {
             RedzSpirit.LOGGER.warn("[redz-spirit] config load failed, using defaults: {}", e.toString());
         }
         instance = new SpiritConfig();
+        if (Files.exists(file)) return instance; // keep malformed user config available for repair
         try {
             Files.createDirectories(file.getParent());
             Files.writeString(file, GSON.toJson(instance));
@@ -77,10 +81,37 @@ public final class SpiritConfig {
         return FabricLoader.getInstance().getConfigDir().resolve("redzspirit.json");
     }
 
+    public static synchronized void reset() { instance = null; }
+
+    /** JSON may explicitly contain null or values outside provider limits. */
+    public void normalize() {
+        var defaults = new SpiritConfig();
+        if (provider == null || provider.isBlank()) provider = defaults.provider;
+        if (deepseek == null) deepseek = defaults.deepseek;
+        if (openai == null) openai = defaults.openai;
+        if (ollama == null) ollama = defaults.ollama;
+        if (custom == null) custom = defaults.custom;
+        restoreDefaults(deepseek, defaults.deepseek);
+        restoreDefaults(openai, defaults.openai);
+        restoreDefaults(ollama, defaults.ollama);
+        cooldownMs = Math.clamp(cooldownMs, 0, 3_600_000);
+        maxTurnsPerHour = Math.clamp(maxTurnsPerHour, 1, 1000);
+        maxTokens = Math.clamp(maxTokens, 32, 2048);
+        temperature = Double.isFinite(temperature) ? Math.clamp(temperature, 0, 2) : defaults.temperature;
+    }
+
+    private static void restoreDefaults(ProviderCfg cfg, ProviderCfg defaults) {
+        if (cfg.baseUrl == null || cfg.baseUrl.isBlank()) cfg.baseUrl = defaults.baseUrl;
+        if (cfg.model == null || cfg.model.isBlank()) cfg.model = defaults.model;
+    }
+
     /** "env:NAME" -> getenv(NAME); литерал -> как есть; пустое -> null. */
     public static String resolveSecret(String value) {
         if (value == null || value.isBlank()) return null;
-        if (value.startsWith("env:")) return System.getenv(value.substring(4));
+        if (value.startsWith("env:")) {
+            String secret = System.getenv(value.substring(4));
+            return secret == null || secret.isBlank() ? null : secret;
+        }
         return value;
     }
 

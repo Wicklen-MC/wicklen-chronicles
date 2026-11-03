@@ -54,6 +54,40 @@ java {
 	targetCompatibility = JavaVersion.VERSION_25
 }
 
+sourceSets {
+	regression {
+		compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+		runtimeClasspath += sourceSets.main.runtimeClasspath
+	}
+	clientGameTest {
+		compileClasspath += sourceSets.main.output + sourceSets.client.output + sourceSets.client.compileClasspath
+		runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.client.runtimeClasspath
+	}
+}
+
+tasks.register('regressionTest', JavaExec) {
+	group = 'verification'
+	description = 'Checks request limits, persistence, config validation and both LLM protocols without external services.'
+	classpath = sourceSets.regression.runtimeClasspath
+	mainClass = 'dev.redzumi.spirit.ai.RegressionChecks'
+}
+tasks.named('check') { dependsOn tasks.named('regressionTest') }
+
+loom {
+	mods {
+		'redzspirit-test' { sourceSet sourceSets.clientGameTest }
+	}
+	runs {
+		clientGameTest {
+			client()
+			source sourceSets.clientGameTest
+			runDir 'build/client-gametest'
+			vmArg '-Dfabric.client.gametest'
+			vmArg '-Dfabric.client.gametest.testModResourcesPath=src/clientGameTest/resources'
+		}
+	}
+}
+
 jar {
 	def projectName = project.name
 	inputs.property "projectName", projectName

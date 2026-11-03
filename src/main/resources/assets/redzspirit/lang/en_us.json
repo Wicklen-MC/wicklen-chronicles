@@ -1,3 +1,5 @@
 {
-  "entity.redzspirit.spirit": "Spirit"
+  "entity.redzspirit.spirit": "Spirit",
+  "key.redzspirit.dialog": "Talk to your spirit",
+  "key.category.redzspirit.main": "Redz Spirit"
 }

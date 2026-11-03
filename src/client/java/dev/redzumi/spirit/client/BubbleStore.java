@@ -12,7 +12,9 @@ public final class BubbleStore {
     private BubbleStore() {}
 
     public static void put(int entityId, String text, int color, long ttlMs) {
-        BUBBLES.put(entityId, new Bubble(text, color, System.currentTimeMillis() + ttlMs));
+        long now = System.currentTimeMillis();
+        BUBBLES.entrySet().removeIf(entry -> entry.getValue().expiresAt() <= now);
+        BUBBLES.put(entityId, new Bubble(text, color, now + Math.clamp(ttlMs, 0, 30_000)));
     }
 
     /** Актуальное облачко или null. */

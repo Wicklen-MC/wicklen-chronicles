@@ -1,11 +1,12 @@
 package dev.redzumi.spirit.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import net.minecraft.client.model.EntityModel;
-import net.minecraft.client.model.geom.ModelPart;
+import net.minecraft.core.BlockPos;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.MobRenderer;
+import net.minecraft.client.renderer.entity.layers.RenderLayer;
+import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
@@ -15,22 +16,29 @@ import net.minecraft.world.phys.Vec3;
 import dev.redzumi.spirit.RedzSpirit;
 import dev.redzumi.spirit.entity.SpiritEntity;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
- * Рендерер духа: модель-куб (слой SLIME_OUTER), полупрозрачный тип со свечением-обводкой,
+ * Рендерер духа: анимированный светлячок с глазами, плавниками и венчиком,
  * «облачко» реплики над духом (S2C SpiritBubblePayload -> BubbleStore).
  */
-public class SpiritRenderer extends MobRenderer<SpiritEntity, SpiritRenderState, EntityModel<SpiritRenderState>> {
+public class SpiritRenderer extends MobRenderer<SpiritEntity, SpiritRenderState, SpiritModel> {
     private static final Identifier TEXTURE =
         Identifier.fromNamespaceAndPath(RedzSpirit.MOD_ID, "textures/entity/spirit.png");
-    private static final int OUTLINE_COLOR = 0xFF9FE8FF;
-    private static final int WRAP_WIDTH = 28;   // символов в строке облачка
-    private static final double BUBBLE_HEIGHT = 1.1;
+    private static final int WRAP_WIDTH = 170; // pixels, including wide Cyrillic glyphs
+    private static final int MAX_BUBBLE_LINES = 6;
+    private static final double BUBBLE_HEIGHT = 0.35;
 
     public SpiritRenderer(EntityRendererProvider.Context context) {
-        super(context, new SpiritModel(context.bakeLayer(net.minecraft.client.model.geom.ModelLayers.SLIME_OUTER)), 0.25f);
+        super(context, new SpiritModel(false), 0);
+        addLayer(new RenderLayer<>(this) {
+            private final SpiritModel eyes = new SpiritModel(true);
+
+            @Override
+            public void submit(PoseStack pose, SubmitNodeCollector collector, int light,
+                               SpiritRenderState state, float yRot, float xRot) {
+                collector.submitModel(eyes, state, pose, RenderTypes.entityCutout(TEXTURE),
+                    0xF000F0, OverlayTexture.NO_OVERLAY, 0xFF10243A, null, 0);
+            }
+        });
     }
 
     @Override
@@ -46,17 +54,42 @@ public class SpiritRenderer extends MobRenderer<SpiritEntity, SpiritRenderState,
     /** Дух всегда полупрозрачный. */
     @Override
     protected RenderType getRenderType(SpiritRenderState state, boolean visible, boolean invisibleToPlayer, boolean semiTransparent) {
+        if (invisibleToPlayer) return null;
         return RenderTypes.entityTranslucentCull(getTextureLocation(state));
+    }
+
+    @Override
+    protected int getModelTint(SpiritRenderState state) {
+        return 0xDC000000 | state.spiritColor;
+    }
+
+    @Override
+    protected int getBlockLightLevel(SpiritEntity entity, BlockPos pos) {
+        return 15;
+    }
+
+    @Override
+    protected void scale(SpiritRenderState state, PoseStack pose) {
+        float pulse = 1 + (float) Math.sin(state.ageInTicks * 0.07f) * 0.025f;
+        pose.scale(pulse, pulse, pulse);
     }
 
     @Override
     public void extractRenderState(SpiritEntity entity, SpiritRenderState state, float partialTick) {
         super.extractRenderState(entity, state, partialTick);
-        state.outlineColor = OUTLINE_COLOR; // свечение сквозь стены (vanilla-пасс)
+        state.spiritColor = entity.spiritColor();
 
         var bubble = BubbleStore.get(entity.getId());
         if (bubble != null) {
-            state.bubbleLines = wrap(bubble.text());
+            var lines = getFont().splitIgnoringLanguage(Component.literal(bubble.text()), WRAP_WIDTH);
+            int count = Math.min(MAX_BUBBLE_LINES, lines.size());
+            state.bubbleLines = new String[count];
+            for (int i = 0; i < count; i++) {
+                state.bubbleLines[i] = lines.get(i).getString();
+            }
+            if (lines.size() > count && count > 0) {
+                state.bubbleLines[count - 1] = getFont().plainSubstrByWidth(state.bubbleLines[count - 1], WRAP_WIDTH - 12) + "…";
+            }
             state.bubbleColor = bubble.color();
         } else {
             state.bubbleLines = new String[0];
@@ -75,32 +108,10 @@ public class SpiritRenderer extends MobRenderer<SpiritEntity, SpiritRenderState,
                 new Vec3(0.0, y, 0.0),
                 0,
                 Component.literal(state.bubbleLines[i]).withStyle(s -> s.withColor(state.bubbleColor)),
-                false,
+                true,
                 state.lightCoords,
                 camera);
         }
     }
 
-    /** Разбить реплику на короткие строки по словам. */
-    static String[] wrap(String text) {
-        List<String> lines = new ArrayList<>();
-        StringBuilder line = new StringBuilder();
-        for (String word : text.split("\\s+")) {
-            if (line.length() + word.length() + 1 > WRAP_WIDTH && line.length() > 0) {
-                lines.add(line.toString());
-                line.setLength(0);
-            }
-            if (line.length() > 0) line.append(' ');
-            line.append(word);
-        }
-        if (line.length() > 0) lines.add(line.toString());
-        return lines.toArray(new String[0]);
-    }
-
-    /** Простая модель-обёртка над ванильным слоем куба. */
-    static final class SpiritModel extends EntityModel<SpiritRenderState> {
-        SpiritModel(ModelPart root) {
-            super(root);
-        }
-    }
 }

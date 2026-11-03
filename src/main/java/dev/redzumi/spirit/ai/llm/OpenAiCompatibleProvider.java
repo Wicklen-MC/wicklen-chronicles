@@ -30,7 +30,7 @@ public final class OpenAiCompatibleProvider implements LlmProvider {
 
     public OpenAiCompatibleProvider(String id, String baseUrl, String model, String apiKey) {
         this.id = id;
-        this.baseUrl = baseUrl;
+        this.baseUrl = baseUrl == null ? "" : baseUrl.replaceAll("/+$", "");
         this.model = model;
         this.apiKey = apiKey;
     }
