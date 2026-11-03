@@ -1,0 +1,26 @@
+{
+	"schemaVersion": 1,
+	"id": "redzspirit",
+	"version": "${version}",
+	"name": "Redz Spirit",
+	"description": "Летающий дух-компаньон с LLM (DeepSeek/OpenAI-совместимый API) для сервера redz-v1.",
+	"authors": [
+		"redzumi"
+	],
+	"license": "MIT",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"dev.redzumi.spirit.RedzSpirit"
+		],
+		"client": [
+			"dev.redzumi.spirit.client.RedzSpiritClient"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=0.20.1",
+		"minecraft": "~26.3",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}

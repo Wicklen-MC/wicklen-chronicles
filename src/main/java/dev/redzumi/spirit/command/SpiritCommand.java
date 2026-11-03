@@ -1,0 +1,131 @@
+package dev.redzumi.spirit.command;
+
+import com.mojang.brigadier.arguments.StringArgumentType;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.minecraft.commands.Commands;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.EntitySpawnReason;
+import dev.redzumi.spirit.RedzSpirit;
+import dev.redzumi.spirit.entity.SpiritEntity;
+
+/** /spirit summon|dismiss — управление духом. Скелет v0.1. */
+public final class SpiritCommand {
+    private SpiritCommand() {}
+
+    public static void register() {
+        CommandRegistrationCallback.EVENT.register((dispatcher, access, env) ->
+            dispatcher.register(Commands.literal("spirit")
+                .then(Commands.literal("summon")
+                    .executes(ctx -> {
+                        var player = ctx.getSource().getPlayerOrException();
+                        dev.redzumi.spirit.ai.SpiritPrefs.setHidden(player.getUUID(), false);
+                        dev.redzumi.spirit.SpiritManager.ensureSpirit(player);
+                        ctx.getSource().sendSuccess(() -> Component.literal("Дух призван и кружит рядом."), false);
+                        return 1;
+                    }))
+                .then(Commands.literal("dismiss")
+                    .executes(ctx -> {
+                        var player = ctx.getSource().getPlayerOrException();
+                        int removed = 0;
+                        for (var e : player.level().getEntities(player, player.getBoundingBox().inflate(32),
+                                ent -> ent instanceof SpiritEntity s && player.getScoreboardName().equals(s.ownerName()))) {
+                            e.discard();
+                            removed++;
+                        }
+                        dev.redzumi.spirit.ai.SpiritPrefs.setHidden(player.getUUID(), true);
+                        int r = removed;
+                        ctx.getSource().sendSuccess(() -> Component.literal("Дух отпущен (" + r + "). Вернуть: /spirit summon"), false);
+                        return r;
+                    }))
+
+                .then(Commands.literal("persona")
+                    .executes(ctx -> {
+                        var player = ctx.getSource().getPlayerOrException();
+                        var cur = dev.redzumi.spirit.ai.SpiritPersonas.of(player.getUUID());
+                        ctx.getSource().sendSuccess(() -> Component.literal(
+                            "Твой дух: " + cur.title() + " (" + cur.id() + "). Варианты: "
+                                + String.join(", ", dev.redzumi.spirit.ai.SpiritPersonas.ALL.keySet())), false);
+                        return 1;
+                    })
+                    .then(Commands.argument("id", StringArgumentType.word())
+                        .suggests((c, b) -> {
+                            dev.redzumi.spirit.ai.SpiritPersonas.ALL.keySet().forEach(b::suggest);
+                            return b.buildFuture();
+                        })
+                        .executes(ctx -> {
+                            var player = ctx.getSource().getPlayerOrException();
+                            String id = StringArgumentType.getString(ctx, "id");
+                            var p = dev.redzumi.spirit.ai.SpiritPersonas.ALL.get(id);
+                            if (p == null) {
+                                ctx.getSource().sendFailure(Component.literal("Нет такой персоны: " + id));
+                                return 0;
+                            }
+                            dev.redzumi.spirit.ai.SpiritPersonas.set(player.getUUID(), id);
+                            ctx.getSource().sendSuccess(() -> Component.literal(
+                                "Дух сменил облик: " + p.title() + ". " + p.joinLine()), false);
+                            return 1;
+                        })))
+
+                .then(Commands.literal("quest")
+                    .executes(ctx -> {
+                        var player = ctx.getSource().getPlayerOrException();
+                        var cur = dev.redzumi.spirit.ai.SpiritQuests.active(player.getUUID());
+                        if (cur != null) {
+                            ctx.getSource().sendSuccess(() -> Component.literal("Активное задание: " + cur.describe()), false);
+                            return 1;
+                        }
+                        var q = dev.redzumi.spirit.ai.SpiritQuests.issue(player.getUUID());
+                        if (q == null) return 0;
+                        ctx.getSource().sendSuccess(() -> Component.literal("Новое задание от духа: " + q.describe()), false);
+                        // дух озвучивает задание в своей манере
+                        var server = ctx.getSource().getServer();
+                        dev.redzumi.spirit.ai.SpiritAi.narrate(server, player,
+                            "Ты даёшь игроку задание: «%s». Объяви его одной короткой фразой в своей манере.".formatted(q.describe()));
+                        return 1;
+                    }))
+                .then(Commands.literal("guide")
+                    .executes(ctx -> {
+                        var player = ctx.getSource().getPlayerOrException();
+                        var server = ctx.getSource().getServer();
+                        var recent = new java.util.ArrayList<String>();
+                        try {
+                            var pa = player.getAdvancements();
+                            for (var holder : server.getAdvancements().getAllAdvancements()) {
+                                if (holder.id().getPath().startsWith("recipes/")) continue;
+                                if (pa.getOrStartProgress(holder).isDone()) {
+                                    holder.value().display().ifPresent(d -> recent.add(d.title().getString()));
+                                }
+                            }
+                        } catch (Exception ignored) {}
+                        var last = recent.stream().skip(Math.max(0, recent.size() - 6)).toList();
+                        dev.redzumi.spirit.ai.SpiritAi.narrate(server, player,
+                            "Игрок просит совета-проводника. Его недавние достижения: %s. Подскажи одной-двумя короткими фразами, куда двигаться дальше по духу сборки."
+                                .formatted(String.join(", ", last)));
+                        ctx.getSource().sendSuccess(() -> Component.literal("Дух думает над советом…"), false);
+                        return 1;
+                    }))
+                .then(Commands.literal("admin")
+                    .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                    .then(Commands.literal("providers")
+                        .executes(ctx -> {
+                            var presets = dev.redzumi.spirit.ai.llm.LlmProviders.presets();
+                            var active = dev.redzumi.spirit.ai.llm.LlmProviders.active();
+                            String list = String.join(", ", presets.keySet());
+                            String act = active == null ? "нет" : active.id();
+                            ctx.getSource().sendSuccess(() -> Component.literal(
+                                "Настроены: [" + list + "]; активен: " + act + " (SPIRIT_PROVIDER)"), false);
+                            return 1;
+                        }))
+                    .then(Commands.literal("test")
+                        .then(Commands.argument("text", StringArgumentType.greedyString())
+                            .executes(ctx -> {
+                                String text = StringArgumentType.getString(ctx, "text");
+                                ctx.getSource().sendSuccess(() -> Component.literal("…дух думает…"), false);
+                                dev.redzumi.spirit.ai.SpiritAi.adminTest(
+                                    ctx.getSource().getServer(),
+                                    answer -> ctx.getSource().sendSuccess(() -> Component.literal("✦ Дух: " + answer), false),
+                                    text);
+                                return 1;
+                            }))))));
+    }
+}
