@@ -65,6 +65,7 @@ public final class RegressionChecks {
         JsonStore.resetAll();
         require(store.get(HashMap::new).containsKey("kept"), "store reload after server lifecycle reset");
         Files.delete(file);
+        Files.deleteIfExists(directory.resolve("memory.json.v0.bak"));
         Files.delete(directory);
     }
 

@@ -1,0 +1,28 @@
+plugins {
+    id 'java-library'
+}
+
+// The game adapter chooses its own Minecraft-required JDK. The domain only
+// needs Java 17 and deliberately has no Minecraft, Fabric or JSON dependency.
+tasks.withType(JavaCompile).configureEach {
+    options.release = 17
+    options.encoding = 'UTF-8'
+}
+
+sourceSets {
+    regression {
+        compileClasspath += sourceSets.main.output
+        runtimeClasspath += sourceSets.main.output
+    }
+}
+
+tasks.register('regressionTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks quest transitions without Minecraft or external services.'
+    classpath = sourceSets.regression.runtimeClasspath
+    mainClass = 'dev.redzumi.spirit.core.quest.QuestRegressionChecks'
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('regressionTest')
+}

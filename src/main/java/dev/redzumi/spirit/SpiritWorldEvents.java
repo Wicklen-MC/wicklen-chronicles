@@ -124,8 +124,7 @@ public final class SpiritWorldEvents {
             Заголовок первой строкой в формате «# День %d — …».""".formatted(day, String.join(" ", rumors), day);
         SpiritAi.chronicle(server, prompt, chapter -> {
             try {
-                var dir = net.fabricmc.loader.api.FabricLoader.getInstance().getGameDir()
-                    .resolve("redzspirit").resolve("chronicle");
+                var dir = dev.redzumi.spirit.ai.WorldStorageContext.directory().resolve("chronicle");
                 java.nio.file.Files.createDirectories(dir);
                 java.nio.file.Files.writeString(dir.resolve("day-" + day + ".md"), chapter + "\n");
                 RedzSpirit.LOGGER.info("[redz-spirit] chronicle day {} written", day);

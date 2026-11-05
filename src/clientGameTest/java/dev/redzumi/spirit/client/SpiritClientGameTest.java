@@ -5,6 +5,12 @@ import dev.redzumi.spirit.SpiritManager;
 import dev.redzumi.spirit.ai.SpiritConfig;
 import dev.redzumi.spirit.ai.SpiritQuests;
 import dev.redzumi.spirit.ai.SpiritMemoryStore;
+import dev.redzumi.spirit.ai.WorldStorageContext;
+import dev.redzumi.spirit.core.quest.QuestDefinition;
+import dev.redzumi.spirit.core.quest.QuestStatus;
+import dev.redzumi.spirit.core.quest.QuestType;
+import dev.redzumi.spirit.core.quest.RewardDefinition;
+import java.util.UUID;
 import dev.redzumi.spirit.ai.llm.LlmProviders;
 import dev.redzumi.spirit.net.SpiritChatC2SPayload;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -25,6 +31,9 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
     @Override
     public void runTest(ClientGameTestContext context) {
         net.fabricmc.fabric.api.client.gametest.v1.world.TestWorldSave savedWorld;
+        var pendingReward = new AtomicReference<UUID>();
+        var worldId = new AtomicReference<UUID>();
+        var sessionId = new AtomicReference<UUID>();
         try (var world = context.worldBuilder().create()) {
             savedWorld = world.getWorldSave();
             var server = world.getServer();
@@ -68,7 +77,7 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
             context.takeScreenshot("spirit-dialog");
             verifyDialogue(context, world);
             context.setScreen(() -> null);
-            // Quests remain active with proactive speech disabled and without a provider.
+            // Readiness never consumes items. Hand-in and reward are explicit, durable actions.
             server.runOnServer(mcServer -> {
                 var player = connection.getServerPlayer();
                 var cfg = SpiritConfig.get();
@@ -76,17 +85,38 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
                 cfg.custom.baseUrl = null;
                 cfg.provider = "deepseek";
                 LlmProviders.reset();
-                if (SpiritQuests.active(player.getUUID()) == null) SpiritQuests.issue(player.getUUID());
-                SpiritQuests.update(player.getUUID(), quest -> new SpiritQuests.Quest(
-                    "collect", "minecraft:apple", 3, 0, System.currentTimeMillis()));
+                var definition = new QuestDefinition("redzspirit:test/apples", 1,
+                    QuestType.COLLECT, "minecraft:apple", 3,
+                    new RewardDefinition("minecraft:emerald", 2));
+                require(SpiritQuests.issue(player.getUUID(), definition) != null, "deterministic quest issued");
+                worldId.set(WorldStorageContext.worldId());
+                sessionId.set(WorldStorageContext.sessionId());
             });
             server.runCommand("give @p minecraft:apple 3");
-            server.waitFor(mcServer -> SpiritQuests.active(connection.getServerPlayer().getUUID()) == null, 300);
+            server.waitFor(mcServer -> SpiritQuests.active(connection.getServerPlayer().getUUID()).status() == QuestStatus.READY, 300);
+            context.waitTicks(45);
             server.runOnServer(mcServer -> {
-                var inventory = connection.getServerPlayer().getInventory();
-                for (int i = 0; i < inventory.getContainerSize(); i++) {
-                    require(!inventory.getItem(i).is(net.minecraft.world.item.Items.APPLE), "collect quest consumes the delivered items");
-                }
+                var player = connection.getServerPlayer();
+                require(count(player, net.minecraft.world.item.Items.APPLE) == 3,
+                    "ready quest does not automatically consume materials");
+                require(!SpiritQuests.turnIn(player, UUID.randomUUID()).success(), "stale hand-in rejected");
+                require(count(player, net.minecraft.world.item.Items.APPLE) == 3, "rejected action preserves materials");
+            });
+            server.runCommand("execute as @p run spirit quest turnin");
+            server.runOnServer(mcServer -> {
+                var player = connection.getServerPlayer();
+                var quest = SpiritQuests.active(player.getUUID());
+                require(quest.status() == QuestStatus.REWARD_PENDING, "explicit command submits the quest");
+                require(count(player, net.minecraft.world.item.Items.APPLE) == 0, "hand-in consumes exact materials");
+                pendingReward.set(quest.rewardId());
+                require(!SpiritQuests.turnIn(player, quest.id()).success(), "repeated hand-in rejected");
+                for (int slot = 0; slot < player.getInventory().getNonEquipmentItems().size(); slot++)
+                    player.getInventory().setItem(slot, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.STONE, 64));
+                require(!SpiritQuests.claim(player, quest.rewardId()).success(), "full inventory keeps reward pending");
+                require(count(player, net.minecraft.world.item.Items.EMERALD) == 0, "no partial delivery with full inventory");
+                require(SpiritQuests.active(player.getUUID()).status() == QuestStatus.REWARD_PENDING,
+                    "failed delivery does not complete quest");
+                player.getInventory().clearContent();
             });
             // Repeated summon and dismissal must keep the entity and bubble caches consistent.
             server.runCommand("execute as @p run spirit summon");
@@ -123,6 +153,23 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
             int spiritId = reopened.getServer().computeOnServer(mcServer -> SpiritManager.findSpirits(
                 reopened.getConnection().getServerPlayer().getScoreboardName(), mcServer).getFirst().getId());
             context.runOnClient(client -> require(BubbleStore.get(spiritId) != null, "welcome bubble after world reopen"));
+            reopened.getServer().runOnServer(mcServer -> {
+                var player = reopened.getConnection().getServerPlayer();
+                require(worldId.get().equals(WorldStorageContext.worldId()), "world ID survives restart");
+                require(!sessionId.get().equals(WorldStorageContext.sessionId()), "runtime session changes on reopen");
+                var quest = SpiritQuests.active(player.getUUID());
+                require(quest != null && quest.status() == QuestStatus.REWARD_PENDING,
+                    "pending reward survives restart");
+                require(pendingReward.get().equals(quest.rewardId()), "reward identity survives restart");
+            });
+            reopened.getServer().runCommand("execute as @p run spirit quest claim");
+            reopened.getServer().runOnServer(mcServer -> {
+                var player = reopened.getConnection().getServerPlayer();
+                require(SpiritQuests.active(player.getUUID()) == null, "successful delivery archives quest");
+                require(count(player, net.minecraft.world.item.Items.EMERALD) == 2, "exact reward delivered");
+                require(!SpiritQuests.claim(player, pendingReward.get()).success(), "replayed reward rejected");
+                require(count(player, net.minecraft.world.item.Items.EMERALD) == 2, "replay gives no extra items");
+            });
         }
     }
 
@@ -185,6 +232,15 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
             firstReply.countDown();
             mock.stop(0);
         }
+    }
+
+    private static int count(net.minecraft.server.level.ServerPlayer player, net.minecraft.world.item.Item item) {
+        int count = 0;
+        for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
+            var stack = player.getInventory().getItem(slot);
+            if (stack.is(item)) count += stack.getCount();
+        }
+        return count;
     }
 
     private static void require(boolean condition, String message) {

@@ -11,3 +11,5 @@ pluginManagement {
 
 // Should match your redzspirit
 rootProject.name = 'redzspirit'
+
+include 'core', 'fabric'

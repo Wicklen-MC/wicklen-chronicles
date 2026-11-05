@@ -64,8 +64,12 @@ public final class SpiritSenses {
         var pets = SpiritMemorial.recent(player.getUUID(), 2);
         if (!pets.isEmpty()) sb.append(" Погибшие питомцы игрока (можно иногда тепло вспоминать): ")
             .append(String.join("; ", pets)).append('.');
-        var quest = SpiritQuests.active(player.getUUID());
-        if (quest != null) sb.append(" Активное задание, выданное тобой: ").append(quest.describe()).append('.');
+        try {
+            var quest = SpiritQuests.active(player.getUUID());
+            if (quest != null) sb.append(" Активное задание, выданное тобой: ").append(quest.describe()).append('.');
+        } catch (IllegalStateException unavailableQuest) {
+            // Storage logs the preserved source once; dialogue can continue without this optional context.
+        }
         var rumors = SpiritRumors.recent(3);
         if (!rumors.isEmpty()) sb.append(" Слухи на сервере: ").append(String.join(" ", rumors));
         return sb.toString();

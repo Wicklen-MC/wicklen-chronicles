@@ -1,115 +1,18 @@
 plugins {
-	id 'net.fabricmc.fabric-loom' version "${loom_version}"
-	id 'maven-publish'
+    id 'base'
 }
 
-repositories {
-	// Add repositories to retrieve artifacts from in here.
-	// You should only use this when depending on other mods because
-	// Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
-	// See https://docs.gradle.org/current/userguide/declaring_repositories.html
-	// for more information about repositories.
+allprojects {
+    group = rootProject.group
+    version = rootProject.version
 }
 
-loom {
-	splitEnvironmentSourceSets()
+tasks.named('build') { dependsOn ':core:build', ':fabric:build' }
+tasks.named('check') { dependsOn ':core:check', ':fabric:check' }
+tasks.named('clean') { dependsOn ':core:clean', ':fabric:clean' }
 
-	mods {
-		"redzspirit" {
-			sourceSet sourceSets.main
-			sourceSet sourceSets.client
-		}
-	}
-}
-
-dependencies {
-	// To change the versions see the gradle.properties file
-	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
-
-	// Fabric API. This is technically optional, but you probably want it anyway.
-	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
-}
-
-processResources {
-	def version = project.version
-	inputs.property "version", version
-
-	filesMatching("fabric.mod.json") {
-		expand "version": version
-	}
-}
-
-tasks.withType(JavaCompile).configureEach {
-	it.options.release = 25
-}
-
-java {
-	// Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
-	// if it is present.
-	// If you remove this line, sources will not be generated.
-	withSourcesJar()
-
-	sourceCompatibility = JavaVersion.VERSION_25
-	targetCompatibility = JavaVersion.VERSION_25
-}
-
-sourceSets {
-	regression {
-		compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
-		runtimeClasspath += sourceSets.main.runtimeClasspath
-	}
-	clientGameTest {
-		compileClasspath += sourceSets.main.output + sourceSets.client.output + sourceSets.client.compileClasspath
-		runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.client.runtimeClasspath
-	}
-}
-
-tasks.register('regressionTest', JavaExec) {
-	group = 'verification'
-	description = 'Checks request limits, persistence, config validation and both LLM protocols without external services.'
-	classpath = sourceSets.regression.runtimeClasspath
-	mainClass = 'dev.redzumi.spirit.ai.RegressionChecks'
-}
-tasks.named('check') { dependsOn tasks.named('regressionTest') }
-
-loom {
-	mods {
-		'redzspirit-test' { sourceSet sourceSets.clientGameTest }
-	}
-	runs {
-		clientGameTest {
-			client()
-			source sourceSets.clientGameTest
-			runDir 'build/client-gametest'
-			vmArg '-Dfabric.client.gametest'
-			vmArg '-Dfabric.client.gametest.testModResourcesPath=src/clientGameTest/resources'
-		}
-	}
-}
-
-jar {
-	def projectName = project.name
-	inputs.property "projectName", projectName
-
-	from("LICENSE") {
-		rename { "${it}_$projectName"}
-	}
-}
-
-// configure the maven publication
-publishing {
-	publications {
-		create("mavenJava", MavenPublication) {
-			from components.java
-		}
-	}
-
-	// See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
-	repositories {
-		// Add repositories to publish to here.
-		// Notice: This block does NOT have the same function as the block in the top level.
-		// The repositories here will be used for publishing your artifact, not for
-		// retrieving dependencies.
-	}
+// Keep the existing developer entry points while the mod becomes a subproject.
+['runClient', 'runServer', 'runClientGameTest', 'runServerSmoke', 'regressionTest',
+ 'worldStorageTest', 'questAdapterTest'].each { entryPoint ->
+    tasks.register(entryPoint) { dependsOn ":fabric:${entryPoint}" }
 }

@@ -1,0 +1,3 @@
+// Used only by the standalone core build. The parent multi-project build uses
+// redz-spirit/settings.gradle and includes this directory as a normal subproject.
+rootProject.name = 'redzspirit-core'

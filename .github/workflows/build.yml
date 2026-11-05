@@ -7,6 +7,17 @@ name: build
 on: [pull_request, push]
 
 jobs:
+  core:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: gradle/actions/wrapper-validation@v6
+      - uses: actions/setup-java@v5
+        with:
+          java-version: '25'
+          distribution: 'microsoft'
+      - name: check game-independent rules
+        run: ./gradlew -p core check
   build:
     runs-on: ubuntu-24.04
     steps:
@@ -22,7 +33,7 @@ jobs:
       - name: make gradle wrapper executable
         run: chmod +x ./gradlew
       - name: build
-        run: ./gradlew build
+        run: ./gradlew build :fabric:compileClientGameTestJava :fabric:compileServerSmokeJava
       - name: capture build artifacts
         uses: actions/upload-artifact@v7
         with:

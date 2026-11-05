@@ -1,0 +1,208 @@
+plugins {
+	id 'net.fabricmc.fabric-loom' version "${loom_version}"
+	id 'maven-publish'
+}
+
+repositories {
+	// Add repositories to retrieve artifacts from in here.
+	// You should only use this when depending on other mods because
+	// Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
+	// See https://docs.gradle.org/current/userguide/declaring_repositories.html
+	// for more information about repositories.
+}
+
+loom {
+	splitEnvironmentSourceSets()
+
+	mods {
+		"redzspirit" {
+			sourceSet sourceSets.main
+			sourceSet sourceSets.client
+		}
+	}
+}
+
+dependencies {
+	implementation project(':core')
+	// To change the versions see the gradle.properties file
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+
+	// Fabric API. This is technically optional, but you probably want it anyway.
+	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+}
+
+processResources {
+	def version = project.version
+	inputs.property "version", version
+
+	filesMatching("fabric.mod.json") {
+		expand "version": version
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = 25
+}
+
+java {
+	// Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
+	// if it is present.
+	// If you remove this line, sources will not be generated.
+	withSourcesJar()
+
+	sourceCompatibility = JavaVersion.VERSION_25
+	targetCompatibility = JavaVersion.VERSION_25
+}
+
+sourceSets {
+	main {
+		java.srcDirs = [rootProject.file('src/main/java')]
+		resources.srcDirs = [rootProject.file('src/main/resources')]
+	}
+	client {
+		java.srcDirs = [rootProject.file('src/client/java')]
+		resources.srcDirs = [rootProject.file('src/client/resources')]
+	}
+	regression {
+		java.srcDirs = [rootProject.file('src/regression/java')]
+		compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+		runtimeClasspath += sourceSets.main.runtimeClasspath
+	}
+	clientGameTest {
+		java.srcDirs = [rootProject.file('src/clientGameTest/java')]
+		resources.srcDirs = [rootProject.file('src/clientGameTest/resources')]
+		compileClasspath += sourceSets.main.output + sourceSets.client.output + sourceSets.client.compileClasspath
+		runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.client.runtimeClasspath
+	}
+	serverSmoke {
+		java.srcDirs = [rootProject.file('src/serverSmoke/java')]
+		resources.srcDirs = [rootProject.file('src/serverSmoke/resources')]
+		compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+		runtimeClasspath += sourceSets.main.runtimeClasspath
+	}
+}
+
+tasks.register('regressionTest', JavaExec) {
+	group = 'verification'
+	description = 'Checks request limits, persistence, config validation and both LLM protocols without external services.'
+	classpath = sourceSets.regression.runtimeClasspath
+	mainClass = 'dev.redzumi.spirit.ai.RegressionChecks'
+}
+tasks.named('check') { dependsOn tasks.named('regressionTest') }
+
+loom {
+	mods {
+		'redzspirit-test' { sourceSet sourceSets.clientGameTest }
+		'redzspirit-server-smoke' { sourceSet sourceSets.serverSmoke }
+	}
+	runs {
+		configureEach { runDir rootProject.file('run').absolutePath }
+		clientGameTest {
+			client()
+			source sourceSets.clientGameTest
+			runDir rootProject.file('build/client-gametest').absolutePath
+			vmArg '-Dfabric.client.gametest'
+			vmArg '-Dfabric.client.gametest.testModResourcesPath=' + rootProject.file('src/clientGameTest/resources').absolutePath
+		}
+		serverSmoke {
+			server()
+			source sourceSets.serverSmoke
+			runDir rootProject.file('build/server-smoke').absolutePath
+			vmArg '-Dredzspirit.serverSmoke=true'
+			vmArg '-Dredzspirit.serverSmoke.directory=' + rootProject.file('build/server-smoke').absolutePath
+			programArg 'nogui'
+		}
+	}
+}
+
+def smokeDirectory = rootProject.layout.buildDirectory.dir('server-smoke')
+def acceptedEula = rootProject.layout.projectDirectory.file('run/eula.txt')
+tasks.named('runServerSmoke') {
+	group = 'verification'
+	description = 'Boots and cleanly stops an isolated dedicated server; never uses run/world.'
+	doFirst {
+		def directory = smokeDirectory.get().asFile
+		directory.mkdirs()
+		def marker = new File(directory, 'smoke-result.txt')
+		if (marker.exists() && !marker.delete()) throw new GradleException('Cannot clear old server smoke result')
+		// Reuse the developer's existing Minecraft EULA acceptance; never accept a new agreement.
+		def accepted = acceptedEula.asFile
+		if (!accepted.exists() || !accepted.readLines().any { it.trim() == 'eula=true' }) {
+			throw new GradleException('Server smoke requires existing EULA acceptance in run/eula.txt')
+		}
+		new File(directory, 'eula.txt').text = accepted.text
+		new File(directory, 'server.properties').text = '''server-ip=127.0.0.1
+server-port=0
+online-mode=false
+enable-rcon=false
+enable-query=false
+view-distance=2
+simulation-distance=2
+level-name=smoke-world
+max-tick-time=60000
+'''
+	}
+	doLast {
+		def marker = new File(smokeDirectory.get().asFile, 'smoke-result.txt')
+		if (!marker.exists() || marker.text.trim() != 'PASS') {
+			throw new GradleException('Dedicated server smoke did not pass; inspect build/server-smoke/logs/latest.log')
+		}
+	}
+}
+
+base { archivesName = rootProject.name }
+
+jar {
+	dependsOn ':core:classes'
+	from project(':core').sourceSets.main.output
+	destinationDirectory = rootProject.layout.buildDirectory.dir('libs')
+	def projectName = project.name
+	inputs.property "projectName", projectName
+
+	from(rootProject.file("LICENSE")) {
+		rename { "${it}_$projectName"}
+	}
+}
+
+// configure the maven publication
+publishing {
+	publications {
+		create("mavenJava", MavenPublication) {
+			from components.java
+		}
+	}
+
+	// See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
+	repositories {
+		// Add repositories to publish to here.
+		// Notice: This block does NOT have the same function as the block in the top level.
+		// The repositories here will be used for publishing your artifact, not for
+		// retrieving dependencies.
+	}
+}
+
+// The pure Java core is bundled into the same mod, including in source artifacts.
+tasks.named('sourcesJar') {
+	from project(':core').sourceSets.main.allSource
+	destinationDirectory = rootProject.layout.buildDirectory.dir('libs')
+}
+
+['worldStorageTest': 'dev.redzumi.spirit.ai.WorldStorageChecks',
+ 'questAdapterTest': 'dev.redzumi.spirit.ai.QuestAdapterChecks'].each { taskName, entryPoint ->
+	tasks.register(taskName, JavaExec) {
+		group = 'verification'
+		classpath = sourceSets.regression.runtimeClasspath
+		mainClass = entryPoint
+	}
+	tasks.named('check') { dependsOn tasks.named(taskName) }
+}
+
+// Concurrent verification JVMs must not rotate the same Minecraft Log4j file.
+tasks.withType(JavaExec).configureEach {
+	if (name in ['regressionTest', 'worldStorageTest', 'questAdapterTest']) {
+		def directory = project.layout.buildDirectory.dir("verification/${name}")
+		workingDir directory
+		doFirst { directory.get().asFile.mkdirs() }
+	}
+}

@@ -38,13 +38,31 @@ public class RedzSpirit implements ModInitializer {
         SpiritProactive.register();
         SpiritManager.register();
         SpiritBubbles.register();
+        net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents.SERVER_STARTING.register(server -> {
+            try {
+                dev.redzumi.spirit.ai.WorldStorageContext.open(
+                    server.getWorldPath(net.minecraft.world.level.storage.LevelResource.ROOT),
+                    net.fabricmc.loader.api.FabricLoader.getInstance().getGameDir().resolve(MOD_ID));
+            } catch (java.io.IOException error) {
+                throw new IllegalStateException("Cannot open redzspirit world storage", error);
+            }
+        });
         net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents.SERVER_STOPPING.register(
-            server -> dev.redzumi.spirit.ai.SpiritMemoryStore.flush());
+            server -> {
+                dev.redzumi.spirit.ai.WorldStorageContext.beginStopping();
+                dev.redzumi.spirit.ai.SpiritMemoryStore.flush();
+                try {
+                    dev.redzumi.spirit.ai.WorldStorageContext.flush();
+                } catch (java.io.IOException error) {
+                    LOGGER.error("[redz-spirit] Could not flush world progress", error);
+                }
+            });
         net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
             dev.redzumi.spirit.ai.SpiritAi.reset();
             dev.redzumi.spirit.ai.SpiritRumors.reset();
             dev.redzumi.spirit.ai.SpiritMemoryStore.reset();
             dev.redzumi.spirit.ai.JsonStore.resetAll();
+            dev.redzumi.spirit.ai.WorldStorageContext.close();
             dev.redzumi.spirit.ai.SpiritConfig.reset();
             dev.redzumi.spirit.ai.llm.LlmProviders.reset();
             SpiritProactive.reset();

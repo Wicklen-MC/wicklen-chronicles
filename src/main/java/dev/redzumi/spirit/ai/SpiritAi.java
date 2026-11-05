@@ -157,6 +157,13 @@ public final class SpiritAi {
                                 java.util.function.Consumer<String> responder, java.util.function.Consumer<String> errors,
                                 Runnable finished, java.util.function.BooleanSupplier recipientOnline) {
 
+        // A late response from a closed world must never touch another world's stores.
+        UUID sessionId = WorldStorageContext.sessionId();
+        if (!WorldStorageContext.matchesSession(sessionId)) {
+            finished.run();
+            return;
+        }
+
         LlmProvider provider = LlmProviders.active();
         if (provider == null) {
             finished.run();
@@ -191,6 +198,7 @@ public final class SpiritAi {
         future
             .whenComplete((content, err) -> server.execute(() -> {
                 try {
+                    if (!WorldStorageContext.matchesSession(sessionId)) return;
                     if (!recipientOnline.getAsBoolean()) return;
                     if (err != null || content == null || content.isBlank()) {
                         RedzSpirit.LOGGER.warn("LLM call failed ({}): {}", provider.id(),
@@ -202,7 +210,8 @@ public final class SpiritAi {
                     RedzSpirit.LOGGER.info("[redz-spirit] answer via {} -> {}: {}", provider.id(), playerName, text);
                     responder.accept(text);
                 } finally {
-                    finished.run();
+                    // A prior session must not release a new session's in-flight request.
+                    if (WorldStorageContext.matchesSession(sessionId)) finished.run();
                 }
             }));
     }
