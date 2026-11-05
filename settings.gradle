@@ -9,7 +9,7 @@ pluginManagement {
 	}
 }
 
-// Should match your redzspirit
+// Stable internal build identity; public artifacts use wicklen-chronicles.
 rootProject.name = 'redzspirit'
 
 include 'core', 'fabric'

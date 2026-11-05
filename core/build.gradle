@@ -20,7 +20,7 @@ tasks.register('regressionTest', JavaExec) {
     group = 'verification'
     description = 'Checks quest transitions without Minecraft or external services.'
     classpath = sourceSets.regression.runtimeClasspath
-    mainClass = 'dev.redzumi.spirit.core.quest.QuestRegressionChecks'
+    mainClass = 'dev.wicklen.chronicles.core.quest.QuestRegressionChecks'
 }
 
 tasks.named('check') {

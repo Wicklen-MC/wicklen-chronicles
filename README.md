@@ -1,9 +1,15 @@
-# redz-spirit
+# Wicklen: Chronicles
 
-Летающий дух-компаньон с LLM для Minecraft 26.3 + Fabric. Сервер redz-v1.
+Дух-компаньон и истории мира **Wicklen (Виклен)** для Minecraft 26.3 + Fabric:
+задания и диалоги с LLM; исследования и новые истории развиваются следующим этапом.
 
-Дизайн и статус: [../docs/12-ai-spirit-mod.md](../docs/12-ai-spirit-mod.md).
-Разбор чужих исходников: [../research-mods/SOURCES-REPORT.md](../research-mods/SOURCES-REPORT.md).
+Публичное название мода — **Wicklen: Chronicles**. Технический ID
+`redzspirit` и пути сохранений/конфига сохранены для совместимости;
+переименование не требует переноса миров или настроек. Java namespace —
+`dev.wicklen.chronicles`, Maven coordinates — `dev.wicklen:wicklen-chronicles`.
+
+Текущие изменения — в [CHANGELOG.md](CHANGELOG.md); независимые правила заданий —
+в [core/README.md](core/README.md). Репозиторий собирается самостоятельно, без соседней рабочей папки сборки.
 
 ## Возможности
 
@@ -38,8 +44,8 @@
 
 Первый перенесённый сценарий — существующие collect/visit/slay-задания.
 Новый дневник, наблюдения мест, генерация станций и структурированные
-ИИ-истории ещё не реализованы. Архитектурное направление —
-[../docs/27-architecture-references.md](../docs/27-architecture-references.md).
+ИИ-истории ещё не реализованы. Контракт чистого ядра и отдельная проверка описаны
+в [core/README.md](core/README.md).
 
 Ядро предлагает переход состояния; адаптер проверяет реальный мир и выполняет
 побочные действия. Готовность, сдача материалов и доставка награды различаются.
@@ -70,11 +76,13 @@ JSON содержит `schemaVersion` и `data`; повреждённый или
 ## Сборка
 
 ```bash
-JAVA_HOME=../tools/jdk-25.0.5+8/Contents/Home GRADLE_USER_HOME=../tools/gradle-home ./gradlew build
-# -> build/libs/redzspirit-<version>.jar
+./gradlew build
+# -> build/libs/wicklen-chronicles-<version>.jar
 ```
 
-JDK 25 (Temurin, `../tools/`), Gradle wrapper 9.8.2, Mojang-маппинги.
+Требуется JDK 25 в `JAVA_HOME`/`PATH`; Gradle wrapper 9.8.2 включён в проект.
+Используются Mojang-маппинги. Локальный каталог JDK или Gradle cache проекту
+не требуется: их расположение задаётся стандартными настройками окружения.
 
 ## E2E-тест
 
@@ -85,21 +93,21 @@ JDK 25 (Temurin, `../tools/`), Gradle wrapper 9.8.2, Mojang-маппинги.
 Полностью отдельная проверка ядра, без конфигурации Loom/Minecraft:
 
 ```bash
-JAVA_HOME=../tools/jdk-25.0.5+8/Contents/Home GRADLE_USER_HOME=../tools/gradle-home ./gradlew -p core check
+./gradlew -p core check
 ```
 
 Dedicated-server smoke в `build/server-smoke/` (localhost, случайный порт,
 автоматическая остановка; использует уже принятое `run/eula.txt`):
 
 ```bash
-JAVA_HOME=../tools/jdk-25.0.5+8/Contents/Home GRADLE_USER_HOME=../tools/gradle-home ./gradlew runServerSmoke
+./gradlew runServerSmoke
 # Результат: build/server-smoke/smoke-result.txt
 ```
 
 Клиентская проверка в отдельном мире (артефакт мода не включает тестовый код):
 
 ```bash
-JAVA_HOME=../tools/jdk-25.0.5+8/Contents/Home GRADLE_USER_HOME=../tools/gradle-home ./gradlew runClientGameTest
+./gradlew runClientGameTest
 # Скриншоты: build/client-gametest/screenshots/
 ```
 
@@ -108,10 +116,6 @@ JAVA_HOME=../tools/jdk-25.0.5+8/Contents/Home GRADLE_USER_HOME=../tools/gradle-h
 сохранение ожидающей награды при закрытии мира и защиту от повторного получения, повторный призыв,
 удаление, телепорт и переход в другое измерение. Порты mock-серверов выбираются
 автоматически; используются только временные игровые данные в `build/`.
-
-```bash
-tools/e2e.sh   # mock-LLM + dev-сервер + RCON; PASS = полный LLM-контур работает
-```
 
 ## Переменные окружения сервера
 

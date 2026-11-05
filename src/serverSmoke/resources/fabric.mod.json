@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "id": "redzspirit-server-smoke",
   "version": "1.0.0",
-  "name": "Redz Spirit dedicated server smoke test",
+  "name": "Wicklen: Chronicles dedicated server smoke test",
   "environment": "server",
   "entrypoints": {
-    "main": ["dev.redzumi.spirit.smoke.SpiritServerSmoke"]
+    "main": ["dev.wicklen.chronicles.smoke.SpiritServerSmoke"]
   },
   "depends": {
     "redzspirit": "*",

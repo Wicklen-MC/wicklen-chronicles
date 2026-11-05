@@ -2,19 +2,19 @@
 	"schemaVersion": 1,
 	"id": "redzspirit",
 	"version": "${version}",
-	"name": "Redz Spirit",
-	"description": "Летающий дух-компаньон с LLM (DeepSeek/OpenAI-совместимый API) для сервера redz-v1.",
+	"name": "Wicklen: Chronicles",
+	"description": "Дух-компаньон и истории мира Wicklen (Виклен): задания, исследования и диалоги с LLM.",
 	"authors": [
-		"redzumi"
+		"Wicklen Contributors"
 	],
 	"license": "MIT",
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"dev.redzumi.spirit.RedzSpirit"
+			"dev.wicklen.chronicles.WicklenChronicles"
 		],
 		"client": [
-			"dev.redzumi.spirit.client.RedzSpiritClient"
+			"dev.wicklen.chronicles.client.WicklenChroniclesClient"
 		]
 	},
 	"depends": {

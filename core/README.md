@@ -1,10 +1,10 @@
-# Spirit core
+# Wicklen: Chronicles — core
 
 Pure Java quest rules and immutable state. This module has no Minecraft,
 Fabric, rendering, serialization or HTTP dependencies. Platform adapters
 translate verified game observations into these values and apply native effects.
 
-From `redz-spirit`, run:
+From the repository root, run:
 
 ```sh
 ./gradlew -p core check

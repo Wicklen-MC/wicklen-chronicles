@@ -87,7 +87,7 @@ tasks.register('regressionTest', JavaExec) {
 	group = 'verification'
 	description = 'Checks request limits, persistence, config validation and both LLM protocols without external services.'
 	classpath = sourceSets.regression.runtimeClasspath
-	mainClass = 'dev.redzumi.spirit.ai.RegressionChecks'
+	mainClass = 'dev.wicklen.chronicles.ai.RegressionChecks'
 }
 tasks.named('check') { dependsOn tasks.named('regressionTest') }
 
@@ -151,7 +151,8 @@ max-tick-time=60000
 	}
 }
 
-base { archivesName = rootProject.name }
+// Public artifact name can change without renaming the saved-data/mod namespace.
+base { archivesName = 'wicklen-chronicles' }
 
 jar {
 	dependsOn ':core:classes'
@@ -169,7 +170,17 @@ jar {
 publishing {
 	publications {
 		create("mavenJava", MavenPublication) {
-			from components.java
+			artifactId = 'wicklen-chronicles'
+			// The core is already bundled into this single installable mod JAR.
+			// Publish archives, not the Java component's dependency variants: those
+			// would require a separately published core artifact. Runtime Fabric
+			// dependencies are declared by the mod's fabric.mod.json instead.
+			artifact tasks.named('jar')
+			artifact tasks.named('sourcesJar')
+			pom {
+				name = 'Wicklen: Chronicles'
+				description = 'Spirit companion, quests and chronicles for the world of Wicklen.'
+			}
 		}
 	}
 
@@ -188,8 +199,8 @@ tasks.named('sourcesJar') {
 	destinationDirectory = rootProject.layout.buildDirectory.dir('libs')
 }
 
-['worldStorageTest': 'dev.redzumi.spirit.ai.WorldStorageChecks',
- 'questAdapterTest': 'dev.redzumi.spirit.ai.QuestAdapterChecks'].each { taskName, entryPoint ->
+['worldStorageTest': 'dev.wicklen.chronicles.ai.WorldStorageChecks',
+ 'questAdapterTest': 'dev.wicklen.chronicles.ai.QuestAdapterChecks'].each { taskName, entryPoint ->
 	tasks.register(taskName, JavaExec) {
 		group = 'verification'
 		classpath = sourceSets.regression.runtimeClasspath
