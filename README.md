@@ -9,7 +9,7 @@ Loader 0.20.1+, Fabric API 0.165.0+26.3 and Java 25**.
 ## What works today
 
 - One animated companion per player, with different personalities and colours.
-- **G** opens the conversation screen; `@дух <message>` also starts a conversation.
+- **G** opens the conversation screen; `@spirit <message>` also starts a conversation.
 - Optional LLM dialogue through an OpenAI-compatible endpoint or local Ollama.
   Greetings, companion controls and quest rules work without an LLM.
 - Collection, biome-visit and combat quests. Submission and reward collection
@@ -33,10 +33,14 @@ older copies of this mod first. Use matching client/server versions; the
 | Get a quest or view its status | `/spirit quest` |
 | Submit completed work | `/spirit quest turnin` |
 | Collect a pending reward | `/spirit quest claim` |
+| Ask for a hint on what to explore next | `/spirit guide` |
 | Inspect LLM providers (operator) | `/spirit admin providers` |
 | Test dialogue (operator) | `/spirit admin test <message>` |
 
 Personality IDs: `firefly`, `fox`, `owl`, `cat`.
+
+Command names and the `@spirit` chat trigger use English in every game language.
+The message itself can be written in your preferred language.
 
 Quest readiness never takes items automatically. Collection quests recheck
 what is actually in the inventory when submitted. Rewards are fixed when

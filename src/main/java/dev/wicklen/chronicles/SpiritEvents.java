@@ -3,22 +3,16 @@ package dev.wicklen.chronicles;
 import net.fabricmc.fabric.api.message.v1.ServerMessageEvents;
 import dev.wicklen.chronicles.ai.SpiritAi;
 
-/** Прямое обращение через обычный чат: «@дух …». */
+/** Direct conversation through normal chat: {@code @spirit <message>}. */
 public final class SpiritEvents {
     private SpiritEvents() {}
 
     public static void register() {
-        // @дух <текст> — диалог с духом
         ServerMessageEvents.CHAT_MESSAGE.register((message, sender, params) -> {
-            String raw = message.signedContent().trim();
-            String lower = raw.toLowerCase(java.util.Locale.ROOT);
-            if (lower.startsWith("@дух") || lower.startsWith("@duh") || lower.startsWith("@spirit")) {
-                String question = raw.replaceFirst("(?i)@\\S+\\s*", "").trim();
-                if (!question.isEmpty()) {
-                    SpiritAi.chat(sender.level().getServer(), sender, question);
-                }
+            String[] parts = message.signedContent().strip().split("\\s+", 2);
+            if (parts.length == 2 && parts[0].equalsIgnoreCase("@spirit")) {
+                SpiritAi.chat(sender.level().getServer(), sender, parts[1]);
             }
         });
-
     }
 }

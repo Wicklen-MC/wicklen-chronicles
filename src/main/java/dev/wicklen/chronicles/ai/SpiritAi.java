@@ -49,7 +49,7 @@ public final class SpiritAi {
         SpiritMemoryStore.append(id, user, spirit);
     }
 
-    /** Диалог: @дух <текст>. Ответ — текст в чат от имени духа. */
+    /** Dialogue: {@code @spirit <message>}. The spirit replies in chat. */
     public static void chat(MinecraftServer server, ServerPlayer player, String message) {
         call(server, player, message, true);
     }
