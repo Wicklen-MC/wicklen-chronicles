@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-/** Персоны духа: характер -> промпт. Выбор на игрока, персистентно в redzspirit/personas.json. */
+/** Персоны духа: характер -> промпт. Выбор на игрока, персистентно в wicklen-chronicles/personas.json. */
 public final class SpiritPersonas {
     private SpiritPersonas() {}
 

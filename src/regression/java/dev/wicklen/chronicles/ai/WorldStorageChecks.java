@@ -20,6 +20,7 @@ public final class WorldStorageChecks {
             invalidSources(temporary);
             ioFailure(temporary);
             invalidMetadata(temporary);
+            namespaceMigration(temporary);
             System.out.println("PASS: world isolation/reopen, session guards, v0 migration/backup, legacy preservation, invalid data protection, I/O failure");
         } finally {
             WorldStorageContext.close();
@@ -62,7 +63,7 @@ public final class WorldStorageChecks {
         WorldStorageContext.close();
 
         // A store registered but never read must not replace a pre-existing source during shutdown.
-        Path untouched = first.resolve("redzspirit/untouched.json");
+        Path untouched = first.resolve("wicklen-chronicles/untouched.json");
         String original = "{\"preserve\":\"old data\"}";
         Files.writeString(untouched, original);
         new JsonStore<Map<String, String>>("untouched.json", new TypeToken<>() {});
@@ -73,7 +74,7 @@ public final class WorldStorageChecks {
     }
 
     private static void legacy(Path root) throws Exception {
-        Path globals = root.resolve("legacy-global/redzspirit");
+        Path globals = dev.wicklen.chronicles.compat.LegacyCompatibility.legacyGlobalDirectory(root.resolve("legacy-global"));
         Files.createDirectories(globals);
         String global = "{\"player\":\"unassigned history\"}";
         Files.writeString(globals.resolve("memory.json"), global);
@@ -84,7 +85,7 @@ public final class WorldStorageChecks {
         require(Files.readString(globals.resolve("memory.json")).equals(global), "global source remains untouched");
         WorldStorageContext.close();
 
-        Path source = world.resolve("redzspirit/memory.json");
+        Path source = world.resolve("wicklen-chronicles/memory.json");
         String old = "{\"player\":\"Наблюдение\"}";
         Files.writeString(source, old);
         WorldStorageContext.open(world);
@@ -143,7 +144,7 @@ public final class WorldStorageChecks {
 
     private static void invalidMetadata(Path root) throws Exception {
         Path world = root.resolve("future-world");
-        Path directory = world.resolve("redzspirit");
+        Path directory = world.resolve("wicklen-chronicles");
         Files.createDirectories(directory);
         Path metadata = directory.resolve("world-metadata.json");
         String source = "{\"schemaVersion\":2,\"worldId\":\"future-id\"}";
@@ -151,6 +152,64 @@ public final class WorldStorageChecks {
         expect(IOException.class, () -> WorldStorageContext.open(world), "future world metadata rejects open");
         require(!WorldStorageContext.isOpen(), "failed open does not attach partial context");
         require(Files.readString(metadata).equals(source), "failed open preserves metadata");
+    }
+
+    private static void namespaceMigration(Path root) throws Exception {
+        var legacyName = dev.wicklen.chronicles.compat.LegacyCompatibility.LEGACY_NAMESPACE;
+        Path world = root.resolve("namespace-world");
+        Path old = world.resolve(legacyName);
+        Path current = world.resolve("wicklen-chronicles");
+        Files.createDirectories(old);
+        var worldId = java.util.UUID.randomUUID();
+        String metadata = "{\"schemaVersion\":1,\"worldId\":\"" + worldId + "\"}";
+        String memory = "{\"schemaVersion\":1,\"data\":{\"player\":\"remembered\"}}";
+        Files.writeString(old.resolve("world-metadata.json"), metadata);
+        Files.writeString(old.resolve("memory.json"), memory);
+        Files.writeString(old.resolve("prefs.json"), "[\"a hidden companion\"]");
+        WorldStorageContext.open(world);
+        require(WorldStorageContext.directory().equals(current.toAbsolutePath()), "legacy world directory becomes the current path");
+        require(WorldStorageContext.worldId().equals(worldId), "directory migration preserves world identity");
+        require(Files.readString(current.resolve("memory.json")).equals(memory), "directory migration preserves data bytes");
+        require(!Files.exists(old), "successful directory migration is one-time");
+        WorldStorageContext.close();
+        WorldStorageContext.open(world);
+        require(WorldStorageContext.worldId().equals(worldId), "migrated world reopens with same identity");
+        WorldStorageContext.close();
+
+        Files.createDirectories(old);
+        Files.writeString(old.resolve("memory.json"), "{\"player\":\"conflicting old source\"}");
+        WorldStorageContext.open(world);
+        require(WorldStorageContext.worldId().equals(worldId), "current directory wins a naming conflict");
+        require(Files.readString(old.resolve("memory.json")).contains("conflicting"), "conflicting legacy source is preserved");
+        WorldStorageContext.close();
+
+        Path futureWorld = root.resolve("namespace-future-world");
+        Path futureOld = futureWorld.resolve(legacyName);
+        Files.createDirectories(futureOld);
+        String future = "{\"schemaVersion\":9,\"data\":{}}";
+        Files.writeString(futureOld.resolve("memory.json"), future);
+        expect(IOException.class, () -> WorldStorageContext.open(futureWorld), "unknown legacy schema blocks directory migration");
+        require(Files.readString(futureOld.resolve("memory.json")).equals(future), "unsupported source stays unchanged");
+        require(!Files.exists(futureWorld.resolve("wicklen-chronicles")), "failed migration creates no current directory");
+
+        Path config = root.resolve("namespace-config");
+        Files.createDirectories(config);
+        Path oldConfig = config.resolve(legacyName + ".json");
+        String settings = "{\"provider\":\"ollama\",\"proactive\":false}";
+        Files.writeString(oldConfig, settings);
+        Path migrated = dev.wicklen.chronicles.compat.LegacyCompatibility.configurationFile(config);
+        require(migrated.equals(config.resolve("wicklen-chronicles.json")), "config uses neutral filename");
+        require(Files.readString(migrated).equals(settings) && !Files.exists(oldConfig), "config migration preserves settings bytes");
+        Files.writeString(oldConfig, "{\"provider\":\"custom\"}");
+        dev.wicklen.chronicles.compat.LegacyCompatibility.configurationFile(config);
+        require(Files.readString(migrated).equals(settings) && Files.exists(oldConfig), "config conflict never overwrites either source");
+        Path badConfig = root.resolve("namespace-bad-config");
+        Files.createDirectories(badConfig);
+        Files.writeString(badConfig.resolve(legacyName + ".json"), future);
+        expect(IOException.class, () -> dev.wicklen.chronicles.compat.LegacyCompatibility.configurationFile(badConfig),
+            "unknown config schema blocks migration");
+        require(Files.readString(badConfig.resolve(legacyName + ".json")).equals(future), "unsupported config preserved");
+        require(!Files.exists(badConfig.resolve("wicklen-chronicles.json")), "failed config migration creates no replacement");
     }
 
     @FunctionalInterface

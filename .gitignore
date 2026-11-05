@@ -3,3 +3,18 @@ build/
 run/
 tools/
 *.log
+
+# Local runtime state and credentials do not belong in the source repository.
+.env
+.env.*
+config/
+saves/
+world/
+logs/
+crash-reports/
+server.properties
+eula.txt
+usercache.json
+ops.json
+whitelist.json
+banned-*.json

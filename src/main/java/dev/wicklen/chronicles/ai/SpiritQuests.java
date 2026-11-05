@@ -140,7 +140,7 @@ public final class SpiritQuests {
     public static Quest issue(UUID playerId) {
         var t = TEMPLATES.get(RND.nextInt(TEMPLATES.size()));
         int need = t.minNeed() + RND.nextInt(t.maxNeed() - t.minNeed() + 1);
-        var definition = new QuestDefinition("redzspirit:" + t.type() + "/" + t.target().replace(':', '/'),
+        var definition = new QuestDefinition("wicklen_chronicles:" + t.type() + "/" + t.target().replace(':', '/'),
             1, QuestType.valueOf(t.type().toUpperCase(java.util.Locale.ROOT)), t.target(), need,
             new RewardDefinition(REWARDS.get(RND.nextInt(REWARDS.size())), REWARD_COUNT));
         return issue(playerId, definition);

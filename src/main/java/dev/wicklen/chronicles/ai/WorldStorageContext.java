@@ -24,7 +24,7 @@ public final class WorldStorageContext {
     /** Legacy global data is detected for review, never assigned to a world automatically. */
     public static synchronized void open(Path worldDirectory, Path legacyDirectory) throws IOException {
         if (session != null) throw new IllegalStateException("A world storage context is already open");
-        Path directory = worldDirectory.toAbsolutePath().normalize().resolve("redzspirit");
+        Path directory = dev.wicklen.chronicles.compat.LegacyCompatibility.worldDataDirectory(worldDirectory);
         Path metadata = directory.resolve("world-metadata.json");
         UUID worldId;
         if (Files.exists(metadata)) {
@@ -47,7 +47,7 @@ public final class WorldStorageContext {
             && Files.isDirectory(legacyDirectory)) {
             try (var files = Files.list(legacyDirectory)) {
                 if (files.anyMatch(path -> path.getFileName().toString().endsWith(".json"))) {
-                    LoggerFactory.getLogger("redzspirit.storage").warn(
+                    LoggerFactory.getLogger("wicklen_chronicles.storage").warn(
                         "[Wicklen: Chronicles] Legacy global data at {} was not imported into {}. Select the intended world before manual migration.",
                         legacyDirectory, directory);
                 }

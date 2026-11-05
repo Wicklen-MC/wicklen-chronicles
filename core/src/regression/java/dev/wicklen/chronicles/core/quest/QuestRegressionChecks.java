@@ -116,7 +116,7 @@ public final class QuestRegressionChecks {
     }
 
     private static QuestDefinition definition(QuestType type, String target, int required) {
-        return new QuestDefinition("redzspirit:test", 1, type, target, required,
+        return new QuestDefinition("wicklen_chronicles:test", 1, type, target, required,
                 new RewardDefinition("minecraft:diamond", 2));
     }
 

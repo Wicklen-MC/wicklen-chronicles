@@ -7,7 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Реестр провайдеров LLM. Основной источник — config/redzspirit.json
+ * Реестр провайдеров LLM. Основной источник — config/wicklen-chronicles.json
  * (см. SpiritConfig); env-переменные работают как override/фолбэк.
  *
  * Приоритет для deepseek: конфиг (с "env:"-ссылками) → legacy env

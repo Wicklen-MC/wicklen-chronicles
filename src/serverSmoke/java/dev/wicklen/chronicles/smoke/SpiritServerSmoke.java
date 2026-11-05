@@ -22,7 +22,7 @@ import java.util.UUID;
 
 /** Test-only dedicated server entry point: no client classes or external services. */
 public final class SpiritServerSmoke implements ModInitializer {
-    private static final Logger LOGGER = LoggerFactory.getLogger("redzspirit-server-smoke");
+    private static final Logger LOGGER = LoggerFactory.getLogger("wicklen_chronicles-server-smoke");
     private Path runDirectory;
     private Throwable failure;
     private boolean armed;
@@ -33,8 +33,8 @@ public final class SpiritServerSmoke implements ModInitializer {
     public void onInitialize() {
         // Even if this source set is accidentally visible to another dev run,
         // it must never stop that server or modify its world for testing.
-        if (!Boolean.getBoolean("redzspirit.serverSmoke")) return;
-        String configuredDirectory = System.getProperty("redzspirit.serverSmoke.directory");
+        if (!Boolean.getBoolean("wicklen_chronicles.serverSmoke")) return;
+        String configuredDirectory = System.getProperty("wicklen_chronicles.serverSmoke.directory");
         if (configuredDirectory == null || configuredDirectory.isBlank()) {
             throw new IllegalStateException("Server smoke requires an explicit isolated run directory");
         }
@@ -56,12 +56,12 @@ public final class SpiritServerSmoke implements ModInitializer {
             require(worldDirectory.startsWith(runDirectory) && !worldDirectory.equals(runDirectory),
                     "test world must live inside the isolated smoke run directory");
             Path storage = WorldStorageContext.directory().toAbsolutePath().normalize();
-            require(storage.equals(worldDirectory.resolve("redzspirit")), "progress must be scoped to the active world");
+            require(storage.equals(worldDirectory.resolve("wicklen-chronicles")), "progress must be scoped to the active world");
 
             // A new dummy owner on each isolated run also permits rerunning the
             // smoke test without deleting its previously generated test world.
             UUID owner = UUID.randomUUID();
-            var definition = new QuestDefinition("redzspirit:smoke/collection", 1,
+            var definition = new QuestDefinition("wicklen_chronicles:smoke/collection", 1,
                     QuestType.COLLECT, "minecraft:apple", 3,
                     new RewardDefinition("minecraft:emerald", 2));
             var quest = SpiritQuests.issue(owner, definition);
@@ -80,6 +80,19 @@ public final class SpiritServerSmoke implements ModInitializer {
             require(encoded.contains(owner.toString()) && encoded.contains(quest.id().toString())
                             && encoded.contains(quest.rewardId().toString()),
                     "persisted ledger must contain stable owner, quest and reward identities");
+            verifyLegacyEntity(server);
+            if (Boolean.getBoolean("wicklen.chronicles.smoke.verifyBalance")) {
+                server.overworld().getChunk(0, 0);
+                var returned = new java.util.concurrent.atomic.AtomicInteger(Integer.MIN_VALUE);
+                var succeeded = new java.util.concurrent.atomic.AtomicBoolean();
+                var source = server.createCommandSourceStack().withLevel(server.overworld())
+                    .withPosition(new net.minecraft.world.phys.Vec3(0.5, 100, 0.5)).withCallback((success, result) -> {
+                    succeeded.set(success);
+                    returned.set(result);
+                });
+                server.getCommands().performPrefixedCommand(source, "function wicklen_balance:test/migration");
+                require(succeeded.get() && returned.get() == 1, "balance migration function must exist and return 1");
+            }
         } catch (Throwable error) {
             failure = error;
             LOGGER.error("[Wicklen: Chronicles server smoke] FAIL during dedicated server checks", error);
@@ -88,6 +101,24 @@ public final class SpiritServerSmoke implements ModInitializer {
             // loop before requesting shutdown from its own thread.
             armed = true;
         }
+    }
+
+    private static void verifyLegacyEntity(MinecraftServer server) {
+        var level = server.overworld();
+        var type = dev.wicklen.chronicles.compat.LegacyCompatibility.legacySpiritType();
+        var entity = type.create(level, net.minecraft.world.entity.EntitySpawnReason.LOAD);
+        require(entity != null, "legacy entity registry ID must still create the companion");
+        var output = net.minecraft.world.level.storage.TagValueOutput.createWithContext(
+            net.minecraft.util.ProblemReporter.DISCARDING, server.registryAccess());
+        require(entity.save(output), "legacy entity must serialize");
+        var tag = output.buildResult();
+        var loaded = net.minecraft.world.entity.EntityType.loadEntityRecursive(tag, level,
+            new net.minecraft.world.entity.EntitySpawnRequest(net.minecraft.world.entity.EntitySpawnReason.LOAD, false),
+            net.minecraft.world.entity.EntityProcessor.NOP);
+        require(loaded instanceof dev.wicklen.chronicles.entity.SpiritEntity && loaded.getType() == type,
+            "old saved entity ID must deserialize through the compatibility registry");
+        entity.discard();
+        loaded.discard();
     }
 
     private void finishAfterTicks(MinecraftServer server) {

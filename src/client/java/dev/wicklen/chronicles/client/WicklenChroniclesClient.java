@@ -25,7 +25,8 @@ public class WicklenChroniclesClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
-        EntityRenderers.register(WicklenChronicles.SPIRIT, SpiritRenderer::new);
+        for (var type : dev.wicklen.chronicles.compat.LegacyCompatibility.spiritTypes())
+            EntityRenderers.register(type, SpiritRenderer::new);
 
         ClientPlayNetworking.registerGlobalReceiver(SpiritBubblePayload.TYPE, (payload, context) ->
             context.client().execute(() ->
@@ -37,7 +38,7 @@ public class WicklenChroniclesClient implements ClientModInitializer {
 
         // клавиша G — окно диалога с духом
         KeyMapping dialogKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
-            "key.redzspirit.dialog",
+            "key.wicklen_chronicles.dialog",
             InputConstants.Type.KEYBOARD,
             InputConstants.KEY_G,
             category()));

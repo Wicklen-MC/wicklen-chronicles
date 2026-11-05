@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "id": "redzspirit-server-smoke",
+  "id": "wicklen_chronicles-server-smoke",
   "version": "1.0.0",
   "name": "Wicklen: Chronicles dedicated server smoke test",
   "environment": "server",
@@ -8,7 +8,7 @@
     "main": ["dev.wicklen.chronicles.smoke.SpiritServerSmoke"]
   },
   "depends": {
-    "redzspirit": "*",
+    "wicklen_chronicles": "*",
     "fabricloader": ">=0.20.1",
     "fabric-api": "*",
     "java": ">=25"

@@ -34,6 +34,7 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
         var pendingReward = new AtomicReference<UUID>();
         var worldId = new AtomicReference<UUID>();
         var sessionId = new AtomicReference<UUID>();
+        var legacyEntitySave = new AtomicReference<net.minecraft.nbt.CompoundTag>();
         try (var world = context.worldBuilder().create()) {
             savedWorld = world.getWorldSave();
             var server = world.getServer();
@@ -85,7 +86,7 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
                 cfg.custom.baseUrl = null;
                 cfg.provider = "deepseek";
                 LlmProviders.reset();
-                var definition = new QuestDefinition("redzspirit:test/apples", 1,
+                var definition = new QuestDefinition("wicklen_chronicles:test/apples", 1,
                     QuestType.COLLECT, "minecraft:apple", 3,
                     new RewardDefinition("minecraft:emerald", 2));
                 require(SpiritQuests.issue(player.getUUID(), definition) != null, "deterministic quest issued");
@@ -144,6 +145,18 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
             int netherSpirit = server.computeOnServer(mcServer -> SpiritManager.findSpirits(
                 connection.getServerPlayer().getScoreboardName(), mcServer).getFirst().getId());
             context.runOnClient(client -> require(BubbleStore.get(netherSpirit) != null, "bubble cache survives dimension change"));
+            server.runOnServer(mcServer -> {
+                var player = connection.getServerPlayer();
+                var legacy = dev.wicklen.chronicles.compat.LegacyCompatibility.legacySpiritType()
+                    .create(player.level(), net.minecraft.world.entity.EntitySpawnReason.LOAD);
+                require(legacy != null, "legacy entity type creates a companion");
+                legacy.setOwner(player);
+                var output = net.minecraft.world.level.storage.TagValueOutput.createWithContext(
+                    net.minecraft.util.ProblemReporter.DISCARDING, mcServer.registryAccess());
+                require(legacy.save(output), "legacy entity saves its old registry ID");
+                legacyEntitySave.set(output.buildResult());
+                legacy.discard();
+            });
         }
         try (var reopened = savedWorld.open()) {
             reopened.getServer().waitFor(mcServer -> SpiritManager.findSpirits(
@@ -161,6 +174,23 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
                 require(quest != null && quest.status() == QuestStatus.REWARD_PENDING,
                     "pending reward survives restart");
                 require(pendingReward.get().equals(quest.rewardId()), "reward identity survives restart");
+                // Companion entities normally disappear on disconnect. Load an
+                // old serialized fixture after reopening instead of relying on
+                // intentionally transient companions surviving disconnect.
+                SpiritManager.discardSpirits(player.getScoreboardName(), mcServer);
+                var loaded = net.minecraft.world.entity.EntityType.loadEntityRecursive(legacyEntitySave.get(), player.level(),
+                    new net.minecraft.world.entity.EntitySpawnRequest(net.minecraft.world.entity.EntitySpawnReason.LOAD, false),
+                    net.minecraft.world.entity.EntityProcessor.NOP);
+                require(loaded instanceof dev.wicklen.chronicles.entity.SpiritEntity, "old saved entity deserializes after world reopen");
+                var legacy = (dev.wicklen.chronicles.entity.SpiritEntity) loaded;
+                require(legacy.getOwnerUuid().equals(player.getUUID()), "old saved owner UUID survives reopen");
+                legacy.setPos(player.getX(), player.getY() + 1.6, player.getZ());
+                require(((net.minecraft.server.level.ServerLevel) player.level()).addFreshEntity(legacy), "old companion can join reopened world");
+                SpiritManager.ensureSpirit(player);
+                require(SpiritManager.findSpirits(player.getScoreboardName(), mcServer).size() == 1,
+                    "legacy and current types share the single-companion rule");
+                require(SpiritManager.findSpirits(player.getScoreboardName(), mcServer).getFirst().getType()
+                    == dev.wicklen.chronicles.compat.LegacyCompatibility.legacySpiritType(), "legacy companion is reused instead of duplicated");
             });
             reopened.getServer().runCommand("execute as @p run spirit quest claim");
             reopened.getServer().runOnServer(mcServer -> {

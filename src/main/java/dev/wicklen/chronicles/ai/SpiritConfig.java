@@ -9,7 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
- * Конфиг мода: config/redzspirit.json (создаётся с дефолтами при первом запуске).
+ * Конфиг мода: config/wicklen-chronicles.json (создаётся с дефолтами при первом запуске).
  *
  * Ключи: строка "env:NAME" разрешается в переменную окружения (рекомендуется —
  * ключ не хранится в файле); литерал используется как есть.
@@ -53,7 +53,15 @@ public final class SpiritConfig {
 
     public static synchronized SpiritConfig get() {
         if (instance != null) return instance;
-        Path file = file();
+        Path file;
+        try {
+            file = dev.wicklen.chronicles.compat.LegacyCompatibility.configurationFile(
+                FabricLoader.getInstance().getConfigDir());
+        } catch (java.io.IOException error) {
+            WicklenChronicles.LOGGER.error("[Wicklen: Chronicles] Legacy config migration failed; source preserved: {}", error.toString());
+            instance = new SpiritConfig();
+            return instance;
+        }
         try {
             if (Files.exists(file)) {
                 instance = GSON.fromJson(Files.readString(file), SpiritConfig.class);
@@ -75,10 +83,6 @@ public final class SpiritConfig {
             WicklenChronicles.LOGGER.warn("[Wicklen: Chronicles] config write failed: {}", e.toString());
         }
         return instance;
-    }
-
-    private static Path file() {
-        return FabricLoader.getInstance().getConfigDir().resolve("redzspirit.json");
     }
 
     public static synchronized void reset() { instance = null; }

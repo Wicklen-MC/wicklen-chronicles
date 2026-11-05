@@ -10,6 +10,6 @@ pluginManagement {
 }
 
 // Stable internal build identity; public artifacts use wicklen-chronicles.
-rootProject.name = 'redzspirit'
+rootProject.name = 'wicklen-chronicles'
 
 include 'core', 'fabric'

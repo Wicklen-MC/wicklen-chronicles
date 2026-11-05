@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "id": "redzspirit-test",
+  "id": "wicklen_chronicles-test",
   "version": "1.0.0",
   "name": "Wicklen: Chronicles client regression tests",
   "environment": "client",

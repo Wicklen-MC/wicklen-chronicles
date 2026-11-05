@@ -9,7 +9,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Дух-памятник: погибшие приручённые питомцы игроков (redzspirit/memorial.json).
+ * Дух-памятник: погибшие приручённые питомцы игроков (wicklen-chronicles/memorial.json).
  * Дух иногда тепло вспоминает их в разговоре.
  */
 public final class SpiritMemorial {

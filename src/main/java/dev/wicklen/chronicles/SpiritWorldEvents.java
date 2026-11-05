@@ -114,7 +114,7 @@ public final class SpiritWorldEvents {
         }
     }
 
-    /** Ночной летописец: глава из слухов дня в redzspirit/chronicle/. */
+    /** Ночной летописец: глава из слухов дня в wicklen-chronicles/chronicle/. */
     private static void writeChronicle(MinecraftServer server, long day) {
         var rumors = dev.wicklen.chronicles.ai.SpiritRumors.recent(20);
         if (rumors.isEmpty() || !SpiritAi.enabled()) return;

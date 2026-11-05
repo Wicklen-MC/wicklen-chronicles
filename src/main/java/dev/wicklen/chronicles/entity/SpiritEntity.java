@@ -60,6 +60,13 @@ public class SpiritEntity extends PathfinderMob {
     public int spiritColor() { return entityData.get(COLOR); }
     public void setSpiritColor(int color) { entityData.set(COLOR, color & 0xFFFFFF); }
 
+    @Override
+    protected net.minecraft.network.chat.Component getTypeName() {
+        // A companion loaded through the legacy entity adapter still uses the
+        // current translation, without keeping obsolete resource keys alive.
+        return net.minecraft.network.chat.Component.translatable("entity.wicklen_chronicles.spirit");
+    }
+
     public String ownerName() {
         return ownerName;
     }

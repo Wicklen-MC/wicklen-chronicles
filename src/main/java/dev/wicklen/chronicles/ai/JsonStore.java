@@ -29,7 +29,7 @@ import java.util.function.Supplier;
  */
 public final class JsonStore<T> {
     private static final Gson GSON = new Gson();
-    private static final Logger LOGGER = LoggerFactory.getLogger("redzspirit.storage");
+    private static final Logger LOGGER = LoggerFactory.getLogger("wicklen_chronicles.storage");
     private static final int SCHEMA_VERSION = 1;
     private static final List<JsonStore<?>> STORES = new ArrayList<>();
 

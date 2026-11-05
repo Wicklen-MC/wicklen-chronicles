@@ -15,7 +15,8 @@ import dev.wicklen.chronicles.command.SpiritCommand;
 import dev.wicklen.chronicles.entity.SpiritEntity;
 
 public class WicklenChronicles implements ModInitializer {
-    public static final String MOD_ID = "redzspirit";
+    public static final String MOD_ID = "wicklen_chronicles";
+    public static final String DATA_DIRECTORY = "wicklen-chronicles";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
     public static final ResourceKey<EntityType<?>> SPIRIT_KEY =
@@ -32,6 +33,7 @@ public class WicklenChronicles implements ModInitializer {
     @Override
     public void onInitialize() {
         FabricDefaultAttributeRegistry.register(SPIRIT, SpiritEntity.createAttributes());
+        dev.wicklen.chronicles.compat.LegacyCompatibility.registerLegacySpirit();
         SpiritCommand.register();
         SpiritEvents.register();
         SpiritWorldEvents.register();
@@ -42,7 +44,8 @@ public class WicklenChronicles implements ModInitializer {
             try {
                 dev.wicklen.chronicles.ai.WorldStorageContext.open(
                     server.getWorldPath(net.minecraft.world.level.storage.LevelResource.ROOT),
-                    net.fabricmc.loader.api.FabricLoader.getInstance().getGameDir().resolve(MOD_ID));
+                    dev.wicklen.chronicles.compat.LegacyCompatibility.legacyGlobalDirectory(
+                        net.fabricmc.loader.api.FabricLoader.getInstance().getGameDir()));
             } catch (java.io.IOException error) {
                 throw new IllegalStateException("Cannot open Wicklen: Chronicles world storage", error);
             }

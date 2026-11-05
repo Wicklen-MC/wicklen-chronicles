@@ -1,6 +1,7 @@
 {
 	"schemaVersion": 1,
-	"id": "redzspirit",
+	"id": "wicklen_chronicles",
+	"provides": ["redzspirit"],
 	"version": "${version}",
 	"name": "Wicklen: Chronicles",
 	"description": "Дух-компаньон и истории мира Wicklen (Виклен): задания, исследования и диалоги с LLM.",

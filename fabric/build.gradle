@@ -15,7 +15,7 @@ loom {
 	splitEnvironmentSourceSets()
 
 	mods {
-		"redzspirit" {
+		"wicklen_chronicles" {
 			sourceSet sourceSets.main
 			sourceSet sourceSets.client
 		}
@@ -93,8 +93,8 @@ tasks.named('check') { dependsOn tasks.named('regressionTest') }
 
 loom {
 	mods {
-		'redzspirit-test' { sourceSet sourceSets.clientGameTest }
-		'redzspirit-server-smoke' { sourceSet sourceSets.serverSmoke }
+		'wicklen_chronicles-test' { sourceSet sourceSets.clientGameTest }
+		'wicklen_chronicles-server-smoke' { sourceSet sourceSets.serverSmoke }
 	}
 	runs {
 		configureEach { runDir rootProject.file('run').absolutePath }
@@ -109,8 +109,11 @@ loom {
 			server()
 			source sourceSets.serverSmoke
 			runDir rootProject.file('build/server-smoke').absolutePath
-			vmArg '-Dredzspirit.serverSmoke=true'
-			vmArg '-Dredzspirit.serverSmoke.directory=' + rootProject.file('build/server-smoke').absolutePath
+			vmArg '-Dwicklen_chronicles.serverSmoke=true'
+			vmArg '-Dwicklen_chronicles.serverSmoke.directory=' + rootProject.file('build/server-smoke').absolutePath
+			if (providers.gradleProperty('verifyBalanceSmokes').map { it.toBoolean() }.getOrElse(false)) {
+				vmArg '-Dwicklen.chronicles.smoke.verifyBalance=true'
+			}
 			programArg 'nogui'
 		}
 	}
@@ -196,6 +199,7 @@ publishing {
 // The pure Java core is bundled into the same mod, including in source artifacts.
 tasks.named('sourcesJar') {
 	from project(':core').sourceSets.main.allSource
+	from rootProject.file('LICENSE')
 	destinationDirectory = rootProject.layout.buildDirectory.dir('libs')
 }
 

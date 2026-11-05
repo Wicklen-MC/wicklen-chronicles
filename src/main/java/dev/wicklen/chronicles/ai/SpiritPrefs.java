@@ -6,7 +6,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-/** Предпочтения игроков: «дух спрятан». Персистентно (redzspirit/prefs.json). */
+/** Предпочтения игроков: «дух спрятан». Персистентно (wicklen-chronicles/prefs.json). */
 public final class SpiritPrefs {
     private static final JsonStore<Set<String>> STORE =
         new JsonStore<>("prefs.json", new TypeToken<>() {});

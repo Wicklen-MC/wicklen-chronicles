@@ -83,7 +83,8 @@ public final class SpiritManager {
         List<SpiritEntity> found = new ArrayList<>();
         var everywhere = new net.minecraft.world.phys.AABB(-1e7, -1e7, -1e7, 1e7, 1e7, 1e7);
         for (ServerLevel level : server.getAllLevels()) {
-            found.addAll(level.getEntities(WicklenChronicles.SPIRIT, everywhere, s -> ownerName.equals(s.ownerName())));
+            for (var type : dev.wicklen.chronicles.compat.LegacyCompatibility.spiritTypes())
+                found.addAll(level.getEntities(type, everywhere, s -> ownerName.equals(s.ownerName())));
         }
         return found;
     }

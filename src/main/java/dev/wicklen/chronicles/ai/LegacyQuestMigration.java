@@ -41,7 +41,7 @@ final class LegacyQuestMigration {
                 UUID id = UUID.nameUUIDFromBytes((worldId + ":" + owner + ":" + value.issuedAt()
                     + ":" + value.type() + ":" + value.target()).getBytes(StandardCharsets.UTF_8));
                 var reward = new RewardDefinition(rewards.get(Math.floorMod(id.hashCode(), rewards.size())), 2);
-                var definition = new QuestDefinition("redzspirit:legacy/" + value.type(), 1,
+                var definition = new QuestDefinition("wicklen_chronicles:legacy/" + value.type(), 1,
                     type, value.target(), value.need(), reward);
                 var quest = QuestTransitions.issue(id, owner, definition, value.issuedAt());
                 quest = switch (type) {

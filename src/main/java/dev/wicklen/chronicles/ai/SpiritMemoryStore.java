@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Память диалогов на диске: дух помнит разговоры прошлых сессий
- * (redzspirit/memory.json: uuid -> до 8 пар реплик, TTL 7 дней).
+ * (wicklen-chronicles/memory.json: uuid -> до 8 пар реплик, TTL 7 дней).
  * Сохранение — троттлится (30 c) и по остановке сервера.
  */
 public final class SpiritMemoryStore {

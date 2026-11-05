@@ -1,141 +1,111 @@
 # Wicklen: Chronicles
 
-Дух-компаньон и истории мира **Wicklen (Виклен)** для Minecraft 26.3 + Fabric:
-задания и диалоги с LLM; исследования и новые истории развиваются следующим этапом.
+[English](README.md) | [Русский](README.ru.md)
 
-Публичное название мода — **Wicklen: Chronicles**. Технический ID
-`redzspirit` и пути сохранений/конфига сохранены для совместимости;
-переименование не требует переноса миров или настроек. Java namespace —
-`dev.wicklen.chronicles`, Maven coordinates — `dev.wicklen:wicklen-chronicles`.
+A spirit companion for the Minecraft world of **Wicklen**: conversations,
+small quests and a persistent chronicle. Built for **Minecraft 26.3, Fabric
+Loader 0.20.1+, Fabric API 0.165.0+26.3 and Java 25**.
 
-Текущие изменения — в [CHANGELOG.md](CHANGELOG.md); независимые правила заданий —
-в [core/README.md](core/README.md). Репозиторий собирается самостоятельно, без соседней рабочей папки сборки.
+## What works today
 
-## Возможности
+- One animated companion per player, with different personalities and colours.
+- **G** opens the conversation screen; `@дух <message>` also starts a conversation.
+- Optional LLM dialogue through an OpenAI-compatible endpoint or local Ollama.
+  Greetings, companion controls and quest rules work without an LLM.
+- Collection, biome-visit and combat quests. Submission and reward collection
+  are explicit; a full inventory keeps the reward pending.
+- World-scoped progress, stable quest/reward IDs, completed history and a chronicle.
 
-- Дух — анимированный светлячок с глазами, плавниками, хвостом, венчиком и частицами.
-  Медленно кружит в 3,1 блока от игрока, проходит сквозь стены,
-  неуязвим, не деспавнится; один на игрока: появляется при входе, исчезает при выходе.
-- Команды: `/spirit summon|dismiss`, `/spirit persona <firefly|fox|owl|cat>`,
-  `/spirit admin test <текст>` (ops).
-- Чат: `@дух <текст>` — диалог; реплики по событиям мира (ночь/рассвет/полнолуние/смерть).
-- **G** — окно диалога с историей; прокрутка колесом или ↑/↓, отправка Enter.
-- Реплики видны над духом 6–20 секунд. Приветствие при входе и `/spirit summon`
-  работают без LLM и позволяют проверить облачки.
-- Персона задаёт характер и цвет; дух восстанавливается после телепорта и смены измерения.
-- LLM: любой OpenAI-совместимый API (по умолчанию DeepSeek). Ключ только из env.
-- Задания: `/spirit quest` показывает текущее или выдаёт новое,
-  `/spirit quest turnin` явно сдаёт выполненное, `/spirit quest claim` получает
-  награду. Готовность сама не забирает материалы. При полном инвентаре награда
-  остаётся ждать; её состав и ID сохраняются между перезапусками.
+The exploration journal, observation of places, procedural stations and
+structured AI-generated story plans are **planned**, not implemented features.
 
-## Граница нашей логики и Minecraft
+## Install and play
 
-В одной Gradle-сборке два подпроекта: `core` и `fabric`; устанавливается один JAR.
-`fabric` зависит от `core`, обратной зависимости нет.
+Install Fabric Loader and Fabric API, then put
+`wicklen-chronicles-0.2.1.jar` in `mods/` on both server and client. Remove
+older copies of this mod first. Use matching client/server versions; the
+0.2.1 networking namespace changed. The `-sources.jar` is for developers.
 
-- `core/src/main/java`: чистая Java 17, определения/экземпляры заданий,
-  прогресс, готовность, сдача и подтверждение выдачи. В classpath ядра нет
-  Minecraft, Fabric, Gson и игровых объектов.
-- `fabric/build.gradle`: Minecraft/Fabric 26.3 и Java 25. Пока подключает
-  существующие `src/main`, `src/client` и тестовые source sets из корня,
-  чтобы переносить работающие сценарии постепенно. Здесь остаются события,
-  реестры, инвентарь, сохранения, HTTP, сеть и интерфейс.
-
-Первый перенесённый сценарий — существующие collect/visit/slay-задания.
-Новый дневник, наблюдения мест, генерация станций и структурированные
-ИИ-истории ещё не реализованы. Контракт чистого ядра и отдельная проверка описаны
-в [core/README.md](core/README.md).
-
-Ядро предлагает переход состояния; адаптер проверяет реальный мир и выполняет
-побочные действия. Готовность, сдача материалов и доставка награды различаются.
-Обычные ошибки записи откатывают действие; запись инвентаря Minecraft и JSON
-не является единой транзакцией при аварийном завершении процесса.
-
-## Сохранения и переход со старого формата
-
-Данные игрока и летопись находятся в `<папка мира>/redzspirit/`.
-`world-metadata.json` хранит постоянный ID мира; ID текущей сессии меняется
-после открытия. Поздние ответы LLM после закрытия/начала остановки игнорируются.
-JSON содержит `schemaVersion` и `data`; повреждённый или неизвестный формат
-не заменяется пустым сохранением. Некорректные задания отключают автоматическое
-наблюдение на текущую сессию и сообщают об ошибке в логе.
-
-Старая общая `<папка запуска>/redzspirit/` сохраняется без изменений:
-автоматически определить, какому миру она принадлежит, нельзя. Для переноса
-нужно остановить игру/сервер, сделать резервные копии, выбрать нужный мир и
-перенести соответствующие JSON в его `redzspirit/`, не заменяя существующие
-данные и не копируя `world-metadata.json` из другого мира.
-
-Совместимый JSON без версии при следующем сохранении получает envelope;
-рядом остаётся исходный `<имя>.json.v0.bak`. Старый `quests.json` внутри
-выбранного мира преобразуется в `quest-ledger.json`, если нового файла ещё нет;
-исходник сохраняется. Награда фиксируется при конвертации, старый прогресс
-сбора заново проверяется по реальному инвентарю перед сдачей.
-
-## Сборка
-
-```bash
-./gradlew build
-# -> build/libs/wicklen-chronicles-<version>.jar
-```
-
-Требуется JDK 25 в `JAVA_HOME`/`PATH`; Gradle wrapper 9.8.2 включён в проект.
-Используются Mojang-маппинги. Локальный каталог JDK или Gradle cache проекту
-не требуется: их расположение задаётся стандартными настройками окружения.
-
-## E2E-тест
-
-`./gradlew build` также запускает регрессионные проверки лимитов, JSON-хранилища,
-конфига и OpenAI/Ollama HTTP-протоколов на localhost, без ключей и внешнего API,
-а также правила ядра, изоляцию миров, миграции и сохранение заданий.
-
-Полностью отдельная проверка ядра, без конфигурации Loom/Minecraft:
-
-```bash
-./gradlew -p core check
-```
-
-Dedicated-server smoke в `build/server-smoke/` (localhost, случайный порт,
-автоматическая остановка; использует уже принятое `run/eula.txt`):
-
-```bash
-./gradlew runServerSmoke
-# Результат: build/server-smoke/smoke-result.txt
-```
-
-Клиентская проверка в отдельном мире (артефакт мода не включает тестовый код):
-
-```bash
-./gradlew runClientGameTest
-# Скриншоты: build/client-gametest/screenshots/
-```
-
-Проверяет модель и диалог, доставку облачков, полный C2S → mock-LLM → S2C контур,
-один запрос в полёте, обработку HTTP-ошибок, явную сдачу без LLM, полный инвентарь,
-сохранение ожидающей награды при закрытии мира и защиту от повторного получения, повторный призыв,
-удаление, телепорт и переход в другое измерение. Порты mock-серверов выбираются
-автоматически; используются только временные игровые данные в `build/`.
-
-## Переменные окружения сервера
-
-При первом запуске создаётся `config/redzspirit.json`: провайдеры, `cooldownMs`,
-`maxTurnsPerHour`, `maxTokens`, `temperature`, `proactive`. Изменения применяются
-при перезапуске сервера. `proactive: false` отключает автоматические LLM-реплики,
-сохраняя прямой диалог и детерминированную работу заданий. Ссылки `env:NAME`
-позволяют хранить ключ в окружении; переменные из таблицы переопределяют конфиг.
-
-Активный провайдер — `SPIRIT_PROVIDER` (default `deepseek`); у каждого свой namespace:
-
-| Провайдер | Переменные |
+| Action | Command |
 |---|---|
-| DeepSeek | `DEEPSEEK_API_KEY`, `DEEPSEEK_MODEL` (default `deepseek-flash`), `DEEPSEEK_BASE_URL`; alias: `SPIRIT_API_KEY/SPIRIT_MODEL/SPIRIT_BASE_URL` |
-| OpenAI | `OPENAI_API_KEY`, `OPENAI_MODEL` (default `gpt-4o-mini`), `OPENAI_BASE_URL` |
-| Ollama (локально) | `SPIRIT_PROVIDER=ollama`, `OLLAMA_BASE_URL` (default `127.0.0.1:11434`), `OLLAMA_MODEL` (default `qwen2.5:3b`) |
-| Любой OpenAI-совместимый | `CUSTOM_BASE_URL`, `CUSTOM_MODEL`, `CUSTOM_API_KEY` + `SPIRIT_PROVIDER=custom` |
+| Show / hide the companion | `/spirit summon` / `/spirit dismiss` |
+| Select a personality | `/spirit persona <id>` |
+| Get a quest or view its status | `/spirit quest` |
+| Submit completed work | `/spirit quest turnin` |
+| Collect a pending reward | `/spirit quest claim` |
+| Inspect LLM providers (operator) | `/spirit admin providers` |
+| Test dialogue (operator) | `/spirit admin test <message>` |
 
-Проверка из консоли: `/spirit admin providers`. Ключи только в env, не в конфигах/git.
+Personality IDs: `firefly`, `fox`, `owl`, `cat`.
 
-## Лицензия
+Quest readiness never takes items automatically. Collection quests recheck
+what is actually in the inventory when submitted. Rewards are fixed when
+issued and survive a normal world restart. Inventory and mod data are
+separate save resources, not a shared transaction during abrupt power loss.
 
-MIT (свой код с нуля; идеи из Spirit Companions (ARR) и mc_aiplayer/Friendai (MIT)).
+## Configuration and saves
+
+`config/wicklen-chronicles.json` is created on first launch. It controls the
+provider, request limits, token budget, temperature and proactive messages.
+Set `proactive: false` to disable automatic LLM remarks while retaining
+manual conversations and deterministic quests.
+
+Use environment variables for credentials; do not commit keys or personal
+configuration. `SPIRIT_PROVIDER` selects `deepseek`, `openai`, `ollama` or
+`custom`. Corresponding variables include `DEEPSEEK_API_KEY`, `OPENAI_API_KEY`,
+`OLLAMA_BASE_URL` / `OLLAMA_MODEL`, and `CUSTOM_BASE_URL` / `CUSTOM_MODEL` /
+`CUSTOM_API_KEY`. A config value `env:VARIABLE_NAME` reads an environment variable.
+
+Progress is stored in `<world>/wicklen-chronicles/`. JSON saves have a schema
+version; unknown or corrupt formats are preserved rather than reset.
+
+### Compatibility with earlier releases
+
+Only the compatibility adapter and the mod dependency alias retain the old
+`redzspirit` namespace. Old saved `redzspirit:spirit` entities still load;
+new entities, packets, resources and keybindings use `wicklen_chronicles`.
+
+When the current destination is absent, the adapter validates and moves
+`<world>/redzspirit/` to `<world>/wicklen-chronicles/`, and
+`config/redzspirit.json` to `config/wicklen-chronicles.json`. World IDs and
+file contents are preserved. If both paths exist, current data wins and
+old data remains untouched; unsupported schemas block migration.
+
+The old global game-directory save cannot be assigned to a world safely.
+It is left untouched for manual migration after selecting the intended
+world and backing up both sources. Stop the server before moving files.
+The old per-world `quests.json` converts to `quest-ledger.json` when the
+latter is absent; the original quest file remains available.
+
+## Build and tests
+
+Set `JAVA_HOME` to a **JDK 25** installation. The Gradle wrapper is included;
+no personal cache path, local server configuration or external LLM key is needed.
+
+```sh
+./gradlew build
+# build/libs/wicklen-chronicles-0.2.1.jar
+./gradlew -p core check
+./gradlew runServerSmoke
+./gradlew runClientGameTest
+```
+
+`build` runs core rules, storage/migration, quest-adapter and localhost mock
+HTTP checks. `-p core check` configures only plain Java, without Minecraft/Loom.
+`runServerSmoke` boots an isolated dedicated server on a loopback ephemeral
+port, verifies registration/storage and stops automatically. It requires an
+existing developer EULA acceptance in `run/eula.txt`; it does not accept one
+for you. `runClientGameTest` requires a graphical session and verifies the
+conversation UI, networking, quest hand-in/rewards and world reopen.
+Test worlds, logs and screenshots stay under `build/`.
+
+## Architecture
+
+`core` contains immutable quest definitions/state and deterministic rules,
+with no Minecraft, Fabric, JSON or HTTP dependencies. `fabric` translates
+verified game events into core inputs and owns inventory, registries,
+world storage, network messages, LLM calls and client presentation. One
+installable JAR bundles both; test code is excluded.
+
+Java namespace: `dev.wicklen.chronicles`. Maven coordinates:
+`dev.wicklen:wicklen-chronicles`. Project code is MIT-licensed.

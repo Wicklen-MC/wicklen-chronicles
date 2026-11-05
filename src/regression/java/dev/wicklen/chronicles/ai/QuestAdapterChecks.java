@@ -17,7 +17,7 @@ public final class QuestAdapterChecks {
     public static void main(String[] args) throws Exception {
         var directory = Files.createTempDirectory("spirit-quest-adapter-");
         var owner = UUID.randomUUID();
-        var definition = new QuestDefinition("redzspirit:test/collection", 1,
+        var definition = new QuestDefinition("wicklen_chronicles:test/collection", 1,
             QuestType.COLLECT, "minecraft:apple", 3, new RewardDefinition("minecraft:emerald", 2));
         var original = QuestTransitions.issue(UUID.randomUUID(), owner, definition, 1234L);
         var ready = QuestTransitions.observeInventory(original, 3);
