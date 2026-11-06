@@ -27,6 +27,9 @@ Loader 0.20.1+, Fabric API 0.165.0+26.3 and Java 25**.
   Existing chunks and player changes are not rebuilt on reload.
 - Optional **Gateway of Doom** courtyard encounters, normal/empowered modes,
   explicit party consent, frozen participants and personal reward claims.
+- Courtyard waves adapt gently to effective equipment and recent eligible fights.
+  A bounded AI selector can choose an authored variation during preparation;
+  starting never waits for it, and the accepted fight stays fixed.
 - A reusable **Wayfarer's Lantern** grants brief absorption and speed, with a shared
   60-second cooldown across copies.
 - A **Field Notebook** turns a cartography table into a personal field desk:
@@ -39,7 +42,7 @@ is part of the journal. Combat balance still needs playtesting with the full pac
 ## Install and play
 
 Install Fabric Loader and Fabric API, then put
-`wicklen-chronicles-0.3.1.jar` in `mods/` on both server and client. Remove
+`wicklen-chronicles-0.3.2.jar` in `mods/` on both server and client. Remove
 older copies of this mod first. Use matching client/server versions; the
 0.2.1 networking namespace changed. The `-sources.jar` is for developers.
 
@@ -91,6 +94,29 @@ what is actually in the inventory when submitted. Rewards are fixed when
 issued and survive a normal world restart. Inventory and mod data are
 separate save resources, not a shared transaction during abrupt power loss.
 
+## Gentle encounters and diagnostics
+
+The least equipped participant sets the equipment tier. Recent failures can
+reduce enemy count and damage; victories do not automatically escalate difficulty.
+Two waves contain at most eight enemies each. Normal newcomers meet weaker
+melee enemies; better equipment unlocks a small ranged component. Empowered
+is a modest optional increase. Creative and Adventure remain allowed; debug
+fights do not affect future difficulty. These are initial authored limits,
+not a guarantee of balance with every third-party modifier.
+
+During preparation, the configured LLM can select `steady`, `melee` or `breather`
+from server-built plans. It receives anonymous equipment capabilities and recent
+outcomes. `encounterAiPlanning: false` disables this selection; immediate
+equipment-based planning remains available. Shared AI request budgets apply.
+Equipment or party changes invalidate the cached selection. The final plan is
+saved before Gateway opens; late responses never alter an active battle.
+
+`<world>/wicklen-chronicles/combat-events.jsonl` records preparation, start, waves,
+completion/cancellation reason and reward claims. It rotates at 1 MiB with one
+previous copy. `combat-history.json` keeps at most 64 summaries; only the latest
+eight eligible party results influence relief. Diagnostics omit chat and full
+inventories; a logging failure does not block gameplay or rewards.
+
 ## Configuration and saves
 
 `config/wicklen-chronicles.json` is created on first launch. It controls the
@@ -135,7 +161,7 @@ no personal cache path, local server configuration or external LLM key is needed
 
 ```sh
 ./gradlew build
-# build/libs/wicklen-chronicles-0.3.1.jar
+# build/libs/wicklen-chronicles-0.3.2.jar
 ./gradlew -p core check
 ./gradlew runServerSmoke
 ./gradlew runClientGameTest
@@ -162,6 +188,7 @@ External-provider verification is opt-in and reads an existing private config:
 
 ```sh
 ./gradlew liveStoryProviderTest -PliveSpiritConfig=/absolute/private/config.json
+./gradlew liveEncounterProviderTest -PliveSpiritConfig=/absolute/private/config.json
 ```
 
 It makes a real request, never prints credentials and does not change the config.

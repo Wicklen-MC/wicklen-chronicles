@@ -78,6 +78,7 @@ public class WicklenChronicles implements ModInitializer {
             SpiritProactive.reset();
             SpiritWorldEvents.reset();
             dev.wicklen.chronicles.story.StoryService.reset();
+            dev.wicklen.chronicles.encounter.EncounterPlanningService.reset();
         });
         var active = dev.wicklen.chronicles.ai.llm.LlmProviders.active();
         LOGGER.info("[Wicklen: Chronicles] initialized, LLM provider: {}",

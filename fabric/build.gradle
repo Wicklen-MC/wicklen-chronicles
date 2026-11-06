@@ -114,6 +114,14 @@ tasks.register('storyPlansTest', JavaExec) {
 }
 tasks.named('check') { dependsOn tasks.named('storyPlansTest') }
 
+tasks.register('encounterPlanningTest', JavaExec) {
+	group = 'verification'
+	description = 'Checks the gentle combat director model boundary without external services.'
+	classpath = sourceSets.regression.runtimeClasspath
+	mainClass = 'dev.wicklen.chronicles.encounter.EncounterPlanningChecks'
+}
+tasks.named('check') { dependsOn tasks.named('encounterPlanningTest') }
+
 tasks.register('stationTest', JavaExec) {
 	group = 'verification'
 	description = 'Checks station variants, rotations, stable manifests and attachment codec.'
@@ -132,6 +140,15 @@ tasks.register('liveStoryProviderTest', JavaExec) {
 	def directory = project.layout.buildDirectory.dir('verification/liveStoryProviderTest')
 	workingDir directory
 	doFirst { directory.get().asFile.mkdirs() }
+}
+
+tasks.register('liveEncounterProviderTest', JavaExec) {
+	group = 'verification'
+	description = 'Opt-in external combat planner check with an explicitly supplied private config.'
+	classpath = sourceSets.regression.runtimeClasspath
+	mainClass = 'dev.wicklen.chronicles.encounter.LiveEncounterProviderCheck'
+	def configPath = providers.gradleProperty('liveSpiritConfig')
+	if (configPath.isPresent()) args configPath.get()
 }
 
 loom {

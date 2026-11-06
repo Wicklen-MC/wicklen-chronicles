@@ -120,7 +120,7 @@ public final class StoryService {
         if (!save(player.getUUID(), old, change.snapshot())) {
             feedback.accept(tr(player, "Could not save the story. Try again later.", "Не удалось сохранить историю. Попробуй позже.")); return;
         }
-        feedback.accept(tr(player, "A story is ready. Choose your path in Tasks.", "История готова. Выбери путь в разделе дел."));
+        feedback.accept(tr(player, "A story is ready. Choose your path in Tasks.", "История готова. Выбери путь в разделе «Поручения»."));
     }
 
     public static ActionResult choose(ServerPlayer player, UUID expectedPlanId, String choiceId) {

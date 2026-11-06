@@ -21,6 +21,7 @@ public final class QuestRegressionChecks {
         dev.wicklen.chronicles.core.discovery.DiscoveryRegressionChecks.main(args);
         dev.wicklen.chronicles.core.story.StoryRegressionChecks.main(args);
         dev.wicklen.chronicles.core.encounter.EncounterRegressionChecks.main(args);
+        dev.wicklen.chronicles.core.encounter.EncounterDirectorChecks.main(args);
         dev.wicklen.chronicles.core.research.ResearchRegressionChecks.main(args);
     }
 

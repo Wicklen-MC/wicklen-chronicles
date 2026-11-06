@@ -112,6 +112,10 @@ public final class EncounterService {
             var session = new EncounterSession(UUID.randomUUID(), player.getUUID(), place, Objects.requireNonNull(mode),
                     List.of(player.getUUID()), null, null, now, now + LOBBY_TIME);
             runtime.ledger.put(session);
+            var gear = runtime.captureGear(session);
+            var party = gear.stream().map(CombatDiagnostics.Gear::combatant).toList();
+            EncounterPlanningService.preview(runtime.server, session.id(), session.mode(), party, runtime.diagnostics.recentForm(party));
+            runtime.diagnostics.prepared(session, gear);
             return ok("Подготовка " + mode + ". Для друзей: /spirit encounter join " + session.id()
                     + ". Встаньте во дворе и запустите: /spirit encounter start " + session.id(), session.id());
         });
@@ -130,6 +134,8 @@ public final class EncounterService {
             members.add(player.getUUID());
             var joined = session.withConsent(members);
             runtime.ledger.put(joined);
+            var party = runtime.captureGear(joined).stream().map(CombatDiagnostics.Gear::combatant).toList();
+            EncounterPlanningService.preview(runtime.server, joined.id(), joined.mode(), party, runtime.diagnostics.recentForm(party));
             runtime.tell(joined, player.getScoreboardName() + " подтвердил участие. Состав до старта: " + members.size());
             return ok("Участие подтверждено. Испытание ещё не началось.", encounterId);
         });
@@ -150,10 +156,13 @@ public final class EncounterService {
             var prepared = EncounterTransitions.prepare(session.id(), session.place().worldId(), session.place().key(), session.mode(),
                     session.consenting(), new RewardDefinition(RELIC, 1), now);
             var started = EncounterTransitions.start(prepared, player.getUUID(), encounterId, now);
-            var frozen = session.withEncounter(started.instance(), null, now + EXECUTION_TIME);
+            var gear = runtime.captureGear(session);
+            var party = gear.stream().map(CombatDiagnostics.Gear::combatant).toList();
+            var plan = EncounterPlanningService.select(runtime.server, session.id(), session.mode(), party, runtime.diagnostics.recentForm(party));
+            var frozen = session.withPlan(plan, gear).withEncounter(started.instance(), null, now + EXECUTION_TIME);
             runtime.ledger.put(frozen);
             var anchor = session.place().anchor();
-            var opened = runtime.bridge.open(started.instance(), session.leader(), level, new Vec3(anchor.x() + 0.5, anchor.y(), anchor.z() + 0.5));
+            var opened = runtime.bridge.open(started.instance(), session.leader(), level, new Vec3(anchor.x() + 0.5, anchor.y(), anchor.z() + 0.5), plan);
             if (!opened.success()) {
                 runtime.abort(frozen, "Gateway не запустился");
                 return fail(opened.failure(), encounterId);
@@ -161,6 +170,7 @@ public final class EncounterService {
             var running = frozen.withEncounter(frozen.encounter(), opened.portalId(), frozen.deadlineAt());
             try { runtime.ledger.put(running); }
             catch (IOException error) { runtime.abort(frozen, "Запуск не удалось сохранить"); throw error; }
+            runtime.diagnostics.started(running);
             runtime.tell(running, "Испытание началось. Состав зафиксирован: " + running.consenting().size()
                     + ". Светящиеся искры отмечают двор. При выходе есть 5 секунд, чтобы вернуться. Смерть или выход из игры отменяют встречу без награды.");
             return ok("Испытание запущено: " + session.mode(), encounterId);
@@ -174,7 +184,10 @@ public final class EncounterService {
             if (!session.live()) return fail("Встреча уже закончилась.", encounterId);
             if (session.encounter() == null && !session.leader().equals(player.getUUID())) {
                 var members = new ArrayList<>(session.consenting()); members.remove(player.getUUID());
-                runtime.ledger.put(session.withConsent(members));
+                var remaining = session.withConsent(members);
+                runtime.ledger.put(remaining);
+                var party = runtime.captureGear(remaining).stream().map(CombatDiagnostics.Gear::combatant).toList();
+                EncounterPlanningService.preview(runtime.server, remaining.id(), remaining.mode(), party, runtime.diagnostics.recentForm(party));
                 return ok("Ты вышел из подготовки.", encounterId);
             }
             runtime.abort(session, "Участник прекратил испытание");
@@ -201,7 +214,10 @@ public final class EncounterService {
                     } catch (IOException error) { LOGGER.warn("Encounter reward save failed", error); return false; }
                 });
                 return switch (delivery) {
-                    case DELIVERED -> ok("Реликвия получена. Её действие можно использовать из руки.", session.id());
+                    case DELIVERED -> {
+                        runtime.diagnostics.rewarded(session, player.getUUID(), rewardId);
+                        yield ok("Реликвия получена. Её действие можно использовать из руки.", session.id());
+                    }
                     case FULL -> fail("Освободи место в инвентаре: награда останется ждать.", session.id());
                     case SAVE_FAILED -> fail("Не удалось сохранить получение. Награда остаётся ждать.", session.id());
                 };
@@ -218,6 +234,12 @@ public final class EncounterService {
                     session.encounter() == null ? "LOBBY" : session.encounter().status().name(), session.leader().equals(player.getUUID()),
                     session.consenting(), session.encounter() == null ? List.of() : session.encounter().rewards().stream()
                         .filter(reward -> reward.ownerId().equals(player.getUUID())).toList())).toList();
+    }
+
+    /** Immutable server-side projection, available only to a participant of this encounter. */
+    public static EncounterPlan frozenPlan(ServerPlayer player, UUID encounterId) {
+        var session = state(player.level().getServer()).find(encounterId);
+        return session != null && session.consenting().contains(player.getUUID()) ? session.plan() : null;
     }
 
     static RuntimeState state(MinecraftServer server) {
@@ -290,6 +312,7 @@ public final class EncounterService {
         final Map<UUID, Map<UUID, Integer>> outsideSince = new HashMap<>();
         final Map<UUID, Vec3> lastSafeMobPositions = new HashMap<>();
         final Map<UUID, Integer> retryMobReturnAt = new HashMap<>();
+        final CombatDiagnostics diagnostics = new CombatDiagnostics();
         Throwable failure;
 
         RuntimeState(MinecraftServer server, UUID sessionId, UUID worldId) {
@@ -306,6 +329,12 @@ public final class EncounterService {
             catch (RuntimeException error) { failure = error; LOGGER.error("Encounter damage guard disabled; saved source preserved", error); return false; }
         }
         ServerLevel level(EncounterSession session) { return server.getLevel(ResourceKey.create(Registries.DIMENSION, Identifier.parse(session.place().dimension()))); }
+        List<CombatDiagnostics.Gear> captureGear(EncounterSession session) {
+            return session.consenting().stream().map(server.getPlayerList()::getPlayer).filter(Objects::nonNull).map(CombatDiagnostics::capture).toList();
+        }
+        boolean debugParty(EncounterSession session) {
+            return session.consenting().stream().map(server.getPlayerList()::getPlayer).filter(Objects::nonNull).anyMatch(CombatDiagnostics::debug);
+        }
 
         void recover() {
             try {
@@ -364,7 +393,9 @@ public final class EncounterService {
                     if (session.portalId() == null || !bridge.exists(session.portalId())) { abort(session, "Портал испытания исчез"); continue; }
                     var level = level(session);
                     if (server.getTickCount() % 20 == 0) showBoundary(session, level);
-                    for (UUID mobId : bridge.trackedMobs(session.portalId())) {
+                    var tracked = bridge.trackedMobs(session.portalId());
+                    diagnostics.observe(session, tracked, server.getPlayerList()::getPlayer);
+                    for (UUID mobId : tracked) {
                         mobOwners.put(mobId, session.id());
                         var mob = level == null ? null : level.getEntity(mobId);
                         if (mob == null) continue;
@@ -414,6 +445,7 @@ public final class EncounterService {
             entity.teleportTo(destination.x, destination.y, destination.z);
             entity.setDeltaMovement(Vec3.ZERO);
             entity.resetFallDistance();
+            diagnostics.returned(session.id());
             lastSafeMobPositions.put(entity.getUUID(), destination);
             retryMobReturnAt.remove(entity.getUUID());
         }
@@ -505,7 +537,9 @@ public final class EncounterService {
                     Math.max(System.currentTimeMillis(), session.encounter().startedAt()));
             if (!change.changed()) return;
             try {
-                ledger.put(session.withEncounter(change.instance(), session.portalId(), session.deadlineAt()));
+                var ended = session.withEncounter(change.instance(), session.portalId(), session.deadlineAt());
+                ledger.put(ended);
+                diagnostics.finished(ended, "EXECUTOR_" + event.outcome(), debugParty(session));
                 cleanup(session);
                 if (status == EncounterStatus.SUCCESS) {
                     for (var grant : change.instance().rewards()) send(grant.ownerId(), "Испытание пройдено. Получить реликвию: /spirit encounter claim " + grant.id());
@@ -524,7 +558,9 @@ public final class EncounterService {
             var ended = EncounterTransitions.finish(instance, session.id(), EncounterStatus.ABORTED,
                     Math.max(System.currentTimeMillis(), Math.max(instance.preparedAt(), instance.startedAt()))).instance();
             try {
-                ledger.put(session.withEncounter(ended, session.portalId(), session.deadlineAt()));
+                var finished = session.withEncounter(ended, session.portalId(), session.deadlineAt());
+                ledger.put(finished);
+                diagnostics.finished(finished, cancelReason(session, reason), debugParty(session));
                 aborting.remove(session.id());
                 tell(session, reason + ". Встреча отменена без штрафа и награды.");
             } catch (IOException | RuntimeException error) { LOGGER.warn("Encounter abort awaiting durable save", error); }
@@ -534,6 +570,18 @@ public final class EncounterService {
         void abortAll(String reason) {
             try { for (var session : List.copyOf(ledger.all().values())) if (session.live()) abort(session, reason); }
             catch (RuntimeException error) { LOGGER.error("Cannot enumerate encounter save; source preserved", error); }
+        }
+
+        private String cancelReason(EncounterSession session, String reason) {
+            if (reason.contains("погиб")) return "DEATH";
+            if (reason.contains("истекло")) return session.active() ? "EXECUTION_TIMEOUT" : "LOBBY_TIMEOUT";
+            if (reason.contains("перезапуск")) return "RESTART";
+            if (reason.contains("останавливается")) return "SERVER_STOP";
+            if (reason.contains("вышел из игры") || reason.contains("не в игре")) return "DISCONNECT";
+            if (reason.contains("покинул двор")) return "LEFT_ARENA";
+            if (reason.contains("прекратил")) return "EXPLICIT_LEAVE";
+            if (reason.contains("Gateway") || reason.contains("Портал")) return "EXECUTOR_UNAVAILABLE";
+            return "VALIDATION_OR_STORAGE";
         }
 
         void cleanup(EncounterSession session) {

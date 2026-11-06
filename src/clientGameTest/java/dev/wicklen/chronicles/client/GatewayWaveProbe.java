@@ -49,6 +49,19 @@ final class GatewayWaveProbe {
             return null;
         } catch(ReflectiveOperationException error) { throw new AssertionError(error); }
     }
+    static void assertEffectiveZombie(ServerPlayer player,UUID mobId,
+            dev.wicklen.chronicles.core.encounter.EncounterPlan plan) {
+        var entity=player.level().getEntity(mobId);
+        if(!(entity instanceof net.minecraft.world.entity.monster.zombie.Zombie zombie))
+            throw new AssertionError("first authored wave must expose a real zombie for native attribute validation");
+        double health=zombie.getMaxHealth();
+        double damage=zombie.getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE);
+        if(Math.abs(health-20*plan.healthMultiplier())>0.11 || Math.abs(damage-3*plan.damageMultiplier())>0.11)
+            throw new AssertionError("Gateway effective zombie attributes must match frozen gentle plan: health="+health
+                +", expected="+(20*plan.healthMultiplier())+", damage="+damage+", expected="+(3*plan.damageMultiplier()));
+        System.out.println("PASS: actual Gateway zombie attributes match authored plan HP="+health+" damage="+damage);
+    }
+
     static boolean isAliveInside(ServerPlayer player,UUID mobId,
             dev.wicklen.chronicles.station.PlaceManifest place) {
         return player.level().getEntity(mobId) instanceof LivingEntity mob && mob.isAlive()

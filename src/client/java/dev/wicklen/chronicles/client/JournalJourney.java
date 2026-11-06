@@ -23,7 +23,19 @@ final class JournalJourney {
             case READY -> "submit";
             default -> "quest";
         };
-        return view.totalDiscoveries()==0 ? "observe" : "story";
+        if(view.totalDiscoveries()==0)return "observe";
+        var encounters=EncounterClientState.data();
+        if(encounters!=null && encounters.gatewayAvailable()) {
+            if(encounters.encounters().stream().anyMatch(row->row.status().equals("ACTIVE")))return "trial_active";
+            if(encounters.encounters().stream().flatMap(row->row.rewards().stream()).anyMatch(reward->!reward.claimed()))return "battle_reward";
+            boolean normalWon=encounters.encounters().stream().anyMatch(row->row.mode().equals("NORMAL")&&row.status().equals("SUCCESS"));
+            boolean empoweredWon=encounters.encounters().stream().anyMatch(row->row.mode().equals("EMPOWERED")&&row.status().equals("SUCCESS"));
+            if(normalWon&&!empoweredWon)return "relic";
+            if(!encounters.courtyards().isEmpty()&&!normalWon)return "trial";
+            var stories=StoryClientState.story();
+            if(stories!=null&&!stories.history().isEmpty() && view.totalHistory()>0 && encounters.courtyards().isEmpty())return "courtyard";
+        }
+        return "story";
     }
     void init(SpiritDialogScreen.Layout box,Consumer<Button> add) {
         var view=JournalClientState.view();
@@ -41,6 +53,7 @@ final class JournalJourney {
                 case "submit" -> pages.action(JournalRequestPayload.Action.TURN_IN,quest.id().toString());
                 case "quest" -> screen.open(SpiritDialogScreen.Tab.TASKS);
                 case "story" -> pages.showStories();
+                case "trial", "battle_reward", "relic" -> screen.open(SpiritDialogScreen.Tab.TRIALS);
                 default -> screen.onClose();
             }
         }).accent(0xFF557C69).selected(true).bounds(x,box.contentBottom()+5,w,22).build();
@@ -67,6 +80,8 @@ final class JournalJourney {
             case "submit" -> Items.EMERALD;
             case "quest" -> Items.WRITABLE_BOOK;
             case "story" -> Items.ENCHANTED_BOOK;
+            case "trial", "trial_active" -> Items.IRON_SWORD;
+            case "battle_reward", "relic" -> Items.SOUL_LANTERN;
             default -> Items.SPYGLASS;
         };
         g.fakeItem(new ItemStack(icon),x+12,cardTop+11);

@@ -2,6 +2,7 @@ package dev.wicklen.chronicles.encounter;
 
 import dev.wicklen.chronicles.core.encounter.EncounterInstance;
 import dev.wicklen.chronicles.core.encounter.EncounterMode;
+import dev.wicklen.chronicles.core.encounter.EncounterPlan;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -50,10 +51,14 @@ final class GatewayBridge {
     static String sourceId(UUID encounterId) { return "wicklen_chronicles:encounter/" + encounterId; }
 
     OpenResult open(EncounterInstance instance, UUID leader, ServerLevel level, Vec3 anchor) {
+        return open(instance, leader, level, anchor, null);
+    }
+
+    OpenResult open(EncounterInstance instance, UUID leader, ServerLevel level, Vec3 anchor, EncounterPlan plan) {
         if (!available()) return new OpenResult(null, unavailableReason());
         try {
             String profileId = profileId(instance.mode());
-            String snapshot = authoredSnapshot(instance.mode(), instance.participants().size());
+            String snapshot = plan == null ? authoredSnapshot(instance.mode(), instance.participants().size()) : plannedSnapshot(instance.mode(), plan);
             var requestClass = type("api.GatewaySpawnRequest");
             var builder = requestClass.getMethod("builder", ServerLevel.class, Vec3.class, String.class)
                     .invoke(null, level, anchor, profileId);
@@ -175,6 +180,27 @@ final class GatewayBridge {
 
     static String authoredSnapshot(EncounterMode mode, int participants) throws ReflectiveOperationException {
         return (String) invoke(authoredConfig(mode, participants), "exportProfileSnapshot", new Class<?>[]{String.class}, profileId(mode));
+    }
+
+    static String plannedSnapshot(EncounterMode mode, EncounterPlan plan) throws ReflectiveOperationException {
+        Object config = authoredConfig(mode, 1);
+        Object profile = invoke(config, "getProfile", new Class<?>[]{String.class}, profileId(mode));
+        invoke(profile, "setHealthBoostPercent", new Class<?>[]{double.class}, (plan.healthMultiplier() - 1) * 100.0);
+        invoke(profile, "setDamageBoostPercent", new Class<?>[]{double.class}, (plan.damageMultiplier() - 1) * 100.0);
+        @SuppressWarnings("unchecked") var waves = (List<Object>) invoke(profile, "getWaves");
+        waves.clear();
+        var entry = type("config.GatewayConfig$WaveEntry").getConstructor(String.class, int.class);
+        var wave = type("config.GatewayConfig$WaveData").getConstructor(List.class, int.class);
+        for (var planned : plan.waves()) {
+            var entries = new java.util.ArrayList<Object>();
+            for (var mob : planned.mobs()) entries.add(entry.newInstance(mob.entityId(), mob.count()));
+            waves.add(wave.newInstance(entries, planned.timeLimitSeconds()));
+        }
+        // The public snapshot format exposes per-profile pauses; no private field mutation or global edit.
+        String exported = (String) invoke(config, "exportProfileSnapshot", new Class<?>[]{String.class}, profileId(mode));
+        var snapshot = com.google.gson.JsonParser.parseString(exported).getAsJsonObject();
+        snapshot.getAsJsonObject("profile").addProperty("wavePauseTicks", plan.pauseTicks());
+        return snapshot.toString();
     }
 
     private static Object authoredConfig(EncounterMode mode, int participants) throws ReflectiveOperationException {

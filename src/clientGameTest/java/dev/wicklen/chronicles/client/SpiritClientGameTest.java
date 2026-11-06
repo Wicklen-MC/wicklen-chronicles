@@ -260,6 +260,7 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
                 && JournalClientState.response().section() == dev.wicklen.chronicles.net.JournalRequestPayload.Section.HISTORY && !JournalClientState.busy());
             captureJournal(context, "journal-quest-history");
             chosenStory.set(verifyStoryChoice(context, reopened));
+            completeChosenStoryQuest(context,reopened);
             verifyLantern(context, reopened);
             camp.set(reopened.getServer().computeOnServer(mcServer -> CampGameChecks.verify(reopened.getConnection().getServerPlayer())));
             researchReward.set(verifyResearchMap(context, reopened));
@@ -279,7 +280,8 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
                 require(story.pending() == null && story.history().size() == 1, "story choice survives world restart exactly once");
                 var outcome = story.history().getFirst();
                 require(outcome.planId().equals(chosenStory.get()), "same story plan is preserved after restart");
-                require(SpiritQuests.active(player.getUUID()).id().equals(outcome.quest().id()), "same story quest survives restart");
+                require(SpiritQuests.history(player.getUUID()).stream().anyMatch(q->q.id().equals(outcome.quest().id())
+                    && q.status()==QuestStatus.REWARDED), "completed story quest and reward survive restart");
                 require(dev.wicklen.chronicles.research.CampService.view(player).equals(camp.get()), "field desk and resupply cursor survive restart");
                 require(dev.wicklen.chronicles.research.ResearchService.view(player).snapshot().grants().stream()
                     .anyMatch(grant -> grant.id().equals(researchReward.get()) && grant.claimed()), "research reward acknowledgement survives restart");
@@ -305,7 +307,7 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
         server.runCommand("difficulty normal");
         server.runCommand("time set midnight");
         var place = server.computeOnServer(mcServer ->
-            dev.wicklen.chronicles.station.CourtyardGameFixture.create(connection.getServerPlayer()));
+            dev.wicklen.chronicles.station.CourtyardGameFixture.createUnobserved(connection.getServerPlayer()));
         var anchor = place.anchor();
         server.runCommand("gamemode survival @p");
         server.runCommand("tp @p " + (anchor.x() + 0.5) + " " + anchor.y() + " " + (anchor.z() + 0.5));
@@ -318,6 +320,7 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
                 net.minecraft.world.effect.MobEffects.RESISTANCE, 2400, 4));
         });
         connection.waitForClientboundPackets();
+        observeCourtyard(context,world,place);
         context.setScreen(SpiritDialogScreen::new);
         clickJournal(context, "tab.trials");
         context.waitFor(client -> EncounterClientState.data() != null && !EncounterClientState.busy()
@@ -342,10 +345,15 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
         context.waitFor(client -> !EncounterClientState.busy() && EncounterClientState.data() != null
             && EncounterClientState.data().encounters().stream().anyMatch(row -> row.id().equals(encounter)
                 && row.status().equals("ACTIVE")));
+        var frozen=server.computeOnServer(s->dev.wicklen.chronicles.encounter.EncounterService.frozenPlan(connection.getServerPlayer(),encounter));
+        require(frozen!=null,"Normal Start persists its exact authored wave plan");
         var escapedMob=new AtomicReference<UUID>();
         server.waitFor(mcServer -> {
             UUID mob=GatewayWaveProbe.forceFirstMobEscape(connection.getServerPlayer(),encounter,place);
-            if(mob!=null)escapedMob.set(mob);
+            if(mob!=null) {
+                GatewayWaveProbe.assertEffectiveZombie(connection.getServerPlayer(),mob,frozen);
+                escapedMob.set(mob);
+            }
             return mob!=null;
         },200);
         context.waitTicks(40);
@@ -369,8 +377,8 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
                 "native Gateway must complete rather than abort/fail: " + view.status());
             return view.status().equals("SUCCESS");
         }, 1400);
-        require(waves.size() == 2 && defeated.size() == 6,
-            "two real NORMAL waves require six distinct player-attributed hostile mob deaths; waves=" + waves + ", deaths=" + defeated.size());
+        require(waves.size()==frozen.waves().size() && defeated.size()==frozen.totalMobs(),
+            "real NORMAL deaths match its frozen adaptive plan; waves="+waves+", deaths="+defeated.size()+", planned="+frozen.totalMobs());
         clickJournal(context, "refresh");
         context.waitFor(client -> !EncounterClientState.busy() && EncounterClientState.data() != null
             && EncounterClientState.data().encounters().stream().anyMatch(row -> row.id().equals(encounter)
@@ -394,8 +402,134 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
             player.removeEffect(net.minecraft.world.effect.MobEffects.RESISTANCE);
         });
         captureJournal(context, "journal-trials-rewarded");
-        System.out.println("PASS: native GUI prepare/start, two real Gateway waves, six player kills, personal relic claim");
+        useEarnedLantern(context,world);
+        verifyEmpoweredFollowup(context,world,place,encounter);
+        System.out.println("PASS: connected discovery/story/task/reward/courtyard/normal battle/earned lantern use/empowered battle cycle");
         return reward.id();
+    }
+
+    private static void completeChosenStoryQuest(ClientGameTestContext context,
+            net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext world) {
+        var server=world.getServer();var connection=world.getConnection();
+        var quest=server.computeOnServer(s->SpiritQuests.active(connection.getServerPlayer().getUUID()).instance());
+        require(quest!=null && quest.definition().type()==QuestType.COLLECT,"chosen story delivers a real collection task");
+        int before=server.computeOnServer(s->count(connection.getServerPlayer(),net.minecraft.world.item.Items.EMERALD));
+        server.runCommand("give @p "+quest.definition().target()+" "+quest.definition().required());
+        server.waitFor(s->SpiritQuests.active(connection.getServerPlayer().getUUID()).status()==QuestStatus.READY,300);
+        context.setScreen(SpiritDialogScreen::new);
+        context.waitFor(client->!JournalClientState.busy() && JournalJourney.nextStep().equals("submit"));
+        captureJournal(context,"cycle-story-task-ready");
+        clickJournal(context,"journey.submit.action");
+        context.waitFor(client->!JournalClientState.busy() && JournalJourney.nextStep().equals("reward"));
+        clickJournal(context,"journey.reward.action");
+        server.waitFor(s->SpiritQuests.active(connection.getServerPlayer().getUUID())==null);
+        server.runOnServer(s->{
+            var player=connection.getServerPlayer();
+            require(SpiritQuests.history(player.getUUID()).stream().anyMatch(q->q.id().equals(quest.id())&&q.status()==QuestStatus.REWARDED),
+                "the exact selected story task reaches the rewarded archive");
+            require(count(player,net.minecraft.world.item.Items.EMERALD)==before+quest.definition().reward().count(),
+                "story task reward is delivered by the explicit journal action");
+        });
+        context.waitFor(client->!JournalClientState.busy() && JournalClientState.view()!=null
+            &&JournalClientState.view().activeQuest()==null);
+        captureJournal(context,"cycle-story-task-rewarded");
+    }
+
+    private static void observeCourtyard(ClientGameTestContext context,
+            net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext world,
+            dev.wicklen.chronicles.station.PlaceManifest place) {
+        var server=world.getServer();var connection=world.getConnection();
+        server.runOnServer(s->{
+            var player=connection.getServerPlayer();
+            require(dev.wicklen.chronicles.exploration.ExplorationService.snapshot(player).entries().stream()
+                .noneMatch(e->e.key().equals(place.key())),"courtyard starts genuinely unknown to this player");
+            player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND,new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.SPYGLASS));
+            player.inventoryMenu.broadcastChanges();
+        });
+        connection.waitForClientboundPackets();
+        context.getInput().lookAt(place.anchor().blockPos().below().east(2));
+        context.getInput().holdKey(options->options.keyUse);
+        try {
+            context.waitTicks(15);
+            context.takeScreenshot("cycle-courtyard-observation");
+            server.waitFor(s->dev.wicklen.chronicles.exploration.ExplorationService.snapshot(connection.getServerPlayer()).entries().stream()
+                .anyMatch(e->e.key().equals(place.key())),200);
+        } finally { context.getInput().releaseKey(options->options.keyUse); }
+        server.runOnServer(s->connection.getServerPlayer().stopUsingItem());
+    }
+
+    private static void useEarnedLantern(ClientGameTestContext context,
+            net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext world) {
+        var server=world.getServer();var connection=world.getConnection();
+        context.setScreen(()->null);
+        server.runOnServer(s->{
+            var player=connection.getServerPlayer();
+            var item=dev.wicklen.chronicles.item.ChroniclesItems.WAYFARER_LANTERN;
+            int slot=-1;
+            for(int i=0;i<player.getInventory().getNonEquipmentItems().size();i++)
+                if(player.getInventory().getItem(i).is(item)){slot=i;break;}
+            require(slot>=0,"actual earned relic is present in inventory");
+            var earned=player.getInventory().getItem(slot).copy();
+            player.getInventory().setItem(slot,player.getMainHandItem().copy());
+            player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND,earned);
+            // Earlier isolated cooldown assertions must not masquerade as this earned item's activation.
+            player.getCooldowns().removeCooldown(item.builtInRegistryHolder().key().identifier());
+            player.removeEffect(net.minecraft.world.effect.MobEffects.ABSORPTION);
+            player.removeEffect(net.minecraft.world.effect.MobEffects.SPEED);
+            player.inventoryMenu.broadcastChanges();
+        });
+        connection.waitForClientboundPackets();
+        context.getInput().holdKey(options->options.keyUse);
+        try {
+            server.waitFor(s->connection.getServerPlayer().hasEffect(net.minecraft.world.effect.MobEffects.ABSORPTION)
+                &&connection.getServerPlayer().hasEffect(net.minecraft.world.effect.MobEffects.SPEED),100);
+            context.takeScreenshot("cycle-earned-lantern-active");
+        } finally {context.getInput().releaseKey(options->options.keyUse);}
+        server.runOnServer(s->require(connection.getServerPlayer().getCooldowns().isOnCooldown(connection.getServerPlayer().getMainHandItem()),
+            "earned relic activation applies its shared cooldown"));
+    }
+
+    private static void verifyEmpoweredFollowup(ClientGameTestContext context,
+            net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext world,
+            dev.wicklen.chronicles.station.PlaceManifest place,UUID previous) {
+        var server=world.getServer();var connection=world.getConnection();
+        // Return to the known courtyard before starting another fight; knockback may have moved the observer.
+        server.runCommand("tp @p "+(place.anchor().x()+0.5)+" "+place.anchor().y()+" "+(place.anchor().z()+0.5));
+        server.runOnServer(s->connection.getServerPlayer().setDeltaMovement(net.minecraft.world.phys.Vec3.ZERO));
+        // Creative is intentionally allowed for testing; this also catches the previous false mode gate.
+        server.runCommand("gamemode creative @p");
+        context.setScreen(SpiritDialogScreen::new);
+        clickJournal(context,"tab.trials");
+        context.waitFor(client->EncounterClientState.data()!=null&&!EncounterClientState.busy());
+        clickJournal(context,"encounter.new");
+        clickJournal(context,"encounter.empowered");
+        context.waitFor(client->EncounterClientState.data()!=null&&!EncounterClientState.busy()
+            &&EncounterClientState.data().encounters().stream().anyMatch(r->!r.id().equals(previous)&&r.status().equals("LOBBY")));
+        UUID next=context.computeOnClient(client->EncounterClientState.data().encounters().stream()
+            .filter(r->!r.id().equals(previous)&&r.status().equals("LOBBY")).findFirst().orElseThrow().id());
+        captureJournal(context,"cycle-empowered-prepared");
+        clickJournal(context,"encounter.start");
+        context.waitFor(client->EncounterClientState.data()!=null&&!EncounterClientState.busy()
+            && (EncounterClientState.response().error() || EncounterClientState.data().encounters().stream().anyMatch(r->r.id().equals(next)&&r.status().equals("ACTIVE"))));
+        context.runOnClient(client->require(!EncounterClientState.response().error(),
+            "Empowered start must explain any denial: "+EncounterClientState.response().feedback()));
+        var frozen=server.computeOnServer(s->dev.wicklen.chronicles.encounter.EncounterService.frozenPlan(connection.getServerPlayer(),next));
+        require(frozen!=null,"Empowered Start persists its exact authored wave plan");
+        var waves=new java.util.HashSet<Integer>();var defeated=new java.util.HashSet<UUID>();
+        server.waitFor(s->{
+            var player=connection.getServerPlayer();
+            GatewayWaveProbe.defeatSpawnedMobs(player,next,waves,defeated);
+            var row=dev.wicklen.chronicles.encounter.EncounterService.knownEncounters(player).stream()
+                .filter(r->r.id().equals(next)).findFirst().orElseThrow();
+            require(row.status().equals("ACTIVE")||row.status().equals("SUCCESS"),"empowered follow-up remains executable in creative: "+row.status());
+            return row.status().equals("SUCCESS");
+        },1800);
+        require(waves.size()==frozen.waves().size() && defeated.size()==frozen.totalMobs(),
+            "real Empowered deaths match its frozen plan, without any fixed global mob count");
+        clickJournal(context,"refresh");
+        context.waitFor(client->EncounterClientState.data()!=null&&!EncounterClientState.busy()
+            &&EncounterClientState.data().encounters().stream().anyMatch(r->r.id().equals(next)&&r.status().equals("SUCCESS")));
+        captureJournal(context,"cycle-empowered-complete");
     }
 
     private static void verifyEncounterUnavailable(ClientGameTestContext context,

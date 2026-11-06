@@ -23,7 +23,7 @@ public final class SpiritCommand {
                         var player = ctx.getSource().getPlayerOrException();
                         dev.wicklen.chronicles.ai.SpiritPrefs.setHidden(player.getUUID(), false);
                         dev.wicklen.chronicles.SpiritManager.ensureSpirit(player);
-                        dev.wicklen.chronicles.SpiritBubbles.speak(player, "Я здесь. Нажми G — поговорим!");
+                        dev.wicklen.chronicles.SpiritBubbles.speak(player, "Я здесь. Нажми G — откроем дневник!");
                         ctx.getSource().sendSuccess(() -> Component.literal("Дух призван и кружит рядом."), false);
                         return 1;
                     }))

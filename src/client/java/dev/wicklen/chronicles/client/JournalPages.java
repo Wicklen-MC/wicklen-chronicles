@@ -71,6 +71,8 @@ final class JournalPages {
     void scroll(int direction) { detailScroll=Math.max(0,detailScroll-direction*3); }
     void resetDetailScroll() { detailScroll=0; }
     void tick(boolean periodic) {
+        if(screen.journey() && !EncounterClientState.busy() && (EncounterClientState.data()==null || periodic))
+            EncounterClientState.request(dev.wicklen.chronicles.net.EncounterRequestPayload.Action.READ,"");
         if (!screen.atlas() && (storyMode || screen.journey()) && !StoryClientState.busy()
                 && (StoryClientState.story()==null || periodic)) stories.read();
     }

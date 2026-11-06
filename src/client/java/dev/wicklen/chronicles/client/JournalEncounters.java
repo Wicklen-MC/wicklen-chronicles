@@ -16,6 +16,8 @@ final class JournalEncounters {
     private int selectedEncounter;
     private boolean preparing;
     private long seenRevision = -1;
+    private String actionError="";
+    private long actionErrorUntil;
 
     JournalEncounters(SpiritDialogScreen screen, JournalPages pages) {
         this.screen = screen;
@@ -28,6 +30,10 @@ final class JournalEncounters {
         var data = EncounterClientState.data();
         if (data == null) return;
         if (seenRevision != EncounterClientState.revision()) {
+            var response=EncounterClientState.response();
+            if(response!=null && response.error() && !response.feedback().isBlank()) {
+                actionError=response.feedback(); actionErrorUntil=System.currentTimeMillis()+6000;
+            } else if(response!=null && !response.error() && EncounterClientState.lastAction()!=EncounterRequestPayload.Action.READ) actionError="";
             if (!EncounterClientState.busy() && EncounterClientState.response() != null
                     && !EncounterClientState.response().error()
                     && (EncounterClientState.lastAction() == EncounterRequestPayload.Action.PREPARE_NORMAL
@@ -45,10 +51,12 @@ final class JournalEncounters {
             String id = data.courtyards().isEmpty() ? "" : data.courtyards().get(selectedCourt).id();
             var normal = JournalButton.colored(JournalTexts.tr("encounter.normal"), button ->
                 EncounterClientState.request(EncounterRequestPayload.Action.PREPARE_NORMAL, id))
-                .bounds(box.left() + actionLeft, footer, actionWidth, 18).build();
+                .bounds(box.left() + actionLeft, footer, actionWidth, 18)
+                .tooltip(net.minecraft.client.gui.components.Tooltip.create(JournalTexts.tr("encounter.adaptive_hint"))).build();
             var empowered = JournalButton.colored(JournalTexts.tr("encounter.empowered"), button ->
                 EncounterClientState.request(EncounterRequestPayload.Action.PREPARE_EMPOWERED, id))
-                .bounds(box.left() + box.width() - actionWidth - 12, footer, actionWidth, 18).build();
+                .bounds(box.left() + box.width() - actionWidth - 12, footer, actionWidth, 18)
+                .tooltip(net.minecraft.client.gui.components.Tooltip.create(JournalTexts.tr("encounter.adaptive_hint"))).build();
             normal.active = empowered.active = data.gatewayAvailable() && !id.isEmpty() && !EncounterClientState.busy();
             add.accept(normal);
             add.accept(empowered);
@@ -70,7 +78,8 @@ final class JournalEncounters {
         if (row.status().equals("LOBBY") && row.leader()) {
             var start = JournalButton.colored(JournalTexts.tr("encounter.start"), button ->
                 EncounterClientState.request(EncounterRequestPayload.Action.START, row.id().toString()))
-                .bounds(box.left() + box.width() - actionWidth - 12, footer, actionWidth, 18).build();
+                .bounds(box.left() + box.width() - actionWidth - 12, footer, actionWidth, 18)
+                .tooltip(net.minecraft.client.gui.components.Tooltip.create(JournalTexts.tr("encounter.adaptive_hint"))).build();
             start.active = data.gatewayAvailable() && !EncounterClientState.busy();
             add.accept(start);
         }
@@ -137,7 +146,9 @@ final class JournalEncounters {
                 row.rewards().stream().allMatch(reward -> reward.claimed()) ? "status.rewarded" : "status.reward_pending"));
         }
         var response = EncounterClientState.response();
-        if (response != null && !response.feedback().isBlank()) lines.add(Component.literal(response.feedback()));
+        if(!actionError.isBlank() && System.currentTimeMillis()<actionErrorUntil)
+            lines.addFirst(Component.literal(actionError).withStyle(net.minecraft.ChatFormatting.RED));
+        else if (response != null && !response.feedback().isBlank()) lines.add(Component.literal(response.feedback()));
         if (response != null && response.error() && response.feedback().isBlank()) lines.add(JournalTexts.tr("action_failed"));
         pages.renderLines(graphics, box, box.left() + 14, box.contentTop() + (data!=null && (preparing?data.courtyards().size():data.encounters().size())>1?44:24), box.width() - 28, lines);
     }

@@ -79,7 +79,37 @@ public final class EncounterNativeChecks {
         require(!EncounterService.claim(player, grant.id()).success() && countRelics(player) == 1, "duplicate claim gives no second relic");
         var encoded = JsonParser.parseString(Files.readString(WorldStorageContext.directory().resolve("encounters.json"))).getAsJsonObject();
         require(encoded.getAsJsonObject("data").has(rewardEncounter.toString()), "encounter result is saved in the active world");
+        verifyDiagnosticEligibility(runtime, player, place);
         System.out.println("PASS: encounter optional absence, strict callbacks, restart abort, full inventory and one-time relic delivery");
+    }
+
+    private static void verifyDiagnosticEligibility(EncounterService.RuntimeState runtime, ServerPlayer player, PlaceManifest place) throws Exception {
+        var gear = CombatDiagnostics.capture(player);
+        var party = List.of(gear.combatant());
+        var plan = dev.wicklen.chronicles.core.encounter.EncounterDirector.options(EncounterMode.NORMAL, party,
+                new dev.wicklen.chronicles.core.encounter.RecentForm(0, 0)).getFirst();
+        int before = runtime.diagnostics.recentForm(party).successes();
+        for (boolean debugDuringFight : List.of(true, false)) {
+            UUID id = UUID.randomUUID();
+            long now = System.currentTimeMillis();
+            var active = EncounterTransitions.start(EncounterTransitions.prepare(id, WorldStorageContext.worldId(), place.key(),
+                    EncounterMode.NORMAL, List.of(player.getUUID()), RELIC, now), player.getUUID(), id, now).instance();
+            var session = new EncounterSession(id, player.getUUID(), place, EncounterMode.NORMAL, List.of(player.getUUID()),
+                    active, UUID.randomUUID(), now, now + 60_000).withPlan(plan, List.of(gear));
+            runtime.diagnostics.prepared(session, List.of(gear));
+            runtime.diagnostics.started(session);
+            player.getAbilities().invulnerable = debugDuringFight;
+            runtime.diagnostics.observe(session, List.of(UUID.randomUUID()), owner -> player);
+            player.getAbilities().invulnerable = false;
+            var success = EncounterTransitions.finish(active, id, EncounterStatus.SUCCESS, now).instance();
+            runtime.diagnostics.finished(session.withEncounter(success, session.portalId(), session.deadlineAt()), "EXECUTOR_COMPLETED", false);
+            require(runtime.diagnostics.recentForm(party).successes() == before + (debugDuringFight ? 0 : 1),
+                    "debug during a fight never becomes skill evidence, even after returning to survival");
+        }
+        var events = Files.readString(WorldStorageContext.directory().resolve("combat-events.jsonl"));
+        require(events.contains("\"event\":\"START\"") && events.contains("\"event\":\"WAVE\"")
+                && events.contains("\"skillEligible\":false"), "structured bounded diagnostic events contain mode/plan/outcome evidence");
+        System.out.println("PASS: frozen plan and diagnostics ignore debug wins while retaining ordinary outcomes");
     }
 
     public static void verifyOptionalGateway(MinecraftServer server) throws Exception {
@@ -101,6 +131,16 @@ public final class EncounterNativeChecks {
             require(((List<?>) profileClass.getMethod("getRewards").invoke(profile)).isEmpty(), "Gateway does not own item rewards");
             require(((Number) profileClass.getMethod("getCompletionXp").invoke(profile)).intValue() == 0, "Gateway completion XP disabled");
             require(Boolean.FALSE.equals(profileClass.getMethod("isWaveMobVanillaLootEnabled").invoke(profile)), "vanilla wave loot disabled");
+            var plan = dev.wicklen.chronicles.core.encounter.EncounterDirector.options(mode,
+                    List.of(new dev.wicklen.chronicles.core.encounter.CombatantSnapshot(UUID.randomUUID(), 1, 0, 20, false, false, false)),
+                    new dev.wicklen.chronicles.core.encounter.RecentForm(0, 0)).getFirst();
+            Object adapted = configClass.getMethod("parseProfileSnapshot", String.class).invoke(config, GatewayBridge.plannedSnapshot(mode, plan));
+            require(Math.abs(((Number) profileClass.getMethod("getHealthBoostPercent").invoke(adapted)).doubleValue()
+                    - (plan.healthMultiplier() - 1) * 100) < 0.0001, "Gateway preserves negative health boosts in the frozen snapshot");
+            require(Math.abs(((Number) profileClass.getMethod("getDamageBoostPercent").invoke(adapted)).doubleValue()
+                    - (plan.damageMultiplier() - 1) * 100) < 0.0001, "Gateway preserves negative damage boosts in the frozen snapshot");
+            require(((Number) profileClass.getMethod("getWavePauseTicks").invoke(adapted)).intValue() == plan.pauseTicks(),
+                    "Gateway preserves the authored per-encounter pause without changing global timing");
         }
         var place = dev.wicklen.chronicles.station.StationNativeChecks.courtyardForCombat();
         var level = server.overworld();

@@ -10,6 +10,16 @@ import net.minecraft.world.level.WorldGenLevel;
 /** Explicit test fixture for GUI participation. Native generation and scanning have separate checks. */
 public final class CourtyardGameFixture {
     public static PlaceManifest create(ServerPlayer player) {
+        var place=createUnobserved(player);
+        try {
+            var anchor=place.anchor();
+            new DiscoveryRepository().observe(player.getUUID(),new Observation(place.key(),
+                place.variant().title(),"GUI combat fixture: already-known courtyard",
+                new DiscoveryPosition(place.dimension(),anchor.x(),anchor.y(),anchor.z()),System.currentTimeMillis()));
+            return place;
+        } catch(java.io.IOException error) { throw new AssertionError(error); }
+    }
+    public static PlaceManifest createUnobserved(ServerPlayer player) {
         try {
             var level = player.level();
             var seed = new StationSeed(1, 64, -61, 64, 0, StationVariant.UNDEAD_COURTYARD);
@@ -22,13 +32,8 @@ public final class CourtyardGameFixture {
             build.invoke(null, level, RandomSource.create(732719), seed, ground);
             chunk.setAttached(StationAttachments.STATION, seed);
             var place = StationService.index(level, chunk).orElseThrow();
-            var anchor = place.anchor();
-            new DiscoveryRepository().observe(player.getUUID(), new Observation(place.key(),
-                place.variant().title(), "GUI combat fixture: already-known courtyard",
-                new DiscoveryPosition(place.dimension(), anchor.x(), anchor.y(), anchor.z()),
-                System.currentTimeMillis()));
             return place;
-        } catch (ReflectiveOperationException | java.io.IOException error) {
+        } catch (ReflectiveOperationException error) {
             throw new AssertionError("Could not build native GUI courtyard fixture", error);
         }
     }
