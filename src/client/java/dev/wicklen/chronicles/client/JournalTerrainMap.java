@@ -20,16 +20,24 @@ final class JournalTerrainMap {
     private boolean wide(SpiritDialogScreen.Layout box) { return box.width() >= 260; }
     private boolean footerControls(SpiritDialogScreen.Layout box) { return box.width() >= 250 && box.width() < 370; }
     private TerrainMapRenderer.Rect rect(SpiritDialogScreen.Layout box) {
-        int top = box.contentTop() + (footerControls(box) ? 22 : box.width() >= 370 ? 47 : 67);
+        int top = box.contentTop() + (box.width() < 250 || footerControls(box) ? 22 : 47);
         int size = Math.max(40, Math.min(wide(box) ? box.width() / 2 - 16 : box.width() - 28, box.contentBottom() - top - (wide(box) ? 6 : 19)));
         return new TerrainMapRenderer.Rect(box.left() + 14, top, size);
     }
     void init(SpiritDialogScreen.Layout box, Consumer<Button> add) {
         TerrainMapClientState.activate();
         int x = box.left() + 12, y = box.contentTop() + 18;
+        boolean compact = box.width() < 250;
+        int compactFooter = box.contentBottom() + 1;
         int amount = TerrainMapClientState.span() / 4;
         int panX, panY;
-        if (footerControls(box)) {
+        if (compact) {
+            add.accept(button("−", "terrain.zoom_out", x, compactFooter, 18, () -> TerrainMapClientState.zoom(false)));
+            add.accept(button("+", "terrain.zoom_in", box.left() + 66, compactFooter, 18, () -> TerrainMapClientState.zoom(true)));
+            add.accept(button("◎", "terrain.center", box.left() + 87, compactFooter, 18, TerrainMapClientState::center));
+            panX = x;
+            panY = compactFooter + 21;
+        } else if (footerControls(box)) {
             int fx = box.left() + 94, fy = box.top() + box.height() - 38;
             add.accept(button("−", "terrain.zoom_out", fx, fy, 18, () -> TerrainMapClientState.zoom(false)));
             add.accept(button("+", "terrain.zoom_in", fx + 21, fy, 18, () -> TerrainMapClientState.zoom(true)));
@@ -38,15 +46,50 @@ final class JournalTerrainMap {
         } else {
             add.accept(button("−", "terrain.zoom_out", x, y, 20, () -> TerrainMapClientState.zoom(false)));
             add.accept(button("+", "terrain.zoom_in", x + 69, y, 20, () -> TerrainMapClientState.zoom(true)));
-            add.accept(JournalButton.colored(JournalTexts.tr("terrain.center"), b -> { TerrainMapClientState.center(); screen.changed(); })
-                    .bounds(x + 94, y, Math.max(48, Math.min(74, box.width() - 118)), 18).build());
+            if (box.width() < 250) {
+                add.accept(button("◎", "terrain.center", x + 94, y, 20, TerrainMapClientState::center));
+            } else {
+                add.accept(JournalButton.colored(JournalTexts.tr("terrain.center"), b -> { TerrainMapClientState.center(); screen.changed(); })
+                        .bounds(x + 94, y, Math.max(48, Math.min(74, box.width() - 118)), 18).build());
+            }
             panX = box.width() >= 370 ? x + 175 : x; panY = box.width() >= 370 ? y : y + 22;
         }
-        int bw = footerControls(box) ? 18 : 20, spacing = bw + 3;
+        int bw = compact || footerControls(box) ? 18 : 20, spacing = bw + 3;
         add.accept(button("←", "terrain.west", panX, panY, bw, () -> TerrainMapClientState.pan(-amount, 0)));
         add.accept(button("↑", "terrain.north", panX + spacing, panY, bw, () -> TerrainMapClientState.pan(0, -amount)));
         add.accept(button("↓", "terrain.south", panX + spacing * 2, panY, bw, () -> TerrainMapClientState.pan(0, amount)));
         add.accept(button("→", "terrain.east", panX + spacing * 3, panY, bw, () -> TerrainMapClientState.pan(amount, 0)));
+        int stopX = compact ? box.left() + 96 : box.left() + box.width() - (footerControls(box) ? 64 : 32);
+        int stopY = compact ? compactFooter + 21 : box.contentTop() - 3;
+        var stop = button("×", "guidance.stop_hint", stopX, stopY, compact ? 18 : 20, GuidanceClientState::stop);
+        stop.active = GuidanceClientState.enabled() && !GuidanceClientState.busy();
+        add.accept(stop);
+        var selectedEntry = visiblePlaces().stream().filter(entry -> entry.key().id().equals(selected)).findFirst().orElse(null);
+        var target = GuidanceClientState.target();
+        boolean alreadyFollowing = selectedEntry == null ? GuidanceClientState.enabled()
+                : target != null && target.kind() == dev.wicklen.chronicles.core.guidance.GuidanceTarget.Kind.PLACE && target.id().equals(selectedEntry.key().id());
+        int followX, followY, followWidth;
+        if (footerControls(box)) {
+            var area = rect(box);
+            followX = area.x() + area.size() + 14;
+            followY = box.contentBottom() - 20;
+            followWidth = box.width() - area.size() - 42;
+        } else if (compact) {
+            followX = box.left() + 108;
+            followY = compactFooter;
+            followWidth = Math.max(42, box.width() - 120);
+        } else {
+            followX = box.left() + 94;
+            followY = box.top() + box.height() - 38;
+            followWidth = Math.max(42, box.width() - 106);
+        }
+        var follow = JournalButton.colored(JournalTexts.tr(alreadyFollowing ? "guidance.stop" : "guidance.follow_short"), button -> {
+            if (alreadyFollowing) GuidanceClientState.stop();
+            else if (selectedEntry != null) GuidanceClientState.pin(selectedEntry.key().id());
+        }).bounds(followX, followY, followWidth, 18)
+                .tooltip(Tooltip.create(JournalTexts.tr(alreadyFollowing ? "guidance.stop_hint" : "guidance.follow_hint"))).build();
+        follow.active = !GuidanceClientState.busy() && (alreadyFollowing || selectedEntry != null);
+        add.accept(follow);
         var data = ResearchClientState.data(); if (data == null) return;
         AnnotationClientState.request(data.places().stream().map(DiscoveryEntry::key).toList());
         var view = TerrainMapClientState.viewport(); var r = rect(box);
@@ -73,8 +116,10 @@ final class JournalTerrainMap {
     void render(GuiGraphicsExtractor g, SpiritDialogScreen.Layout box) {
         TerrainMapClientState.activate(); var r = rect(box); var view = TerrainMapClientState.viewport();
         g.text(screen.getFont(), JournalTexts.tr("terrain.heading"), box.left() + 14, box.contentTop() + 2, SpiritDialogScreen.INK, false);
+        boolean compact = box.width() < 250;
         g.text(screen.getFont(), Integer.toString(TerrainMapClientState.span()),
-                box.left() + (footerControls(box) ? box.width() - 39 : 36), box.contentTop() + (footerControls(box) ? 2 : 23), SpiritDialogScreen.INK, false);
+                box.left() + (compact ? 35 : footerControls(box) ? box.width() - 39 : 36),
+                compact ? box.contentBottom() + 6 : box.contentTop() + (footerControls(box) ? 2 : 23), SpiritDialogScreen.INK, false);
         TerrainMapRenderer.draw(g, r, view);
         var light = FirstLightClientState.data();
         if (light != null && light.thread() != null) {
@@ -85,6 +130,7 @@ final class JournalTerrainMap {
                 for (var mark : thread.marks()) TerrainMapRenderer.point(g, view, r, mark.x(), mark.z(), 0xFFFFDF85);
             }
         }
+        TerrainMapRenderer.guidance(g, view, r);
         var selectedEntry = visiblePlaces().stream().filter(entry -> entry.key().id().equals(selected)).findFirst().orElse(null);
         var lines = new ArrayList<Component>();
         if (selectedEntry == null) { lines.add(JournalTexts.tr("terrain.hint")); lines.add(JournalTexts.tr("terrain.fog")); }
@@ -95,15 +141,22 @@ final class JournalTerrainMap {
             if (annotation != null && !annotation.note().isBlank()) lines.add(Component.literal(annotation.note()));
             else lines.add(Component.translatableWithFallback(selectedEntry.summary(), selectedEntry.summary()));
         }
-        if (wide(box)) pages.renderLines(g, box, r.x() + r.size() + 14, r.y(), box.width() - r.size() - 42, lines);
-        else if (!lines.isEmpty()) g.text(screen.getFont(), screen.getFont().plainSubstrByWidth(lines.getFirst().getString(), box.width() - 28),
-                box.left() + 14, r.y() + r.size() + 6, SpiritDialogScreen.MUTED, false);
         String notice = TerrainMapClientState.notice();
-        if (!notice.isEmpty()) g.text(screen.getFont(), screen.getFont().plainSubstrByWidth(Component.translatable(notice).getString(), box.width() - 28),
-                box.left() + 14, box.top() + box.height() - 15, 0xFF963F35, false);
-        else if (!footerControls(box)) g.text(screen.getFont(), screen.getFont().plainSubstrByWidth(
-                JournalTexts.tr(TerrainMapClientState.busy() ? "terrain.loading" : "terrain.legend").getString(), box.width() - 106),
-                box.left() + 94, box.top() + box.height() - 31, SpiritDialogScreen.MUTED, false);
+        var guidance = GuidanceClientState.page();
+        if (notice.isEmpty() && guidance != null && GuidanceClientState.error()) {
+            notice = GuidanceClientState.notice();
+        }
+        if (wide(box)) {
+            var details = footerControls(box) ? new SpiritDialogScreen.Layout(box.left(), box.top(), box.width(), box.height() - 24) : box;
+            pages.renderLines(g, details, r.x() + r.size() + 14, r.y(), box.width() - r.size() - 42, lines);
+        } else if (!lines.isEmpty() && (!compact || notice.isEmpty())) {
+            g.text(screen.getFont(), screen.getFont().plainSubstrByWidth(lines.getFirst().getString(), footerControls(box) ? r.size() : box.width() - 28),
+                    box.left() + 14, r.y() + r.size() + 6, SpiritDialogScreen.MUTED, false);
+        }
+        if (!notice.isEmpty()) {
+            g.text(screen.getFont(), screen.getFont().plainSubstrByWidth(Component.translatable(notice).getString(), box.width() - 28),
+                    box.left() + 14, compact ? r.y() + r.size() + 6 : box.top() + box.height() - 15, 0xFF963F35, false);
+        }
     }
     private static final class Marker extends Button {
         private final boolean selected;

@@ -38,7 +38,11 @@ public final class TerrainMapClientState {
             });
         });
         ClientTickEvents.END_CLIENT_TICK.register(client -> tick());
-        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> clear());
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> clear());
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> client.execute(() -> {
+            // Transport disconnect can run on Netty; GPU disposal and client state belong to the render thread.
+            if (client.getConnection() == null || client.getConnection() == handler) clear();
+        }));
     }
     public static void activate() { lastActive = System.currentTimeMillis(); }
     public static void refresh() { dirty = true; activate(); }

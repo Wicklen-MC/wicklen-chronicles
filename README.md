@@ -13,11 +13,16 @@ Loader 0.20.1+, Fabric API 0.165.0+26.3 and Java 25**.
 - Spoken lines appear in a compact, themed **HUD card**, with a portrait and your
   journal key. They stay out of chat; the full text remains in journal history.
   Cards queue without interrupting each other and respect hidden HUD and menus.
+- The spirit connects conversations to your saved personal names, notes, chosen
+  expedition route and recent outcomes. Questions can bring older named findings
+  back into context; an unfinished trip is kept distinct from a completed one.
 - **G** opens a guided field journal: your next step, tasks, records, map,
   collections, trials and the spirit, all directly accessible.
   `@spirit <message>` also starts a conversation.
 - Observe creatures and visible places with the **vanilla spyglass**. The server
-  checks continuous focus, line of sight, range and actual item use. A compatible
+  checks continuous focus, line of sight, range and actual item use. Registered
+  structures from other mods can become places too, using visible built surfaces
+  and already loaded structure pieces. A compatible
   Field Guide installation can confirm the same observation without a second scan.
 - Give each personal discovery a **name and note**, without changing its canonical
   species/place, other players' records or quest objectives. Clear an edit to restore
@@ -33,6 +38,10 @@ Loader 0.20.1+, Fabric API 0.165.0+26.3 and Java 25**.
   survey its surroundings or complete its courtyard trial. Without the optional
   combat executor, the alternative is wildlife observations. One clear next step,
   visible progress, a choice of approach and an explicitly claimed supply kit.
+- Follow a personally recorded place or the active expedition: a dotted map line,
+  compact direction/distance card and occasional nearby **Waylight sparks** help
+  you keep your bearings. Stop guidance in the journal whenever you prefer.
+  A direction hint does not chart unknown terrain or promise a safe road.
 - Small research collections. Unknown places never become hidden map markers.
 - Collection, biome-visit and combat tasks with explicit submission and reward
   collection. Full inventories retain pending rewards.
@@ -51,14 +60,14 @@ Loader 0.20.1+, Fabric API 0.165.0+26.3 and Java 25**.
 - A **Field Notebook** turns a cartography table into a personal field desk:
   every three new discoveries fund a kit for the next expedition.
 
-New families of places, longer story chains, richer observation conditions,
+Additional authored waystation families, longer story chains, richer observation conditions,
 additional artefacts and a Xaero map overlay remain future work. The current map
 is part of the journal. Combat balance still needs playtesting with the full pack.
 
 ## Install and play
 
 Install Fabric Loader and Fabric API, then put
-`wicklen-chronicles-0.4.0.jar` in `mods/` on both server and client. Remove
+`wicklen-chronicles-0.4.1.jar` in `mods/` on both server and client. Remove
 older copies of this mod first. Use matching client/server versions; the
 0.2.1 networking namespace changed. The `-sources.jar` is for developers.
 
@@ -87,6 +96,28 @@ The terrain map charts a 3×3 area of already loaded chunks around your surface
 position, independently of render distance. It starts blank until you travel;
 existing discoveries can still be shown over fog. Use +/− to zoom, arrows to pan
 and Center to return to your position. Only the Overworld is charted in this release.
+
+To follow a place, open **Map**, select its personally recorded marker and press
+**Follow**. Press **Stop** to remove the guidance. The dotted line shows a straight
+bearing; the direction/distance card and nearby Waylight sparks help you orient
+yourself. They do not find a walking path or reveal unexplored terrain. Guidance
+pauses during an active trial and resumes afterwards. The current First Light
+expedition can also be followed from its page.
+
+Ask the spirit about a name you gave a finding, for example “What do you remember
+about Meadow Cows? Have we finished our expedition?” It can use that name and your
+note while retaining the original species, and distinguish an unfinished trip
+from a completed one. These facts come from your existing saves and survive a
+restart; private notes from other players are excluded. Generated conversation
+still requires a configured LLM provider.
+
+Registered structures from other mods use the same observation flow. Their
+structure's origin chunk must already be loaded, and your spyglass must see a
+built surface inside a registered structure piece. The observer does not load
+remote chunks to find it. Ordinary decorative world-generation features or
+arbitrary player buildings are not automatically supported places. Recording a
+foreign dungeon does not create a Gateway arena there: authored courtyard trials
+remain tied to Wicklen's own recorded stations.
 
 After recording a waystation, open **Next step → First Light**. Survey asks for two
 surface marks at least 48 blocks apart inside the highlighted area, away from the
@@ -195,7 +226,7 @@ no personal cache path, local server configuration or external LLM key is needed
 
 ```sh
 ./gradlew build
-# build/libs/wicklen-chronicles-0.4.0.jar
+# build/libs/wicklen-chronicles-0.4.1.jar
 ./gradlew -p core check
 ./gradlew runServerSmoke
 ./gradlew runClientGameTest
@@ -223,6 +254,7 @@ External-provider verification is opt-in and reads an existing private config:
 ```sh
 ./gradlew liveStoryProviderTest -PliveSpiritConfig=/absolute/private/config.json
 ./gradlew liveEncounterProviderTest -PliveSpiritConfig=/absolute/private/config.json
+./gradlew liveJourneyMemoryTest -PliveSpiritConfig=/absolute/private/config.json
 ```
 
 It makes a real request, never prints credentials and does not change the config.

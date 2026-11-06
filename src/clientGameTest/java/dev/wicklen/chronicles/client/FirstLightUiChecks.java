@@ -88,6 +88,7 @@ public final class FirstLightUiChecks {
             context.waitFor(c->FirstLightClientState.hasThread()&&!FirstLightClientState.busy()
                     &&FirstLightClientState.data().thread().branch()==FirstLightState.Branch.SURVEY);
             var active=server.computeOnServer(s->FirstLightService.current(player));var area=active.area();
+            GuidanceUiChecks.verifyExpedition(context,world);
             context.waitTicks(3);context.takeScreenshot("firstlight-survey-objective-active");
             // Player positions, not remotely selected client map coordinates, feed the MARK action.
             visitSurface(context,world,area.minX()+32,area.minZ()+32);

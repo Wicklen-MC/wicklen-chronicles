@@ -102,6 +102,8 @@ public final class TerrainMapUiChecks {
             context.runOnClient(client -> TerrainMapClientState.center());
             context.waitFor(client -> TerrainMapClientState.following() && !TerrainMapClientState.busy());
             System.out.println("PASS: personal native terrain map, real surface visits, water/trees/shading, strict loaded-unvisited fog, teleport gap and pan/zoom/center");
+            GuidanceUiChecks.verify(context, world);
+            WorldStructureUiChecks.verify(context, world);
         } finally {
             context.setScreen(() -> null);
             server.runOnServer(s -> {

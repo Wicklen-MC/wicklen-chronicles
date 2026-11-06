@@ -62,6 +62,71 @@ public final class TerrainMapRenderer {
         int px = rect.x + (int) Math.round(view.u(x) * rect.size), pz = rect.y + (int) Math.round(view.v(z) * rect.size);
         graphics.outline(px - 2, pz - 2, 5, 5, color);
     }
+    /** A clipped straight bearing above the existing fog; this never reads or changes map pixels. */
+    static void guidance(GuiGraphicsExtractor graphics, MapViewport view, Rect rect) {
+        var client = Minecraft.getInstance();
+        var page = GuidanceClientState.page();
+        var target = GuidanceClientState.target();
+        if (page == null || page.paused() || target == null || client.player == null || client.level == null
+                || target.otherDimension() || !target.dimension().equals(client.level.dimension().identifier().toString())) {
+            return;
+        }
+        double[] line = clippedLine(view.u(client.player.getX()), view.v(client.player.getZ()), view.u(target.x()), view.v(target.z()));
+        if (line == null) {
+            return;
+        }
+        graphics.enableScissor(rect.x(), rect.y(), rect.x() + rect.size(), rect.y() + rect.size());
+        double dx = (line[2] - line[0]) * rect.size();
+        double dz = (line[3] - line[1]) * rect.size();
+        int steps = Math.max(1, (int) Math.ceil(Math.hypot(dx, dz)));
+        for (int step = 0; step <= steps; step += 5) {
+            double fraction = (double) step / steps;
+            int x = rect.x() + (int) Math.round(line[0] * rect.size() + dx * fraction);
+            int z = rect.y() + (int) Math.round(line[1] * rect.size() + dz * fraction);
+            graphics.fill(x, z, x + 2, z + 2, 0xFFF1CD7C);
+        }
+        int tx = rect.x() + (int) Math.round(line[2] * rect.size());
+        int tz = rect.y() + (int) Math.round(line[3] * rect.size());
+        graphics.outline(tx - 3, tz - 3, 7, 7, 0xFFFFE2A0);
+        if (rect.size() >= 76) {
+            String name = client.font.plainSubstrByWidth(GuidanceHud.title(target).getString(), Math.min(95, rect.size() - 8));
+            int width = client.font.width(name);
+            int lx = Math.clamp(tx + 6, rect.x() + 3, rect.x() + rect.size() - width - 3);
+            int ly = Math.clamp(tz - 12, rect.y() + 3, rect.y() + rect.size() - 12);
+            graphics.fill(lx - 2, ly - 2, lx + width + 2, ly + 10, 0xD92F2A34);
+            graphics.text(client.font, name, lx, ly, 0xFFFFE9BC, false);
+        }
+        graphics.disableScissor();
+    }
+
+    /** Liang-Barsky clipping in normalized map coordinates, bounded even for very distant pins. */
+    static double[] clippedLine(double x1, double z1, double x2, double z2) {
+        double dx = x2 - x1;
+        double dz = z2 - z1;
+        double[] p = {-dx, dx, -dz, dz};
+        double[] q = {x1, 1 - x1, z1, 1 - z1};
+        double first = 0;
+        double last = 1;
+        for (int i = 0; i < p.length; i++) {
+            if (Math.abs(p[i]) < 1.0e-12) {
+                if (q[i] < 0) {
+                    return null;
+                }
+            } else {
+                double ratio = q[i] / p[i];
+                if (p[i] < 0) {
+                    first = Math.max(first, ratio);
+                } else {
+                    last = Math.min(last, ratio);
+                }
+                if (first > last) {
+                    return null;
+                }
+            }
+        }
+        return new double[]{x1 + first * dx, z1 + first * dz, x1 + last * dx, z1 + last * dz};
+    }
+
     public static void clear() {
         if (texture != null) { Minecraft.getInstance().getTextureManager().release(TEXTURE); texture = null; }
     }

@@ -34,6 +34,7 @@ public class WicklenChroniclesClient implements ClientModInitializer {
         AnnotationClientState.register();
         TerrainMapClientState.register();
         FirstLightClientState.register();
+        GuidanceClientState.register();
         for (var type : dev.wicklen.chronicles.compat.LegacyCompatibility.spiritTypes())
             EntityRenderers.register(type, SpiritRenderer::new);
 

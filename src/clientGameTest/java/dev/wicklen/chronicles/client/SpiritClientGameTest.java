@@ -281,6 +281,7 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
             reopened.getServer().runOnServer(mcServer -> {
                 var player = reopened.getConnection().getServerPlayer();
                 FirstLightUiChecks.verifyReload(player);
+                GuidanceUiChecks.verifyReload(player);
                 var story = dev.wicklen.chronicles.story.StoryService.view(player);
                 require(story.pending() == null && story.history().size() == 1, "story choice survives world restart exactly once");
                 var outcome = story.history().getFirst();
@@ -353,6 +354,8 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
             && EncounterClientState.data().encounters().stream().anyMatch(row -> row.id().equals(encounter)
                 && row.status().equals("ACTIVE")));
         var frozen=server.computeOnServer(s->dev.wicklen.chronicles.encounter.EncounterService.frozenPlan(connection.getServerPlayer(),encounter));
+        server.runOnServer(s -> require(dev.wicklen.chronicles.guidance.GuidanceService.readmodel(connection.getServerPlayer()).paused(),
+            "real active encounter pauses direction hints while retaining the personal intention"));
         require(frozen!=null,"Normal Start persists its exact authored wave plan");
         var escapedMob=new AtomicReference<UUID>();
         server.waitFor(mcServer -> {

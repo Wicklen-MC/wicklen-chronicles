@@ -24,7 +24,20 @@ public final class JournalFirstLight {
         if(state==null)return;
         AnnotationClientState.request(java.util.List.of(state.source()));
         int footer=box.top()+box.height()-37;
-        int fullWidth=Math.min(184,box.width()-24),fullLeft=box.left()+box.width()-12-fullWidth;
+        boolean guidanceControls = state.status() == FirstLightState.Status.ACTIVE
+                && (state.branch() == FirstLightState.Branch.SURVEY || state.branch() == FirstLightState.Branch.ENCOUNTER);
+        int fullWidth=Math.min(184,box.width()-(guidanceControls?50:24)),fullLeft=box.left()+box.width()-12-fullWidth;
+        if (guidanceControls) {
+            var target = GuidanceClientState.target();
+            var kind = state.branch() == FirstLightState.Branch.SURVEY
+                    ? dev.wicklen.chronicles.core.guidance.GuidanceTarget.Kind.SURVEY
+                    : dev.wicklen.chronicles.core.guidance.GuidanceTarget.Kind.ENCOUNTER;
+            boolean following = target != null && target.kind() == kind && GuidanceClientState.enabled();
+            int toggleX = state.branch() == FirstLightState.Branch.SURVEY ? box.left()+box.width()-32 : box.left()+12;
+            var toggle = new GuidanceToggle(toggleX, footer, following);
+            toggle.active = !GuidanceClientState.busy();
+            add.accept(toggle);
+        }
         if(state.status()==FirstLightState.Status.OFFERED){
             int w=(box.width()-30)/2;
             addButton(add,box.left()+12,footer,w,"survey",()->FirstLightClientState.request(FirstLightRequestPayload.Action.CHOOSE,"SURVEY"));
@@ -33,14 +46,20 @@ public final class JournalFirstLight {
             addButton(add,fullLeft,footer,fullWidth,"claim",()->FirstLightClientState.request(FirstLightRequestPayload.Action.CLAIM,""));
         }else if(state.status()==FirstLightState.Status.ACTIVE){
             if(state.branch()==FirstLightState.Branch.SURVEY){
-                int w=(box.width()-30)/2;
+                int w=(box.width()-56)/2;
                 addButton(add,box.left()+12,footer,w,"map",()->navigate.accept("map"));
                 addButton(add,box.left()+18+w,footer,w,"mark",()->FirstLightClientState.request(FirstLightRequestPayload.Action.MARK,""));
             }else addButton(add,fullLeft,footer,fullWidth,state.branch()==FirstLightState.Branch.ENCOUNTER?"open_trials":"close_explore",()->{if(state.branch()==FirstLightState.Branch.ENCOUNTER)navigate.accept("encounters");else screen.onClose();});
         }else addButton(add,fullLeft,footer,fullWidth,"map",()->navigate.accept("map"));
     }
     private void addButton(Consumer<Button> add,int x,int y,int width,String key,Runnable action){
-        var button=JournalButton.colored(tr(key),ignored->action.run()).bounds(x,y,width,18).tooltip(net.minecraft.client.gui.components.Tooltip.create(tr(key))).build();
+        Button button;
+        if (width < 85 && (key.equals("map") || key.equals("mark"))) {
+            button = new CompactFieldAction(x, y, width, key, action);
+        } else {
+            button = JournalButton.colored(tr(key),ignored->action.run()).bounds(x,y,width,18)
+                    .tooltip(net.minecraft.client.gui.components.Tooltip.create(tr(key))).build();
+        }
         button.active=!FirstLightClientState.busy();add.accept(button);
     }
     public void render(GuiGraphicsExtractor g,SpiritDialogScreen.Layout box){
@@ -82,6 +101,49 @@ public final class JournalFirstLight {
             for(int i=0;i<Math.min(2,notice.size());i++)g.text(screen.getFont(),notice.get(i),x,box.top()+box.height()-61+i*11,noticeColor(),false);
         }
     }
+    /** Full native narration/lookup label, short readable visual label on the compact footer. */
+    private static final class CompactFieldAction extends Button {
+        private final String key;
+
+        CompactFieldAction(int x, int y, int width, String key, Runnable action) {
+            super(x, y, width, 18, tr(key), button -> action.run(), DEFAULT_NARRATION);
+            this.key = key;
+            setTooltip(net.minecraft.client.gui.components.Tooltip.create(tr(key)));
+        }
+
+        @Override
+        protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+            drawControl(graphics, this, JournalTexts.tr("guidance." + key + "_short"), false);
+        }
+    }
+
+    private static final class GuidanceToggle extends Button {
+        private final boolean following;
+
+        GuidanceToggle(int x, int y, boolean following) {
+            super(x, y, 20, 18, JournalTexts.tr(following ? "guidance.stop" : "guidance.follow_expedition"),
+                    button -> { if (following) GuidanceClientState.stop(); else GuidanceClientState.followExpedition(); }, DEFAULT_NARRATION);
+            this.following = following;
+            setTooltip(net.minecraft.client.gui.components.Tooltip.create(JournalTexts.tr(
+                    following ? "guidance.stop_hint" : "guidance.follow_expedition_hint")));
+        }
+
+        @Override
+        protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+            drawControl(graphics, this, Component.literal(following ? "×" : "↑"), following);
+        }
+    }
+
+    private static void drawControl(GuiGraphicsExtractor graphics, Button button, Component label, boolean selected) {
+        int x = button.getX(), y = button.getY(), width = button.getWidth();
+        graphics.fill(x, y + 1, x + width, y + 18, 0xFFAB967C);
+        graphics.fill(x, y, x + width, y + 17, selected ? 0xFF668976 : button.isHoveredOrFocused() ? 0xFFF7EDD9 : 0xFFE7D6B8);
+        var font = net.minecraft.client.Minecraft.getInstance().font;
+        graphics.text(font, label, x + (width - font.width(label)) / 2, y + 5,
+                selected ? 0xFFFFF1DA : button.active ? SpiritDialogScreen.INK : SpiritDialogScreen.MUTED, false);
+        if (button.isFocused()) graphics.outline(x, y, width, 18, 0xFF426F65);
+    }
+
     private int noticeColor(){return FirstLightClientState.error()?0xFF963F35:SpiritDialogScreen.MUTED;}
     private static Component tr(String key,Object...args){return Component.translatable("journal.wicklen_chronicles.firstlight."+key,args);}
 }
