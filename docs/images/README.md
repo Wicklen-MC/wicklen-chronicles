@@ -27,8 +27,8 @@ test input sent through the real HUD protocol, not a recorded live LLM answer.
 | `wayfarer-lantern.png` | The earned relic being used after a successful real courtyard encounter. |
 
 `screenshots.json` records each file's SHA-256, source PNG, source helper, source
-state label and contents. Canonical assets live in `website/images/chronicles`;
-byte-identical copies live in the separate mod repository's `docs/images`.
+state label and contents. Canonical site assets now live in `Wicklen-MC/wicklen-site` at `images/chronicles`;
+byte-identical documentation copies live in the mod repository's `docs/images` and the server repository's `docs/images/chronicles`.
 The successful capture log is the ignored
 `wicklen-chronicles/build/docs-screenshots-0.4.2.log` (**BUILD SUCCESSFUL, 2m 27s**).
 
@@ -81,3 +81,5 @@ The ordinary connected client fixtures still run: observation, notes, settings,
 story/quest/reward flow, the optional Gateway/SIH encounter, actual earned relic
 use, personal terrain/privacy, navigation and FirstLight. No production classes
 were changed for this capture workflow.
+
+The original capture source paths below refer to the server checkout before the site extraction. They remain historical provenance, not a dependency of the standalone site.

@@ -20,7 +20,7 @@
   "run_result": "BUILD SUCCESSFUL in 2m 27s; complete connected client fixture passed",
   "capture_command": "./gradlew --offline --no-daemon --no-configuration-cache -I src/clientGameTest/docs-screenshots.init.gradle -PverifyCombatClient=true runClientGameTest",
   "capture_helper": "wicklen-chronicles/src/clientGameTest/java/dev/wicklen/chronicles/client/ScreenshotUiChecks.java",
-  "canonical_directory": "website/images/chronicles",
+  "canonical_directory": "images/chronicles",
   "mod_repository_copy": "wicklen-chronicles/docs/images",
   "assets": [
     {
@@ -143,5 +143,8 @@
       "native": true,
       "edited_or_upscaled": false
     }
-  ]
+  ],
+  "original_canonical_directory": "website/images/chronicles",
+  "canonical_repository": "https://github.com/Wicklen-MC/wicklen-site",
+  "server_repository_copy": "docs/images/chronicles"
 }
