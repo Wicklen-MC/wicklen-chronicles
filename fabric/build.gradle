@@ -344,9 +344,10 @@ tasks.named('check') { dependsOn tasks.named('guidanceTest'), tasks.named('journ
 
 // Hidden macOS test windows may block in SDL_GL_SwapWindow with display-synchronised presentation.
 // This is only the generated test profile, never a launcher instance or player preference.
+def nativeClientOptionsFile = rootProject.file(clientRunPath + '/options.txt')
 tasks.named('runClientGameTest', JavaExec) {
-    doFirst { task ->
-        def options = new File(task.workingDir, 'options.txt')
+    doFirst {
+        def options = nativeClientOptionsFile
         def lines = options.exists() ? options.readLines('UTF-8') : []
         lines.removeAll { it.startsWith('enableVsync:') }
         lines.add('enableVsync:false')
