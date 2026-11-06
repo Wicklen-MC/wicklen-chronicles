@@ -3,6 +3,8 @@ build/
 run/
 tools/
 *.log
+__pycache__/
+*.pyc
 
 # Local runtime state and credentials do not belong in the source repository.
 .env
