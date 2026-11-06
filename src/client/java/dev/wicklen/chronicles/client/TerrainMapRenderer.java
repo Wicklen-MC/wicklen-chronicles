@@ -1,7 +1,6 @@
 package dev.wicklen.chronicles.client;
 
 import com.mojang.blaze3d.platform.NativeImage;
-import dev.wicklen.chronicles.core.map.MapViewport;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
@@ -29,12 +28,29 @@ public final class TerrainMapRenderer {
         }
         texture.upload();
     }
-    public static void draw(GuiGraphicsExtractor graphics, Rect rect, MapViewport view) {
+    public static void draw(GuiGraphicsExtractor graphics, Rect rect, TerrainMapCamera.View view) {
         int x = rect.x, y = rect.y, s = rect.size;
         graphics.fill(x - 3, y - 3, x + s + 3, y + s + 3, 0xFF8C775C);
         graphics.fill(x - 1, y - 1, x + s + 1, y + s + 1, 0xFFE5D6B8);
-        if (texture == null) graphics.fill(x, y, x + s, y + s, 0xFF665E51);
-        else graphics.blit(RenderPipelines.GUI_TEXTURED, TEXTURE, x, y, 0, 0, s, s, 128, 128, 128, 128);
+        // Only reproject the last authorized server image. Newly exposed screen area is opaque fog.
+        graphics.fill(x, y, x + s, y + s, 0xFF665E51);
+        var page = TerrainMapClientState.page();
+        if (texture != null && page != null) {
+            var sampled = page.viewport();
+            double left = x + view.u(sampled.minX()) * s;
+            double top = y + view.v(sampled.minZ()) * s;
+            double size = (double) sampled.span() / view.span() * s;
+            if (left < x + s && top < y + s && left + size > x && top + size > y) {
+                int drawX = (int) Math.floor(left);
+                int drawY = (int) Math.floor(top);
+                int drawWidth = (int) Math.ceil(left + size) - drawX;
+                int drawHeight = (int) Math.ceil(top + size) - drawY;
+                graphics.enableScissor(x, y, x + s, y + s);
+                graphics.blit(RenderPipelines.GUI_TEXTURED, TEXTURE, drawX, drawY, 0, 0,
+                        drawWidth, drawHeight, 128, 128, 128, 128);
+                graphics.disableScissor();
+            }
+        }
         graphics.text(Minecraft.getInstance().font, "N", x + s / 2 - 3, y + 4, 0xFFFFF0CC, true);
         var player = Minecraft.getInstance().player;
         if (player != null && view.contains(player.getX(), player.getZ())) {
@@ -45,7 +61,7 @@ public final class TerrainMapRenderer {
             graphics.pose().popMatrix();
         }
     }
-    public static void zone(GuiGraphicsExtractor graphics, MapViewport view, Rect rect, String dimension,
+    public static void zone(GuiGraphicsExtractor graphics, TerrainMapCamera.View view, Rect rect, String dimension,
                             int minX, int minZ, int maxX, int maxZ, int color) {
         var level = Minecraft.getInstance().level;
         if (level == null || !level.dimension().identifier().toString().equals(dimension)) return;
@@ -57,13 +73,13 @@ public final class TerrainMapRenderer {
         graphics.fill(x1, z1, x2, z2, color & 0x00FFFFFF | 0x22000000);
         graphics.outline(x1, z1, x2 - x1, z2 - z1, color | 0xFF000000);
     }
-    static void point(GuiGraphicsExtractor graphics, MapViewport view, Rect rect, double x, double z, int color) {
+    static void point(GuiGraphicsExtractor graphics, TerrainMapCamera.View view, Rect rect, double x, double z, int color) {
         if (!view.contains(x, z)) return;
         int px = rect.x + (int) Math.round(view.u(x) * rect.size), pz = rect.y + (int) Math.round(view.v(z) * rect.size);
         graphics.outline(px - 2, pz - 2, 5, 5, color);
     }
     /** A clipped straight bearing above the existing fog; this never reads or changes map pixels. */
-    static void guidance(GuiGraphicsExtractor graphics, MapViewport view, Rect rect) {
+    static void guidance(GuiGraphicsExtractor graphics, TerrainMapCamera.View view, Rect rect) {
         var client = Minecraft.getInstance();
         var page = GuidanceClientState.page();
         var target = GuidanceClientState.target();

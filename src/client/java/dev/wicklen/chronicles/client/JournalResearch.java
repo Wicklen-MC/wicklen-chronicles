@@ -25,6 +25,16 @@ final class JournalResearch {
 
     void refresh() { ResearchClientState.request(ResearchRequestPayload.Action.READ, ""); if (screen.tab() == SpiritDialogScreen.Tab.MAP) TerrainMapClientState.refresh(); }
 
+    boolean mouseClicked(double x, double y, int button) { return terrain.mouseClicked(x, y, button); }
+    boolean mouseDragged(double x, double y, int button) { return terrain.mouseDragged(x, y, button); }
+    boolean mouseReleased(double x, double y, int button) { return terrain.mouseReleased(x, y, button); }
+    boolean mouseScrolled(double x, double y, double horizontal, double vertical) {
+        return terrain.mouseScrolled(x, y, horizontal, vertical);
+    }
+    void cancelPointer() { terrain.cancelPointer(); }
+    TerrainMapRenderer.Rect mapBounds() { return terrain.bounds(); }
+    String selectedPlace() { return terrain.selectedPlace(); }
+
     void init(SpiritDialogScreen.Layout box, Consumer<Button> add, boolean map) {
         if (map) { terrain.init(box, add); return; }
         var data = ResearchClientState.data();

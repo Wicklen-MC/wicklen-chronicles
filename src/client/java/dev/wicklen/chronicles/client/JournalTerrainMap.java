@@ -1,8 +1,9 @@
 package dev.wicklen.chronicles.client;
 
+import com.mojang.blaze3d.platform.InputConstants;
+
 import dev.wicklen.chronicles.core.discovery.DiscoveryEntry;
 import dev.wicklen.chronicles.core.field.FirstLightState;
-import dev.wicklen.chronicles.core.map.MapViewport;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
@@ -16,6 +17,11 @@ import java.util.function.Consumer;
 final class JournalTerrainMap {
     private final SpiritDialogScreen screen; private final JournalPages pages;
     private String selected = "";
+    private boolean captured;
+    private boolean dragging;
+    private double pressX, pressY, pressCenterX, pressCenterZ;
+    private double wheelRemainder;
+    private int pressSpan, pressSize;
     JournalTerrainMap(SpiritDialogScreen screen, JournalPages pages) { this.screen = screen; this.pages = pages; }
     private boolean wide(SpiritDialogScreen.Layout box) { return box.width() >= 260; }
     private boolean footerControls(SpiritDialogScreen.Layout box) { return box.width() >= 250 && box.width() < 370; }
@@ -23,6 +29,83 @@ final class JournalTerrainMap {
         int top = box.contentTop() + (box.width() < 250 || footerControls(box) ? 22 : 47);
         int size = Math.max(40, Math.min(wide(box) ? box.width() / 2 - 16 : box.width() - 28, box.contentBottom() - top - (wide(box) ? 6 : 19)));
         return new TerrainMapRenderer.Rect(box.left() + 14, top, size);
+    }
+    TerrainMapRenderer.Rect bounds() { return rect(screen.layout()); }
+    String selectedPlace() { return selected; }
+    private boolean contains(double x, double y) {
+        var area = bounds();
+        return x >= area.x() && y >= area.y() && x < area.x() + area.size() && y < area.y() + area.size();
+    }
+    boolean mouseClicked(double x, double y, int button) {
+        if (button != InputConstants.MOUSE_BUTTON_LEFT || !contains(x, y)) return false;
+        var view = TerrainMapClientState.displayViewport();
+        captured = true;
+        dragging = false;
+        pressX = x;
+        pressY = y;
+        pressCenterX = view.centerX();
+        pressCenterZ = view.centerZ();
+        pressSpan = view.span();
+        pressSize = bounds().size();
+        return true;
+    }
+    boolean mouseDragged(double x, double y, int button) {
+        if (!captured || button != InputConstants.MOUSE_BUTTON_LEFT) return false;
+        double dx = x - pressX;
+        double dy = y - pressY;
+        if (!dragging && dx * dx + dy * dy < 16) return true;
+        dragging = true;
+        TerrainMapClientState.moveTo(pressCenterX - dx * pressSpan / pressSize,
+                pressCenterZ - dy * pressSpan / pressSize);
+        screen.changed();
+        return true;
+    }
+    boolean mouseReleased(double x, double y, int button) {
+        if (!captured || button != InputConstants.MOUSE_BUTTON_LEFT) return false;
+        // Some platforms deliver a release without the final drag event.
+        mouseDragged(x, y, button);
+        boolean selectMarker = !dragging && contains(x, y);
+        cancelPointer();
+        if (selectMarker) {
+            var view = TerrainMapClientState.displayViewport();
+            var area = bounds();
+            DiscoveryEntry closest = null;
+            double best = 49;
+            for (var entry : visiblePlaces()) {
+                if (!view.contains(entry.position().x(), entry.position().z())) continue;
+                double px = area.x() + view.u(entry.position().x()) * area.size();
+                double py = area.y() + view.v(entry.position().z()) * area.size();
+                double squared = (x - px) * (x - px) + (y - py) * (y - py);
+                if (squared <= best) {
+                    closest = entry;
+                    best = squared;
+                }
+            }
+            if (closest != null) {
+                selected = closest.key().id();
+                pages.resetDetailScroll();
+                screen.changed();
+            }
+        }
+        return true;
+    }
+    boolean mouseScrolled(double x, double y, double horizontal, double vertical) {
+        if (!contains(x, y)) return false;
+        if (!Double.isFinite(vertical)) return true;
+        cancelPointer();
+        var area = bounds();
+        wheelRemainder = Math.max(-4, Math.min(4, wheelRemainder + vertical));
+        int steps = (int) wheelRemainder;
+        wheelRemainder -= steps;
+        for (int i = 0; i < Math.abs(steps); i++) {
+            TerrainMapClientState.zoomAt(steps > 0, (x - area.x()) / area.size(), (y - area.y()) / area.size());
+        }
+        if (steps != 0) screen.changed();
+        return true;
+    }
+    void cancelPointer() {
+        captured = false;
+        dragging = false;
     }
     void init(SpiritDialogScreen.Layout box, Consumer<Button> add) {
         TerrainMapClientState.activate();
@@ -92,7 +175,7 @@ final class JournalTerrainMap {
         add.accept(follow);
         var data = ResearchClientState.data(); if (data == null) return;
         AnnotationClientState.request(data.places().stream().map(DiscoveryEntry::key).toList());
-        var view = TerrainMapClientState.viewport(); var r = rect(box);
+        var view = TerrainMapClientState.displayViewport(); var r = rect(box);
         for (var entry : visiblePlaces()) {
             if (!view.contains(entry.position().x(), entry.position().z())) continue;
             int px = r.x() + (int) Math.round(view.u(entry.position().x()) * r.size());
@@ -114,7 +197,7 @@ final class JournalTerrainMap {
         return data.places().stream().filter(entry -> entry.position().dimension().equals(level.dimension().identifier().toString())).toList();
     }
     void render(GuiGraphicsExtractor g, SpiritDialogScreen.Layout box) {
-        TerrainMapClientState.activate(); var r = rect(box); var view = TerrainMapClientState.viewport();
+        TerrainMapClientState.activate(); var r = rect(box); var view = TerrainMapClientState.displayViewport();
         g.text(screen.getFont(), JournalTexts.tr("terrain.heading"), box.left() + 14, box.contentTop() + 2, SpiritDialogScreen.INK, false);
         boolean compact = box.width() < 250;
         g.text(screen.getFont(), Integer.toString(TerrainMapClientState.span()),

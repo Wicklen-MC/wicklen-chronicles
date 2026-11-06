@@ -31,6 +31,7 @@ public class WicklenChroniclesClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         ChroniclesTooltips.register();
+        ClientUiSettings.register();
         AnnotationClientState.register();
         TerrainMapClientState.register();
         FirstLightClientState.register();

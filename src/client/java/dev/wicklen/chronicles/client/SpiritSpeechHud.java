@@ -23,17 +23,18 @@ final class SpiritSpeechHud {
             Identifier.fromNamespaceAndPath(WicklenChronicles.MOD_ID,"spirit_speech"),SpiritSpeechHud::render);
     }
     static void accept(String title,int color,String text,int ttlMs) {
+        if (!ClientUiSettings.snapshot().speechVisible()) { clear(); return; }
         var screen=Minecraft.getInstance().gui.screen();
         // The open conversation already receives the complete reply in its persistent scrollback.
         if(screen instanceof SpiritDialogScreen journal && journal.tab()==SpiritDialogScreen.Tab.CONVERSATION)return;
         QUEUE.offer(title,color,text,ttlMs,clock());
     }
     static void tick(Minecraft client) {
-        if(client.player==null || client.level==null){clear();return;}
+        if(client.player==null || client.level==null || !ClientUiSettings.snapshot().speechVisible()){clear();return;}
         QUEUE.advance(clock(),displayAllowed(client));
     }
     static boolean displayAllowed(Minecraft client) {
-        return client.player!=null && client.level!=null && client.gui.screen()==null
+        return ClientUiSettings.snapshot().speechVisible() && client.player!=null && client.level!=null && client.gui.screen()==null
             && client.gui.overlay()==null && !client.gui.hud.isHidden();
     }
     static void clear(){QUEUE.clear();}
@@ -42,7 +43,7 @@ final class SpiritSpeechHud {
 
     record Bounds(int x,int y,int width,int height) {}
     static Bounds bounds(int screenWidth,int screenHeight,int lines) {
-        int width=Math.min(260,Math.max(132,screenWidth/2-20));
+        int width=Math.min(260,Math.max(96,screenWidth/2-20));
         int height=44+Math.clamp(lines,1,4)*10;
         return new Bounds(12,Math.max(28,screenHeight-92-height),width,height);
     }
@@ -51,14 +52,31 @@ final class SpiritSpeechHud {
         if(!displayAllowed(client))return;
         var active=QUEUE.current();
         if(active==null)return;
-        float opacity=active.opacity(clock());
+        float opacity=active.opacity(clock()) * (float) ClientUiSettings.snapshot().speechOpacity();
         if(opacity<=0)return;
+        float scale=effectiveScale(g.guiWidth(),g.guiHeight());
+        g.pose().pushMatrix();
+        try {
+            g.pose().scale(scale,scale);
+            renderCard(g,client,active,opacity,scale);
+        } finally {
+            g.pose().popMatrix();
+        }
+    }
+
+    static float effectiveScale(int width,int height) {
+        // Reserve the guidance card above and the hotbar/action bar below, even at the largest setting.
+        return Math.max(0.4f,Math.min((float)ClientUiSettings.snapshot().speechScale(),(height-156f)/84));
+    }
+
+    private static void renderCard(GuiGraphicsExtractor g,Minecraft client,SpiritSpeechQueue.Visible active,float opacity,float scale) {
         var speech=active.speech();
-        var provisional=bounds(g.guiWidth(),g.guiHeight(),4);
+        int virtualWidth=(int)(g.guiWidth()/scale),virtualHeight=(int)((g.guiHeight()-92)/scale+92);
+        var provisional=bounds(virtualWidth,virtualHeight,4);
         var font=client.font;
         var wrapped=font.splitIgnoringLanguage(Component.literal(speech.text()),provisional.width()-24);
         int count=Math.min(4,wrapped.size());
-        var b=bounds(g.guiWidth(),g.guiHeight(),count);
+        var b=bounds(virtualWidth,virtualHeight,count);
         int x=b.x(),y=b.y(),w=b.width(),h=b.height();
         int accent=lighten(speech.color());
         // Stepped corners belong to the same pixel vocabulary as the field journal.

@@ -6,15 +6,15 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
 
 import java.util.ArrayList;
 
 /** G opens one field journal. Native widgets send intentions; the server owns every result. */
-public class SpiritDialogScreen extends Screen {
+public class SpiritDialogScreen extends JournalScaledScreen {
     enum Tab { JOURNEY, TASKS, ATLAS, MAP, COLLECTIONS, TRIALS, CONVERSATION }
     static final int INK = 0xFF493B36;
     static final int MUTED = 0xFF796555;
@@ -42,8 +42,8 @@ public class SpiritDialogScreen extends Screen {
         int contentBottom() { return top + height - 43; }
     }
     private Layout frame() {
-        int w = Math.max(290, Math.min(660, width - 20));
-        int h = Math.max(220, Math.min(390, height - 18));
+        int w = panelWidth();
+        int h = panelHeight();
         return new Layout((width-w)/2, (height-h)/2, w, h);
     }
     private int navWidth() { return frame().width() < 480 ? 104 : 116; }
@@ -55,7 +55,9 @@ public class SpiritDialogScreen extends Screen {
     Tab tab() { return tab; }
     void open(Tab selected) { select(selected); }
 
-    @Override protected void init() {
+    JournalPages pagesForInputChecks() { return pages; }
+
+    @Override protected void initJournal() {
         var box = layout();
         if (input != null) draft = input.getValue();
         input = null;
@@ -76,6 +78,10 @@ public class SpiritDialogScreen extends Screen {
         }
         addRenderableWidget(JournalButton.colored(Component.literal("×"),b->onClose())
             .bounds(frame.left()+frame.width()-29,frame.top()+8,18,18).build());
+        addRenderableWidget(new JournalSettingsButton(frame.left()+frame.width()-51,frame.top()+8, b -> {
+            if (input != null) draft = input.getValue();
+            minecraft.setScreenAndShow(new JournalSettingsScreen(this));
+        }));
         if (tab == Tab.CONVERSATION) {
             input = new EditBox(font, box.left()+12, box.top()+box.height()-38, box.width()-100, 20,
                 JournalTexts.tr("input"));
@@ -120,8 +126,7 @@ public class SpiritDialogScreen extends Screen {
         }
     }
 
-    @Override public void extractBackground(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
-        super.extractBackground(g, mouseX, mouseY, delta);
+    @Override protected void extractJournalBackground(GuiGraphicsExtractor g) {
         var b = frame();
         g.fill(b.left()+3,b.top()+4,b.left()+b.width()+4,b.top()+b.height()+4,0x66281E21);
         g.fill(b.left()-2,b.top()-2,b.left()+b.width()+2,b.top()+b.height()+2,0xFF5C4841);
@@ -136,7 +141,7 @@ public class SpiritDialogScreen extends Screen {
         }
     }
 
-    @Override public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
+    @Override protected void extractJournalContents(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
         var box = layout();
         var frame=frame();
         g.text(font, JournalTexts.tr("title"), frame.left()+14,frame.top()+13, INK,false);
@@ -152,7 +157,6 @@ public class SpiritDialogScreen extends Screen {
             if (!lines.isEmpty()) g.text(font, lines.getFirst(), box.left()+14,box.top()+box.height()-15,
                 response != null && response.error() ? 0xFF963F35 : MUTED,false);
         }
-        super.extractRenderState(g,mouseX,mouseY,delta);
     }
 
     private void renderConversation(GuiGraphicsExtractor g, Layout box) {
@@ -179,7 +183,19 @@ public class SpiritDialogScreen extends Screen {
         }
         return super.keyPressed(event);
     }
-    @Override public boolean mouseScrolled(double x,double y,double scrollX,double scrollY) {
+    @Override protected boolean journalMouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        return pages.mouseClicked(event.x(), event.y(), event.button()) || super.journalMouseClicked(event, doubleClick);
+    }
+    @Override protected boolean journalMouseDragged(MouseButtonEvent event, double deltaX, double deltaY) {
+        return pages.mouseDragged(event.x(), event.y(), event.button()) || super.journalMouseDragged(event, deltaX, deltaY);
+    }
+    @Override protected boolean journalMouseReleased(MouseButtonEvent event) {
+        return pages.mouseReleased(event.x(), event.y(), event.button()) || super.journalMouseReleased(event);
+    }
+    @Override public void removed() { pages.cancelPointer(); }
+    @Override public void onClose() { pages.cancelPointer(); super.onClose(); }
+    @Override protected boolean journalMouseScrolled(double x,double y,double scrollX,double scrollY) {
+        if (pages.mouseScrolled(x, y, scrollX, scrollY)) return true;
         if (tab==Tab.CONVERSATION) scroll=Math.clamp(scroll+(int)Math.signum(scrollY)*3,0,maxScroll);
         else pages.scroll((int)Math.signum(scrollY));
         return true;

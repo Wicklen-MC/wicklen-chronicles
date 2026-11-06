@@ -30,6 +30,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public final class SpiritClientGameTest implements FabricClientGameTest {
     @Override
     public void runTest(ClientGameTestContext context) {
+        context.runOnClient(client -> ClientUiSettings.setJournalScale(1.0));
         net.fabricmc.fabric.api.client.gametest.v1.world.TestWorldSave savedWorld;
         var pendingReward = new AtomicReference<UUID>();
         var worldId = new AtomicReference<UUID>();
@@ -86,6 +87,7 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
             verifySpeechHud(context,world);
             verifySpyglassObservation(context, world);
             AnnotationUiChecks.verify(context, world);
+            SettingsUiChecks.verify(context, world);
             server.runOnServer(mcServer -> SpiritBubbles.speak(connection.getServerPlayer(), "Я здесь. Нажми G — откроем дневник!"));
             connection.waitForClientboundPackets();
             int entityId = server.computeOnServer(mcServer -> SpiritManager.findSpirits(

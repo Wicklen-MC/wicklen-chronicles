@@ -13,7 +13,7 @@ public final class TerrainMapClientState {
     private static TerrainMapPagePayload page;
     private static UUID worldId, sessionId, pending;
     private static String dimension = "";
-    private static int centerX, centerZ, span = 256;
+    private static final TerrainMapCamera CAMERA = new TerrainMapCamera();
     private static boolean following = true, dirty = true, registered;
     private static long lastActive, lastRequest, pendingAt, revision;
     private static String notice = "";
@@ -48,26 +48,44 @@ public final class TerrainMapClientState {
     public static void refresh() { dirty = true; activate(); }
     public static void center() { following = true; dirty = true; activate(); }
     public static void focus(int x, int z, int requestedSpan) {
-        var view = new MapViewport(Math.clamp(x, -MapViewport.BLOCK_LIMIT, MapViewport.BLOCK_LIMIT),
-                Math.clamp(z, -MapViewport.BLOCK_LIMIT, MapViewport.BLOCK_LIMIT), requestedSpan);
-        centerX = view.centerX(); centerZ = view.centerZ(); span = view.span(); following = false; dirty = true; activate();
+        CAMERA.focus(x, z, requestedSpan);
+        following = false;
+        changed();
     }
     public static void pan(int dx, int dz) {
-        if (page != null && following) { centerX = page.viewport().centerX(); centerZ = page.viewport().centerZ(); }
+        CAMERA.pan(dx, dz);
         following = false;
-        centerX = Math.clamp((long) centerX + dx, -MapViewport.BLOCK_LIMIT, MapViewport.BLOCK_LIMIT);
-        centerZ = Math.clamp((long) centerZ + dz, -MapViewport.BLOCK_LIMIT, MapViewport.BLOCK_LIMIT);
-        dirty = true; activate();
+        changed();
     }
-    public static void zoom(boolean inward) { span = inward ? Math.max(128, span / 2) : Math.min(1024, span * 2); dirty = true; activate(); }
-    public static int span() { return span; }
+    static void moveTo(double x, double z) {
+        CAMERA.moveTo(x, z);
+        following = false;
+        changed();
+    }
+    public static void zoom(boolean inward) {
+        if (CAMERA.zoom(inward, 0.5, 0.5)) changed();
+    }
+    static void zoomAt(boolean inward, double u, double v) {
+        if (CAMERA.zoom(inward, u, v)) {
+            following = false;
+            changed();
+        }
+    }
+    private static void changed() {
+        dirty = true;
+        revision++;
+        activate();
+    }
+    public static int span() { return CAMERA.view().span(); }
     public static boolean following() { return following; }
     public static boolean busy() { return pending != null; }
     public static long revision() { return revision; }
     public static TerrainMapPagePayload page() { return page; }
     public static String notice() { return notice; }
-    public static MapViewport viewport() { return page == null ? desired() : page.viewport(); }
-    private static MapViewport desired() { return new MapViewport(centerX, centerZ, span); }
+    /** Optimistic viewport; pending responses never move the user's camera backwards. */
+    public static MapViewport viewport() { return desired(); }
+    static TerrainMapCamera.View displayViewport() { return CAMERA.view(); }
+    private static MapViewport desired() { return CAMERA.wire(); }
     private static void tick() {
         var client = Minecraft.getInstance(); long now = System.currentTimeMillis();
         if (client.player == null || client.level == null || now - lastActive > 800) return;
@@ -76,8 +94,7 @@ public final class TerrainMapClientState {
             page = null; pending = null; dimension = activeDimension; following = true; dirty = true; TerrainMapRenderer.clear();
         }
         if (following) {
-            centerX = Math.clamp((long) Math.floor(client.player.getX()), -MapViewport.BLOCK_LIMIT, MapViewport.BLOCK_LIMIT);
-            centerZ = Math.clamp((long) Math.floor(client.player.getZ()), -MapViewport.BLOCK_LIMIT, MapViewport.BLOCK_LIMIT);
+            CAMERA.moveTo(client.player.getX(), client.player.getZ());
         }
         if (pending != null && now - pendingAt > 6000) { pending = null; notice = "journal.wicklen_chronicles.terrain.timeout"; }
         if (pending != null || now - lastRequest < 350 || !dirty && page != null && now - lastRequest < 1500) return;
@@ -87,7 +104,7 @@ public final class TerrainMapClientState {
     }
     public static void clear() {
         page = null; worldId = null; sessionId = null; pending = null; dimension = "";
-        centerX = centerZ = 0; span = 256; following = dirty = true; lastActive = lastRequest = 0; notice = ""; revision++;
+        CAMERA.focus(0, 0, 256); following = dirty = true; lastActive = lastRequest = pendingAt = 0; notice = ""; revision++;
         TerrainMapRenderer.clear();
     }
     private TerrainMapClientState() {}

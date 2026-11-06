@@ -85,6 +85,7 @@ public final class TerrainMapUiChecks {
                     && !TerrainMapClientState.busy());
             context.waitFor(client -> AnnotationClientState.lookup(campKey) != null);
             context.waitTicks(4);
+            TerrainMapGestureUiChecks.verify(context);
             context.clickScreenButton("My creek camp");context.waitTicks(3);
             context.takeScreenshot("terrain-map-real-ground-water-trees-fog");
             server.runOnServer(s -> {

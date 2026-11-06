@@ -52,6 +52,7 @@ final class JournalPages {
     }
     void resetSelection() { page=0; selected=0; detailScroll=0; }
     void select(SpiritDialogScreen.Tab tab) {
+        cancelPointer();
         history=false; storyMode=false; firstLightMode=false;
         atlasMode=switch(tab) {
             case MAP -> AtlasMode.MAP;
@@ -89,6 +90,21 @@ final class JournalPages {
     void showEncounters() { screen.open(SpiritDialogScreen.Tab.TRIALS); }
     void scroll(int direction) { if(firstLightMode)firstLight.scroll(direction);else detailScroll=Math.max(0,detailScroll-direction*3); }
     void resetDetailScroll() { detailScroll=0; }
+    boolean mouseClicked(double x, double y, int button) {
+        return screen.tab() == SpiritDialogScreen.Tab.MAP && research.mouseClicked(x, y, button);
+    }
+    boolean mouseDragged(double x, double y, int button) {
+        return screen.tab() == SpiritDialogScreen.Tab.MAP && research.mouseDragged(x, y, button);
+    }
+    boolean mouseReleased(double x, double y, int button) {
+        return screen.tab() == SpiritDialogScreen.Tab.MAP && research.mouseReleased(x, y, button);
+    }
+    boolean mouseScrolled(double x, double y, double horizontal, double vertical) {
+        return screen.tab() == SpiritDialogScreen.Tab.MAP && research.mouseScrolled(x, y, horizontal, vertical);
+    }
+    void cancelPointer() { research.cancelPointer(); }
+    TerrainMapRenderer.Rect mapBounds() { return research.mapBounds(); }
+    String selectedMapPlace() { return research.selectedPlace(); }
     void tick(boolean periodic) {
         if((screen.journey() || screen.tab()==SpiritDialogScreen.Tab.TASKS) && !FirstLightClientState.busy()
                 && (FirstLightClientState.data()==null || periodic))FirstLightClientState.read();

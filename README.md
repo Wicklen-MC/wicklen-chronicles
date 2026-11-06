@@ -64,10 +64,35 @@ Additional authored waystation families, longer story chains, richer observation
 additional artefacts and a Xaero map overlay remain future work. The current map
 is part of the journal. Combat balance still needs playtesting with the full pack.
 
+## Interface and automatic remarks
+
+Press **G → the sliders icon** in the journal's upper-right corner. Journal size
+and speech-card size both default to **85%**. Adjust the journal from **65–115%**,
+speech from **65–125%**, and speech opacity from **25–100%** (default 90%). You can
+hide the speech card entirely; manual conversation and its history remain in the
+journal. Hiding speech also pauses automatic remarks.
+
+Automatic remarks have their own switch and a minimum interval of **2–30 minutes**,
+default **10 minutes**. They need a fresh, concrete reason, so silence can last
+longer. Achievement congratulations, achievement statistics and random idle talk
+have been removed. Manual questions and explicitly requested task/guide feedback
+keep working when automatic speech is off. Reconnecting or adjusting a slider
+does not reset the last automatic remark's clock; switching off drops a pending
+automatic reply before it reaches the HUD or history.
+
+Presentation settings are local to `config/wicklen-chronicles-client.json`.
+The server saves your automatic-speech preference and interval for this world;
+visual scale and opacity stay on your computer.
+
+Drag the map with the **left mouse button** and use the **wheel** to zoom around
+the pointer. A short click still selects a place marker. Arrow, +/− and Center
+buttons remain available: use **Tab** to focus a button and **Enter/Space** to
+activate it if you prefer keyboard navigation.
+
 ## Install and play
 
 Install Fabric Loader and Fabric API, then put
-`wicklen-chronicles-0.4.1.jar` in `mods/` on both server and client. Remove
+`wicklen-chronicles-0.4.2.jar` in `mods/` on both server and client. Remove
 older copies of this mod first. Use matching client/server versions; the
 0.2.1 networking namespace changed. The `-sources.jar` is for developers.
 
@@ -226,7 +251,7 @@ no personal cache path, local server configuration or external LLM key is needed
 
 ```sh
 ./gradlew build
-# build/libs/wicklen-chronicles-0.4.1.jar
+# build/libs/wicklen-chronicles-0.4.2.jar
 ./gradlew -p core check
 ./gradlew runServerSmoke
 ./gradlew runClientGameTest
