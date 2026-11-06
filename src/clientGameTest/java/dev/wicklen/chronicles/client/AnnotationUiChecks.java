@@ -29,6 +29,7 @@ public final class AnnotationUiChecks {
             require(JournalTexts.discovery(entry).getString().equals("Луговые коровы")&&!JournalTexts.canonicalDiscovery(entry).getString().equals("Луговые коровы"),"personal title and canonical species remain separate");
         });
         context.takeScreenshot("annotation-record-personal-name");
+        ScreenshotUiChecks.capture(context, "annotation-record-personal-name");
         click(context,"annotation.edit");context.waitTicks(5);
         server.runOnServer(s->{var current=AnnotationService.get(connection.getServerPlayer(),key).orElseThrow();
             require(AnnotationService.save(connection.getServerPlayer(),facts.worldId(),key,current.revision(),"Другой черновик",current.note()).status()==AnnotationService.Status.OK,"concurrent edit fixture");});

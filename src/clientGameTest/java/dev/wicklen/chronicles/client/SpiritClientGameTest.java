@@ -268,6 +268,7 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
             completeChosenStoryQuest(context,reopened);
             verifyLantern(context, reopened);
             camp.set(reopened.getServer().computeOnServer(mcServer -> CampGameChecks.verify(reopened.getConnection().getServerPlayer())));
+            ScreenshotUiChecks.fieldDesk(context, reopened);
             researchReward.set(verifyResearchMap(context, reopened));
             if (Boolean.getBoolean("wicklen.chronicles.client.verifyCombat")) {
                 require(net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("gateway_of_doom"),
@@ -497,6 +498,7 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
             server.waitFor(s->connection.getServerPlayer().hasEffect(net.minecraft.world.effect.MobEffects.ABSORPTION)
                 &&connection.getServerPlayer().hasEffect(net.minecraft.world.effect.MobEffects.SPEED),100);
             context.takeScreenshot("cycle-earned-lantern-active");
+            ScreenshotUiChecks.capture(context, "cycle-earned-lantern-active");
         } finally {context.getInput().releaseKey(options->options.keyUse);}
         server.runOnServer(s->require(connection.getServerPlayer().getCooldowns().isOnCooldown(connection.getServerPlayer().getMainHandItem()),
             "earned relic activation applies its shared cooldown"));
@@ -570,6 +572,7 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
         context.runOnClient(client -> client.gui.toastManager().clear());
         context.waitTicks(2);
         context.takeScreenshot(name);
+        ScreenshotUiChecks.capture(context, name);
     }
 
     private static UUID verifyResearchMap(ClientGameTestContext context,
@@ -685,7 +688,7 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
             var cow = (net.minecraft.world.entity.Mob) type.create(player.level(),net.minecraft.world.entity.EntitySpawnReason.COMMAND);
             require(cow!=null,"cow fixture created");
             cow.setNoAi(true);cow.setNoGravity(true);
-            cow.setPos(player.getX(),player.getEyeY()-0.8,player.getZ()+6);
+            cow.setPos(player.getX(),player.getEyeY()-0.8,player.getZ()+(ScreenshotUiChecks.enabled()?28:6));
             require(player.level().addFreshEntity(cow),"cow fixture joined world");
             cowId.set(cow.getUUID());target.set(cow.blockPosition().above());
             oldHand.set(player.getMainHandItem().copy());
@@ -698,6 +701,7 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
             context.getInput().holdKey(options -> options.keyUse);
             context.waitTicks(15);
             context.takeScreenshot("spyglass-target-progress");
+            ScreenshotUiChecks.capture(context, "spyglass-target-progress");
             server.waitFor(mcServer->dev.wicklen.chronicles.exploration.ExplorationService.snapshot(connection.getServerPlayer())
                 .entries().stream().anyMatch(entry->entry.key().id().equals("minecraft:cow")),200);
         } finally {
@@ -867,6 +871,7 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
         });
         context.waitTicks(8);
         context.takeScreenshot(net.fabricmc.fabric.api.client.gametest.v1.screenshot.TestScreenshotOptions.of("spirit-speech-hud").withSize(800,480));
+        ScreenshotUiChecks.capture(context, "spirit-speech-hud");
         context.runOnClient(client->{client.gui.hud.toggle();require(!SpiritSpeechHud.displayAllowed(client),"Hide HUD hides the speech card");});
         context.takeScreenshot(net.fabricmc.fabric.api.client.gametest.v1.screenshot.TestScreenshotOptions.of("spirit-speech-hud-hidden").withSize(800,480));
         context.runOnClient(client->client.gui.hud.toggle());

@@ -1,0 +1,18 @@
+gradle.projectsEvaluated {
+    def fabricProject = gradle.rootProject.project(':fabric')
+    def docsDirectory = gradle.rootProject.file('build/client-docs-screenshots')
+    fabricProject.loom.runs.named('clientGameTest') {
+        runDir docsDirectory.absolutePath
+        vmArg '-Dwicklen.docs.screenshots=true'
+    }
+    fabricProject.tasks.named('runClientGameTest', JavaExec) {
+        workingDir docsDirectory
+        systemProperty 'wicklen.docs.screenshots', 'true'
+        doFirst {
+            def runArguments = args.toList()
+            def index = runArguments.indexOf('--gameDir')
+            if (index >= 0) runArguments[index + 1] = docsDirectory.absolutePath
+            setArgs(runArguments)
+        }
+    }
+}

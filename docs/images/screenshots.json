@@ -1,0 +1,147 @@
+{
+  "version": "0.4.2",
+  "minecraft": "26.3",
+  "fabric_loader": "0.20.1",
+  "captured_on": "2026-11-06",
+  "language": "ru_ru",
+  "capture_size": [
+    1280,
+    800
+  ],
+  "journal_scale": 0.85,
+  "renderer": "Vanilla native renderer; no shaders or screenshot compositing",
+  "environment": "Isolated local flat game-test worlds, no production-server connection or player saves",
+  "optional_test_dependencies": [
+    "Gateway of Doom 2.3.6",
+    "SIHYWTCAMD 1.11.2+26.3"
+  ],
+  "run_directory": "wicklen-chronicles/build/client-docs-screenshots",
+  "run_log": "wicklen-chronicles/build/docs-screenshots-0.4.2.log",
+  "run_result": "BUILD SUCCESSFUL in 2m 27s; complete connected client fixture passed",
+  "capture_command": "./gradlew --offline --no-daemon --no-configuration-cache -I src/clientGameTest/docs-screenshots.init.gradle -PverifyCombatClient=true runClientGameTest",
+  "capture_helper": "wicklen-chronicles/src/clientGameTest/java/dev/wicklen/chronicles/client/ScreenshotUiChecks.java",
+  "canonical_directory": "website/images/chronicles",
+  "mod_repository_copy": "wicklen-chronicles/docs/images",
+  "assets": [
+    {
+      "file": "journal-next.png",
+      "width": 1280,
+      "height": 800,
+      "sha256": "4cb6159ba3138066ce32b2faf487a6488e88bf7b5d822fbb584e22c43735c05c",
+      "source_png": "wicklen-chronicles/build/client-docs-screenshots/screenshots/docs-0.4.2/journal-next.png",
+      "source_label": "journal-first-step-ru",
+      "source_helper": "wicklen-chronicles/src/clientGameTest/java/dev/wicklen/chronicles/client/SpiritClientGameTest.java",
+      "what_is_shown": "Default 85% field journal, first observation instructions, zero discoveries.",
+      "native": true,
+      "edited_or_upscaled": false
+    },
+    {
+      "file": "spyglass-observation.png",
+      "width": 1280,
+      "height": 800,
+      "sha256": "89ae82a72d5575e87dc49cf11154c7ee7a6ff9cd9d3d9a4948d74ab794f54a8e",
+      "source_png": "wicklen-chronicles/build/client-docs-screenshots/screenshots/docs-0.4.2/spyglass-observation.png",
+      "source_label": "spyglass-target-progress",
+      "source_helper": "wicklen-chronicles/src/clientGameTest/java/dev/wicklen/chronicles/client/SpiritClientGameTest.java",
+      "what_is_shown": "Vanilla spyglass aiming at a real cow 28 blocks away; server-confirmed scan progress in an isolated flat testworld.",
+      "native": true,
+      "edited_or_upscaled": false
+    },
+    {
+      "file": "personal-notes.png",
+      "width": 1280,
+      "height": 800,
+      "sha256": "3d6bbb099379b8b9688aae53c437a6332b8fddae4babb336b049641353151200",
+      "source_png": "wicklen-chronicles/build/client-docs-screenshots/screenshots/docs-0.4.2/personal-notes.png",
+      "source_label": "annotation-record-personal-name",
+      "source_helper": "wicklen-chronicles/src/clientGameTest/java/dev/wicklen/chronicles/client/AnnotationUiChecks.java",
+      "what_is_shown": "Personally renamed cow discovery, canonical species and saved note in the actual atlas.",
+      "native": true,
+      "edited_or_upscaled": false
+    },
+    {
+      "file": "journal-settings.png",
+      "width": 1280,
+      "height": 800,
+      "sha256": "8c962339aa9f875006221c0462fef6aaa593d5493233d05c42da4e65bd69e668",
+      "source_png": "wicklen-chronicles/build/client-docs-screenshots/screenshots/docs-0.4.2/journal-settings.png",
+      "source_label": "journal-settings-controls-compact",
+      "source_helper": "wicklen-chronicles/src/clientGameTest/java/dev/wicklen/chronicles/client/SettingsUiChecks.java",
+      "what_is_shown": "Native settings at defaults: journal 85%, speech 85%, opacity 90%, automatic remarks every 10 minutes.",
+      "native": true,
+      "edited_or_upscaled": false
+    },
+    {
+      "file": "spirit-speech.png",
+      "width": 1280,
+      "height": 800,
+      "sha256": "758cbe3d0b349c8d6e0775b0b5ed96b4c91ff66a98e0309e94a2db7d5714dc3a",
+      "source_png": "wicklen-chronicles/build/client-docs-screenshots/screenshots/docs-0.4.2/spirit-speech.png",
+      "source_label": "spirit-speech-hud",
+      "source_helper": "wicklen-chronicles/src/clientGameTest/java/dev/wicklen/chronicles/client/SpiritClientGameTest.java",
+      "what_is_shown": "Actual server speech packet displayed by the companion HUD; the demonstration line is test input, not a live LLM response.",
+      "native": true,
+      "edited_or_upscaled": false
+    },
+    {
+      "file": "field-desk.png",
+      "width": 1280,
+      "height": 800,
+      "sha256": "56e29dc8cabb34ed0bc2ceb7b06d02f9798dc1224fcf74987bea74796e4e636b",
+      "source_png": "wicklen-chronicles/build/client-docs-screenshots/screenshots/docs-0.4.2/field-desk.png",
+      "source_label": "fieldDesk",
+      "source_helper": "wicklen-chronicles/src/clientGameTest/java/dev/wicklen/chronicles/client/ScreenshotUiChecks.java",
+      "what_is_shown": "Actual field notebook held beside a vanilla cartography table used as the bound field desk, with the real companion model. Barrel, fence and vanilla lantern are testworld props, not new mod blocks.",
+      "native": true,
+      "edited_or_upscaled": false
+    },
+    {
+      "file": "first-light.png",
+      "width": 1280,
+      "height": 800,
+      "sha256": "74c84bc8f3aa0ac9d131903dd6b1bf7ed70db067f41460d84fdd23d0adfd91b1",
+      "source_png": "wicklen-chronicles/build/client-docs-screenshots/screenshots/docs-0.4.2/first-light.png",
+      "source_label": "firstlight-offer-battle-or-survey",
+      "source_helper": "wicklen-chronicles/src/clientGameTest/java/dev/wicklen/chronicles/client/FirstLightUiChecks.java",
+      "what_is_shown": "Actual FirstLight offer after recording an authored station: choose a survey or an optional courtyard trial.",
+      "native": true,
+      "edited_or_upscaled": false
+    },
+    {
+      "file": "courtyard-trial.png",
+      "width": 1280,
+      "height": 800,
+      "sha256": "dba2a67822defe23fc8d3941ec7f31b2fed042daa7a5165f56bc51454dc4529f",
+      "source_png": "wicklen-chronicles/build/client-docs-screenshots/screenshots/docs-0.4.2/courtyard-trial.png",
+      "source_label": "journal-trials-prepared",
+      "source_helper": "wicklen-chronicles/src/clientGameTest/java/dev/wicklen/chronicles/client/SpiritClientGameTest.java",
+      "what_is_shown": "Native prepared encounter page, actual station and optional Gateway integration; preparation has not started combat. A native sidebar hover tooltip remains visible.",
+      "native": true,
+      "edited_or_upscaled": false
+    },
+    {
+      "file": "wayfarer-lantern.png",
+      "width": 1280,
+      "height": 800,
+      "sha256": "2814c6404a18555cfb6c2926df477d649eeb7f60372d776ea3143b5b2a777b48",
+      "source_png": "wicklen-chronicles/build/client-docs-screenshots/screenshots/docs-0.4.2/wayfarer-lantern.png",
+      "source_label": "cycle-earned-lantern-active",
+      "source_helper": "wicklen-chronicles/src/clientGameTest/java/dev/wicklen/chronicles/client/SpiritClientGameTest.java",
+      "what_is_shown": "Actually earned Wayfarer Lantern held and activated after the successful native courtyard encounter; absorption/speed icons and the real station are visible.",
+      "native": true,
+      "edited_or_upscaled": false
+    },
+    {
+      "file": "terrain-map.png",
+      "width": 1280,
+      "height": 800,
+      "sha256": "cf1ad4c054f9a6e8f00f5b6f67d2781784c8bdf0d8f4d06781508353ac2025b1",
+      "source_png": "wicklen-chronicles/build/client-docs-screenshots/screenshots/docs-0.4.2/terrain-map.png",
+      "source_label": "guidance-known-place-map",
+      "source_helper": "wicklen-chronicles/src/clientGameTest/java/dev/wicklen/chronicles/client/GuidanceUiChecks.java",
+      "what_is_shown": "Actual authorized terrain snapshots of real grass/water/tree test blocks, opaque unexplored fog, personal place label and a pinned straight bearing. The fixture is not presented as a procedurally generated production landmark.",
+      "native": true,
+      "edited_or_upscaled": false
+    }
+  ]
+}

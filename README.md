@@ -64,6 +64,60 @@ Additional authored waystation families, longer story chains, richer observation
 additional artefacts and a Xaero map overlay remain future work. The current map
 is part of the journal. Combat balance still needs playtesting with the full pack.
 
+## In-game screenshots
+
+Native Minecraft 0.4.2 captures in a test world; these are game screens, not design mockups.
+
+[Your next step](docs/images/journal-next.png) — The journal proposes a concrete action.
+
+[Spyglass observation](docs/images/spyglass-observation.png) — Vanilla spyglass, target and confirmed-focus progress.
+
+[Personal names and notes](docs/images/personal-notes.png) — Your label stays separate from the canonical species/place.
+
+![Personal terrain atlas](docs/images/terrain-map.png)
+
+Actual sampled test terrain, personal labels and fog; this scene is a test world.
+
+![First Light](docs/images/first-light.png)
+
+The short expedition offers explicit approaches and progress.
+
+[Courtyard trial](docs/images/courtyard-trial.png) — The optional courtyard encounter page; Gateway is required for battles.
+
+[Field desk](docs/images/field-desk.png) — A notebook binds an ordinary cartography table for personal resupply.
+
+![Journal settings](docs/images/journal-settings.png)
+
+Local scale, speech visibility and automatic-remark controls.
+
+![Spirit speech](docs/images/spirit-speech.png)
+
+A compact speech card; the complete text remains in journal history.
+
+## Your first expedition
+
+1. Bring a vanilla spyglass and hold a visible creature or supported place in view
+   for about two seconds. The target name and focus progress appear above the hotbar.
+2. Open **G → Records** to give the species or place a personal name and note.
+   A creature entry describes a species; it does not rename that individual animal.
+3. Select a known place on **Map → Follow**. Travel charts the surface around you;
+   fog remains where you have not travelled. **Stop** removes the bearing.
+4. At a personally recorded Wicklen waystation, open **Tasks → First Light**.
+   Choose a survey or that station's available alternative. There is no time limit.
+5. Return to the story page and explicitly claim your supplies. A full inventory
+   lets you claim later; naming a finding or repeating a scan does not duplicate rewards.
+
+Choose your companion's character in the journal or with `/spirit persona <id>`:
+
+| ID | Character | Colour |
+| --- | --- | --- |
+| `firefly` | Shy, fond of light and stars | Warm yellow |
+| `fox` | Playful, sly and teasing | Orange |
+| `owl` | Thoughtful, unhurried and metaphorical | Violet |
+| `cat` | Dry humour, quietly loyal | Pale blue |
+
+These change the spirit's personality and palette, not its species or combat abilities.
+
 ## Interface and automatic remarks
 
 Press **G → the sliders icon** in the journal's upper-right corner. Journal size
@@ -145,16 +199,16 @@ foreign dungeon does not create a Gateway arena there: authored courtyard trials
 remain tied to Wicklen's own recorded stations.
 
 After recording a waystation, open **Next step → First Light**. Survey asks for two
-surface marks at least 48 blocks apart inside the highlighted area, away from the
-station; use the story's mark button or confirm an observation there. The other
+surface marks at least 48 blocks apart inside the highlighted 192×192-block area,
+at least 32 blocks from the station; use the story's mark button or confirm an observation there. The other
 route uses that station's real courtyard trial, or two new wildlife observations
 when combat is unavailable. Claim **8 torches, 4 bread and 4 paper** when ready.
 Look at a visible supported landmark to see its name and a spyglass hint. While
 scanning, the target name and progress appear above the hotbar; a known target
 is marked as already recorded. Only visible surfaces receive personal particles.
 
-Craft a Field Notebook from a book, paper and string. Use it on a cartography
-table to bind your desk, then return after three new discoveries and use it
+Craft a Field Notebook with one book, one paper and one string in any arrangement. Use it on a cartography
+table to bind your desk, then return after three new discoveries made after binding and use it
 again to receive **8 torches, 4 bread and 4 paper**. A full inventory preserves
 eligibility. Sneak-use another table to relocate the desk without resetting progress.
 
@@ -176,6 +230,21 @@ Quest readiness never takes items automatically. Collection quests recheck
 what is actually in the inventory when submitted. Rewards are fixed when
 issued and survive a normal world restart. Inventory and mod data are
 separate save resources, not a shared transaction during abrupt power loss.
+
+## Rewards that support the next trip
+
+| Activity | Reward | Repeat rule |
+| --- | --- | --- |
+| Record three creature species | 8 paper | Once per player/world; claim in Collections |
+| Record two places | 12 torches | Once per player/world; claim in Collections |
+| Complete First Light | 8 torches, 4 bread, 4 paper | One story per player/world; explicit claim |
+| Return to a bound field desk after three new discoveries | 8 torches, 4 bread, 4 paper | Each next group of three first discoveries |
+| Win a personally joined courtyard trial | Wayfarer's Lantern | Personal encounter reward; explicit claim |
+
+The lantern is earned rather than crafted. Use it to gain **Absorption I for
+20 seconds** and **Speed I for 10 seconds**. It is reusable; all copies share a
+**60-second cooldown**. Re-observing a known species in another region adds field
+knowledge, rather than another first discovery or another collection entitlement.
 
 ## Gentle encounters and diagnostics
 
@@ -212,6 +281,17 @@ Server-wide `aiParallelRequests`,
 `aiQueueCapacity`, `aiRequestsPerHour` and `aiOutputTokensPerHour` bound shared
 HTTP concurrency, waiting requests, request count and reserved maximum output tokens.
 Queued requests expire, and late responses from closed worlds are rejected.
+
+Generated conversation sends the configured provider your in-game name, question,
+recent dialogue and a limited context such as biome, health, visible threats,
+selected personal names/notes and saved expedition progress. Relevant server rumours
+or pet memories can also be included. Personal annotation retrieval excludes other
+players' notes. The journey-memory projection omits world seed, UUIDs and global
+coordinates; text you choose to put in a message or note is still your text.
+Use a local Ollama endpoint if you want locally hosted generation. Maps, observations,
+objectives and reward checks work without an LLM. AI does not operate the world or
+invent authoritative discoveries; unavailable/invalid story and battle selections
+fall back to authored choices. Server-wide budgets are shared by all players.
 
 Use environment variables for credentials; do not commit keys or personal
 configuration. `SPIRIT_PROVIDER` selects `deepseek`, `openai`, `ollama` or

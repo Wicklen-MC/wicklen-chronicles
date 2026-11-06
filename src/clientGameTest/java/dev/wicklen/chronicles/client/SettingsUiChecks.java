@@ -60,6 +60,7 @@ public final class SettingsUiChecks {
                 near(ClientUiSettings.snapshot().journalScale(), 0.70, "mouse position changes native slider value");
             });
             context.takeScreenshot(TestScreenshotOptions.of("journal-settings-controls-compact").withSize(640, 480));
+            ScreenshotUiChecks.capture(context, "journal-settings-controls-compact");
             context.runOnClient(client -> click(client.gui.screen(), JournalTexts.tr("settings.done").getString()));
             context.runOnClient(client -> {
                 var screen = (SpiritDialogScreen) client.gui.screen();

@@ -31,6 +31,7 @@ public final class FirstLightUiChecks {
         battleThread=offered.id();battleWorld=offered.worldId();
         open(context);
         context.waitTicks(3);context.takeScreenshot("firstlight-offer-battle-or-survey");
+        ScreenshotUiChecks.capture(context, "firstlight-offer-battle-or-survey");
         click(context,"firstlight.battle");
         context.waitFor(c->FirstLightClientState.hasThread() && !FirstLightClientState.busy()
                 && FirstLightClientState.data().thread().branch()==FirstLightState.Branch.ENCOUNTER);

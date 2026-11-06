@@ -53,6 +53,7 @@ public final class GuidanceUiChecks {
                     "very distant line endpoints are clipped before drawing");
         });
         context.takeScreenshot("guidance-known-place-map");
+        ScreenshotUiChecks.capture(context, "guidance-known-place-map");
         compactScreenshot(context, "guidance-compact");
         context.runOnClient(client -> GuidanceClientState.pin("wicklen_chronicles:unknown_client_guidance_test"));
         context.waitFor(client -> !GuidanceClientState.busy() && GuidanceClientState.error());
