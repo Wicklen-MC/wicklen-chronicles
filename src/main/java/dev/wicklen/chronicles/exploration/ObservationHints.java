@@ -59,6 +59,7 @@ final class ObservationHints {
             available(player, stationTitle(place.variant()), visible.get(), known, tick);
             return; // one nearby, visible place; never a list of hidden coordinates
         }
+
     }
 
     void available(ServerPlayer player, Component title, Vec3 surface, boolean known, long tick) {
@@ -95,7 +96,7 @@ final class ObservationHints {
         return Optional.empty();
     }
 
-    private static Component title(ServerPlayer player,Observation observation,Mob mob) {
+    static Component title(ServerPlayer player,Observation observation,Mob mob) {
         var canonical=title(observation,mob);
         try {
             var annotation=dev.wicklen.chronicles.annotation.AnnotationService.get(player,observation.key()).orElse(null);

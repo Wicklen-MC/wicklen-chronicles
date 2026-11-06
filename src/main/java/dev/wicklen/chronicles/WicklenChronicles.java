@@ -49,6 +49,8 @@ public class WicklenChronicles implements ModInitializer {
         dev.wicklen.chronicles.encounter.EncounterService.register();
         dev.wicklen.chronicles.terrain.TerrainMapService.register();
         dev.wicklen.chronicles.net.FirstLightNetwork.register();
+        dev.wicklen.chronicles.guidance.GuidanceService.register();
+        dev.wicklen.chronicles.ai.SpiritJourneyContext.prioritySource(dev.wicklen.chronicles.guidance.GuidanceService::pinnedKey);
         net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents.SERVER_STARTING.register(server -> {
             try {
                 dev.wicklen.chronicles.ai.WorldStorageContext.open(

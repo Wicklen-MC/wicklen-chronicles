@@ -77,13 +77,13 @@ sourceSets {
 		runtimeClasspath += sourceSets.main.runtimeClasspath
 	}
 	clientGameTest {
-		java.srcDirs = [rootProject.file('src/clientGameTest/java')]
+		java.srcDirs = [rootProject.file('src/clientGameTest/java'), rootProject.file('src/nativeTestFixtures/java')]
 		resources.srcDirs = [rootProject.file('src/clientGameTest/resources')]
 		compileClasspath += sourceSets.main.output + sourceSets.client.output + sourceSets.client.compileClasspath
 		runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.client.runtimeClasspath
 	}
 	serverSmoke {
-		java.srcDirs = [rootProject.file('src/serverSmoke/java')]
+		java.srcDirs = [rootProject.file('src/serverSmoke/java'), rootProject.file('src/nativeTestFixtures/java')]
 		resources.srcDirs = [rootProject.file('src/serverSmoke/resources')]
 		compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
 		runtimeClasspath += sourceSets.main.runtimeClasspath
@@ -327,3 +327,41 @@ tasks.register('terrainMapTest', JavaExec) {
     mainClass = 'dev.wicklen.chronicles.terrain.TerrainMapChecks'
 }
 tasks.named('check') { dependsOn tasks.named('terrainMapTest') }
+
+
+tasks.register('guidanceTest', JavaExec) {
+    group = 'verification'
+    classpath = sourceSets.regression.runtimeClasspath
+    mainClass = 'dev.wicklen.chronicles.guidance.GuidanceChecks'
+}
+tasks.register('journeyMemoryTest', JavaExec) {
+    group = 'verification'
+    classpath = sourceSets.regression.runtimeClasspath
+    mainClass = 'dev.wicklen.chronicles.ai.SpiritJourneyContextChecks'
+}
+tasks.named('check') { dependsOn tasks.named('guidanceTest'), tasks.named('journeyMemoryTest') }
+
+
+// Hidden macOS test windows may block in SDL_GL_SwapWindow with display-synchronised presentation.
+// This is only the generated test profile, never a launcher instance or player preference.
+tasks.named('runClientGameTest', JavaExec) {
+    doFirst { task ->
+        def options = new File(task.workingDir, 'options.txt')
+        def lines = options.exists() ? options.readLines('UTF-8') : []
+        lines.removeAll { it.startsWith('enableVsync:') }
+        lines.add('enableVsync:false')
+        options.parentFile.mkdirs()
+        options.setText(lines.join('\n') + '\n', 'UTF-8')
+    }
+}
+
+
+tasks.register('liveJourneyMemoryTest', JavaExec) {
+    group = 'verification'
+    description = 'Opt-in single provider check with fictional personal journey facts.'
+    classpath = sourceSets.regression.runtimeClasspath
+    mainClass = 'dev.wicklen.chronicles.ai.LiveJourneyMemoryChecks'
+    def configPath = providers.gradleProperty('liveSpiritConfig')
+    doFirst { if (!configPath.isPresent()) throw new GradleException('Supply -PliveSpiritConfig with an explicitly approved private config') }
+    if (configPath.isPresent()) args configPath.get()
+}

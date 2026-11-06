@@ -41,3 +41,11 @@ tasks.register('mapRegressionTest', JavaExec) {
     mainClass = 'dev.wicklen.chronicles.core.map.MapRegressionChecks'
 }
 tasks.named('check') { dependsOn tasks.named('mapRegressionTest') }
+
+
+tasks.register('guidanceRegressionTest', JavaExec) {
+    group = 'verification'
+    classpath = sourceSets.regression.runtimeClasspath
+    mainClass = 'dev.wicklen.chronicles.core.guidance.GuidanceRegressionChecks'
+}
+tasks.named('check') { dependsOn tasks.named('guidanceRegressionTest') }

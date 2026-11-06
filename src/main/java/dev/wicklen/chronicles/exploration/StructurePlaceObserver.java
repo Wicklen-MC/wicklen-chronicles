@@ -6,6 +6,9 @@ import dev.wicklen.chronicles.core.discovery.DiscoveryPosition;
 import dev.wicklen.chronicles.core.discovery.Observation;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.world.level.block.Blocks;
+import java.util.Locale;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.ChunkPos;
@@ -20,8 +23,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-/** Selected existing structures, not a locate command or a registry of unknown POIs. */
-final class VanillaPlaceObserver implements VisiblePlaceProvider {
+/** Observes registered vanilla and modded structures from loaded starts and a visible built surface. */
+final class StructurePlaceObserver implements VisiblePlaceProvider {
     private static final Map<String, String> TITLES = Map.ofEntries(
             Map.entry("desert_pyramid", "Пустынный храм"), Map.entry("jungle_pyramid", "Храм джунглей"),
             Map.entry("pillager_outpost", "Аванпост разбойников"), Map.entry("mansion", "Лесной особняк"),
@@ -45,7 +48,7 @@ final class VanillaPlaceObserver implements VisiblePlaceProvider {
         }
         int checked = 0;
         for (var entry : chunk.getAllReferences().entrySet()) {
-            if (title(registry.getKey(entry.getKey())) == null) continue;
+
             for (long reference : entry.getValue()) {
                 if (++checked > 64) break;
                 var origin = ChunkPos.unpack(reference);
@@ -62,21 +65,48 @@ final class VanillaPlaceObserver implements VisiblePlaceProvider {
             var id = registry.getKey(start.getStructure());
             String name = title(id);
             if (name == null || start.getPieces().stream().noneMatch(piece -> piece.getBoundingBox().isInside(viewedBlock))) continue;
+            if (!id.getNamespace().equals("minecraft") && !builtSurface(chunk.getBlockState(viewedBlock))) continue;
             String dimension = level.dimension().identifier().toString();
             String stable = dimension + "|" + id + "|" + start.getChunkPos().x() + "|" + start.getChunkPos().z();
             var key = new DiscoveryKey(DiscoveryKind.PLACE, "wicklen_chronicles:place/" +
                     UUID.nameUUIDFromBytes(stable.getBytes(StandardCharsets.UTF_8)));
             return Optional.of(new Observation(key, name,
-                    "Место осмотрено через подзорную трубу. Опасность и возможные находки ещё не изучены.",
+                    "journal.wicklen_chronicles.structure.recorded_summary",
                     new DiscoveryPosition(dimension, viewedBlock.getX(), viewedBlock.getY(), viewedBlock.getZ()), time));
         }
         return Optional.empty();
     }
 
+    /** Ordinary terrain inside a large piece's box is not sufficient evidence of seeing its building. */
+    static boolean builtSurface(net.minecraft.world.level.block.state.BlockState state) {
+        return !state.isAir() && state.getFluidState().isEmpty() && !state.canBeReplaced()
+                && !state.is(BlockTags.DIRT) && !state.is(BlockTags.BASE_STONE_OVERWORLD)
+                && !state.is(BlockTags.BASE_STONE_NETHER) && !state.is(BlockTags.SAND)
+                && !state.is(BlockTags.LEAVES) && !state.is(BlockTags.LOGS)
+                && !state.is(Blocks.END_STONE) && !state.is(Blocks.GRAVEL)
+                && !state.is(Blocks.SNOW_BLOCK) && !state.is(Blocks.ICE) && !state.is(Blocks.PACKED_ICE);
+    }
+
+    private static String readable(String value) {
+        var words = value.replace('_', ' ').replace('/', ' ').replace('-', ' ').split(" +");
+        var result = new StringBuilder();
+        for (var word : words) {
+            if (word.isEmpty()) continue;
+            if (!result.isEmpty()) result.append(' ');
+            result.append(word.substring(0, 1).toUpperCase(Locale.ROOT)).append(word.substring(1));
+        }
+        return result.toString();
+    }
+
     private static String title(net.minecraft.resources.Identifier id) {
-        if (id == null || !id.getNamespace().equals("minecraft")) return null;
-        if (id.getPath().startsWith("village_")) return "Деревня";
-        if (id.getPath().equals("ruined_portal") || id.getPath().startsWith("ruined_portal_")) return "Разрушенный портал";
-        return TITLES.get(id.getPath());
+        if (id == null) return null;
+        if (id.getNamespace().equals("minecraft")) {
+            if (id.getPath().startsWith("village_")) return "Деревня";
+            if (id.getPath().equals("ruined_portal") || id.getPath().startsWith("ruined_portal_")) return "Разрушенный портал";
+            if (TITLES.containsKey(id.getPath())) return TITLES.get(id.getPath());
+        }
+        String name = readable(id.getPath());
+        if (!id.getNamespace().equals("minecraft")) name += " · " + readable(id.getNamespace());
+        return name.length() > 160 ? name.substring(0, 160) : name;
     }
 }

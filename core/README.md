@@ -27,6 +27,9 @@ classes into the mod JAR. The dependency points from Fabric to core only.
   semantics; canonical discoveries and quest targets remain separate.
 - `map`: immutable per-player surveyed chunks, region grids, negative coordinates,
   opaque unknown pixels and viewport projection; no world/block/texture types.
+- `guidance`: personal navigation intentions, confirmed-place validation, authored
+  survey hints, distance/bearing geometry and persistent explicit opt-out. It does
+  not know about terrain/pathfinding, particles, HTTP or a mod loader.
 - `field`: meaningful regional evidence and the First Light state machine:
   explicit route choice, spaced survey marks, observation/encounter proof and
   one reward acknowledgement. Native effects and persistence remain in adapters.

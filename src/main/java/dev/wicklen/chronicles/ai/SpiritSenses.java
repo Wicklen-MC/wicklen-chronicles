@@ -31,8 +31,8 @@ public final class SpiritSenses {
         String dim = level.dimension().identifier().getPath();
         sb.append(", биом ").append(biome);
         if (!dim.equals("overworld")) sb.append(" (").append(dim).append(")");
-        if (pos.getY() < 0) sb.append(", глубоко под землёй (y=").append(pos.getY()).append(")");
-        else if (pos.getY() < 40) sb.append(", в пещере (y=").append(pos.getY()).append(")");
+        if (pos.getY() < 0) sb.append(", глубоко под землёй");
+        else if (pos.getY() < 40) sb.append(", в пещере");
 
         // время и небо
         if (dim.equals("overworld")) {
@@ -60,18 +60,25 @@ public final class SpiritSenses {
 
     /** Полный контекст для промпта: чувства + питомцы + квест + слухи. */
     public static String context(ServerPlayer player) {
+        return context(player, "");
+    }
+
+    public static String context(ServerPlayer player,String query) {
         var sb = new StringBuilder("Сейчас с игроком: ").append(describe(player)).append('.');
-        var pets = SpiritMemorial.recent(player.getUUID(), 2);
-        if (!pets.isEmpty()) sb.append(" Погибшие питомцы игрока (можно иногда тепло вспоминать): ")
-            .append(String.join("; ", pets)).append('.');
+        try {
+            var pets = SpiritMemorial.recent(player.getUUID(), 2);
+            if (!pets.isEmpty()) sb.append(" Погибшие питомцы игрока (личные имена в кавычках, можно иногда тепло вспоминать): ")
+                .append(new com.google.gson.Gson().toJson(pets)).append('.');
+        }catch(RuntimeException unavailableMemorial) { /* Optional memory does not block dialogue. */ }
         try {
             var quest = SpiritQuests.active(player.getUUID());
             if (quest != null) sb.append(" Активное задание, выданное тобой: ").append(quest.describe()).append('.');
-        } catch (IllegalStateException unavailableQuest) {
+        } catch (RuntimeException unavailableQuest) {
             // Storage logs the preserved source once; dialogue can continue without this optional context.
         }
         var rumors = SpiritRumors.recent(3);
         if (!rumors.isEmpty()) sb.append(" Слухи на сервере: ").append(String.join(" ", rumors));
+        sb.append('\n').append(SpiritJourneyContext.describe(player,query));
         return sb.toString();
     }
 

@@ -7,6 +7,7 @@ import net.minecraft.server.level.ServerPlayer;
 import dev.wicklen.chronicles.ai.SpiritAi;
 import dev.wicklen.chronicles.ai.SpiritRumors;
 import dev.wicklen.chronicles.ai.SpiritSenses;
+import dev.wicklen.chronicles.ai.SpiritJourneyContext;
 
 import java.util.Map;
 import java.util.UUID;
@@ -32,6 +33,9 @@ public final class SpiritProactive {
     private static final Map<UUID, AdvancementCount> ADV_COUNTS = new ConcurrentHashMap<>();
     private static final Map<UUID, Integer> LAST_ADV = new ConcurrentHashMap<>();
     private static final java.util.Random RND = new java.util.Random();
+    private record JourneyWatch(String token,boolean pending,long lastSpokenAt) {}
+    private static final Map<UUID,JourneyWatch> JOURNEYS=new ConcurrentHashMap<>();
+    private static final long JOURNEY_COOLDOWN_MS=5*60_000L;
 
     /** Сколько достижений (без рецептов) выполнил игрок. */
     private static int countAdvancements(MinecraftServer server, ServerPlayer player) {
@@ -59,11 +63,12 @@ public final class SpiritProactive {
         net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             UUID id = handler.player.getUUID();
             WATCH.remove(id); LAST_ADV.remove(id); ADV_COUNTS.remove(id);
+            JOURNEYS.remove(id);
             LAST_FIRED.keySet().removeIf(key -> key.startsWith(id + ":"));
         });
     }
 
-    public static void reset() { WATCH.clear(); LAST_FIRED.clear(); LAST_ADV.clear(); ADV_COUNTS.clear(); }
+    public static void reset() { WATCH.clear(); LAST_FIRED.clear(); LAST_ADV.clear(); ADV_COUNTS.clear(); JOURNEYS.clear(); }
 
     private static void onTick(MinecraftServer server) {
         if (server.getTickCount() % CHECK_EVERY_TICKS != 0) return;
@@ -83,6 +88,21 @@ public final class SpiritProactive {
             long stamp = SpiritRumors.stamp();
             // Update before branches: continue must not leave stale observations behind.
             WATCH.put(player.getUUID(), new PlayerWatch(biomeNow, deep, thunder, stamp));
+
+            // Join establishes a baseline. A persisted personal change can prompt one quiet reaction later.
+            var journey=SpiritJourneyContext.capture(player);
+            long journeyNow=System.currentTimeMillis();
+            var oldJourney=JOURNEYS.get(player.getUUID());
+            if(oldJourney==null)JOURNEYS.put(player.getUUID(),new JourneyWatch(journey.progressToken(),false,journeyNow));
+            else {
+                boolean pending=oldJourney.pending() || !oldJourney.token().equals(journey.progressToken());
+                JOURNEYS.put(player.getUUID(),new JourneyWatch(journey.progressToken(),pending,oldJourney.lastSpokenAt()));
+                if(pending && !journey.activeEncounter() && journeyNow-oldJourney.lastSpokenAt()>=JOURNEY_COOLDOWN_MS){
+                    JOURNEYS.put(player.getUUID(),new JourneyWatch(journey.progressToken(),false,journeyNow));
+                    SpiritAi.narrate(server,player,"У игрока изменились сохранённые личные находки или ход вылазки. Одной короткой фразой отреагируй на подтверждённый выбор, прогресс либо результат из личной памяти. Можно вспомнить его подпись как личное название, не как новый лор. Не называй выбранную ветку победой и не утверждай, что неизвестная цель достигнута.");
+                    continue;
+                }
+            }
 
             // --- опасность: мало HP и враги рядом ---
             int hostiles = SpiritSenses.countHostiles(player);
@@ -121,7 +141,7 @@ public final class SpiritProactive {
             // --- ушёл глубоко под землю ---
             if (deep && !watch.deep() && ready(player, "deep", TRIGGER_COOLDOWN_MS)) {
                 SpiritAi.narrate(server, player,
-                    "Игрок спустился глубоко под землю (y=%d). Короткая реплика про глубину и темноту.".formatted((int) player.getY()));
+                    "Игрок спустился глубоко под землю. Короткая реплика про глубину и темноту.");
                 continue;
             }
 

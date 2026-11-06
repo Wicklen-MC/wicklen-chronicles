@@ -41,6 +41,23 @@ public final class AnnotationService {
         var records=STORE.get(HashMap::new).getOrDefault(owner.toString(),Map.of());
         return query.stream().map(key->value(world,owner,key,records)).toList();
     }
+    /** Linear owner-only retrieval for dialogue: old personal names need not be on the latest atlas page. */
+    public static List<DiscoveryAnnotation> knownPersonal(ServerPlayer player) {
+        if(!player.level().getServer().isSameThread())throw new IllegalStateException("Annotations require server thread");
+        var known=ExplorationService.snapshot(player).entries().stream().map(entry->entry.key()).collect(java.util.stream.Collectors.toSet());
+        var world=WorldStorageContext.worldId();var owner=player.getUUID();
+        var records=STORE.get(HashMap::new).getOrDefault(owner.toString(),Map.of());
+        var result=new ArrayList<DiscoveryAnnotation>();
+        for(var entry:records.entrySet()) {
+            var annotation=entry.getValue();
+            if(annotation==null)throw new IllegalStateException("Null personal annotation; source preserved");
+            if(!entry.getKey().equals(index(annotation.key())))throw new IllegalStateException("Annotation index mismatch; source preserved");
+            if(!known.contains(annotation.key()) || annotation.key().kind()==DiscoveryKind.BIOME)continue;
+            var checked=value(world,owner,annotation.key(),records);
+            if(!checked.label().isBlank() || !checked.note().isBlank())result.add(checked);
+        }
+        return List.copyOf(result);
+    }
     public static Result save(ServerPlayer player,UUID expectedWorld,DiscoveryKey key,long expectedRevision,String label,String note) {
         if(!WorldStorageContext.worldId().equals(expectedWorld))return new Result(Status.REJECTED,null);
         var previous=get(player,key).orElse(null);

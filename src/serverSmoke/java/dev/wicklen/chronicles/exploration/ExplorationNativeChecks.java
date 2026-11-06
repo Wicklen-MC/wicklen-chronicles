@@ -40,6 +40,7 @@ public final class ExplorationNativeChecks {
         var player = new ServerPlayer(server, level, new GameProfile(UUID.randomUUID(), "DiscoveryProbe"), ClientInformation.createDefault());
         int y = level.getMaxY() - 20;
         player.setPos(4.5, y, 4.5);
+        WorldStructureFixture.verify(player);
         player.setYRot(0);
         player.setYHeadRot(0);
         player.setXRot(0);
@@ -146,7 +147,7 @@ public final class ExplorationNativeChecks {
         starts.put(structure, new StructureStart(structure, chunkPos, 0, new PiecesContainer(List.of(piece))));
         chunk.setAllStarts(starts);
         try {
-            var observer = new VanillaPlaceObserver();
+            var observer = new StructurePlaceObserver();
             var first = observer.observe(level, player, viewed, 1_000).orElseThrow();
             var repeated = observer.observe(level, player, viewed, 2_000).orElseThrow();
             require(first.key().equals(repeated.key()), "place identity is stable across repeated observations");

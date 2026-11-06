@@ -44,7 +44,7 @@ public final class ExplorationService {
     public static final int REQUIRED_FOCUS_TICKS = 40;
     public static final double MAX_OBSERVATION_DISTANCE = 96;
     private static final Logger LOGGER = LoggerFactory.getLogger("wicklen_chronicles.exploration");
-    private static final List<VisiblePlaceProvider> PLACE_PROVIDERS = new ArrayList<>(List.of(new VanillaPlaceObserver()));
+    private static final List<VisiblePlaceProvider> PLACE_PROVIDERS = new ArrayList<>(List.of(new StructurePlaceObserver()));
     private static final List<BiConsumer<ServerPlayer, DiscoverySnapshot>> LISTENERS = new ArrayList<>();
     private static final List<ConfirmedListener> CONFIRMED = new ArrayList<>();
     @FunctionalInterface public interface ConfirmedListener {
@@ -129,12 +129,12 @@ public final class ExplorationService {
                 if (player.isAlive() && !player.isSpectator() && tick % 20 == 0
                         && tick >= state.retryAfter.getOrDefault(player.getUUID(), 0L)) {
                     try {
-                        // Crosshair-only lookup also identifies supported vanilla places without zooming.
+                        // Crosshair-only lookup also identifies registered vanilla/modded structures without zooming.
                         var target = visibleTarget(player, state, ObservationHints.NEARBY_DISTANCE);
                         if (target != null && target.observation.key().kind() == DiscoveryKind.PLACE) {
                             boolean known = state.repository.snapshot(player.getUUID()).entries().stream()
                                     .anyMatch(entry -> entry.key().equals(target.observation.key()));
-                            state.hints.available(player, ObservationHints.title(target.observation, null), target.surface, known, tick);
+                            state.hints.available(player, ObservationHints.title(player, target.observation, null), target.surface, known, tick);
                         } else state.hints.nearby(player, tick);
                     } catch (RuntimeException error) {
                         // Optional hints must not break the tick or mutate a failing discovery store.
