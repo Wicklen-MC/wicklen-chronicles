@@ -185,5 +185,6 @@
   "journal.wicklen_chronicles.journey.relic.body": "Возьми добытый фонарь в руку и используй для защиты и скорости. Перезарядка — 60 секунд.",
   "journal.wicklen_chronicles.journey.relic.why": "Когда будешь готов, выбери усиленный бой в записанном дворе.",
   "journal.wicklen_chronicles.journey.relic.action": "Попробовать усиленный",
-  "journal.wicklen_chronicles.encounter.adaptive_hint": "Состав и сила волн учитывают экипировку. План фиксируется перед стартом; после неудач бой может стать мягче."
+  "journal.wicklen_chronicles.encounter.adaptive_hint": "Состав и сила волн учитывают экипировку. План фиксируется перед стартом; после неудач бой может стать мягче.",
+  "hud.wicklen_chronicles.history": "%s · открыть дневник"
 }

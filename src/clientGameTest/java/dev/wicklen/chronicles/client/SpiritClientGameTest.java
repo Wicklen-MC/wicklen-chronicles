@@ -47,8 +47,8 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
             connection.waitForClientboundPackets();
             int joinedSpirit = server.computeOnServer(mcServer -> SpiritManager.findSpirits(
                 connection.getServerPlayer().getScoreboardName(), mcServer).getFirst().getId());
-            context.runOnClient(client -> require(BubbleStore.get(joinedSpirit) != null,
-                "welcome bubble belongs to the active spirit, not a discarded JOIN entity"));
+            context.runOnClient(client -> require(SpiritSpeechHud.size()>0 && BubbleStore.get(joinedSpirit)==null,
+                "welcome uses the speech HUD rather than chat or duplicate 3D bubbles"));
             server.runCommand("time set day");
             server.runCommand("weather clear");
             server.runOnServer(mcServer -> {
@@ -83,13 +83,14 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
             context.setScreen(SpiritDialogScreen::new);
             captureJournal(context,"journal-first-step-ru");
             context.setScreen(() -> null);
+            verifySpeechHud(context,world);
             verifySpyglassObservation(context, world);
             server.runOnServer(mcServer -> SpiritBubbles.speak(connection.getServerPlayer(), "Я здесь. Нажми G — откроем дневник!"));
             connection.waitForClientboundPackets();
             int entityId = server.computeOnServer(mcServer -> SpiritManager.findSpirits(
                 connection.getServerPlayer().getScoreboardName(), mcServer).getFirst().getId());
             context.runOnClient(client -> {
-                require(BubbleStore.get(entityId) != null, "bubble packet reaches client");
+                require(SpiritSpeechHud.size()>0 && BubbleStore.get(entityId)==null,"dedicated speech packet reaches the HUD without 3D duplication");
                 client.player.setYRot(0);
                 client.player.setXRot(0);
             });
@@ -190,7 +191,7 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
             connection.waitForClientboundPackets();
             int netherSpirit = server.computeOnServer(mcServer -> SpiritManager.findSpirits(
                 connection.getServerPlayer().getScoreboardName(), mcServer).getFirst().getId());
-            context.runOnClient(client -> require(BubbleStore.get(netherSpirit) != null, "bubble cache survives dimension change"));
+            context.runOnClient(client -> require(SpiritSpeechHud.texts().stream().anyMatch(t->t.equals("Даже здесь я рядом.")),"speech HUD survives dimension change"));
             // Continue long UI/inventory checks on the flat world's safe surface, not above random Nether lava.
             server.runCommand("execute as @p in minecraft:overworld run tp @s 0.5 -60 0.5");
             server.runOnServer(mcServer -> connection.getServerPlayer().setDeltaMovement(net.minecraft.world.phys.Vec3.ZERO));
@@ -207,6 +208,7 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
                 legacy.discard();
             });
         }
+        context.runOnClient(client->require(SpiritSpeechHud.size()==0,"disconnect clears current and queued speech"));
         try (var reopened = savedWorld.open()) {
             reopened.getServer().waitFor(mcServer -> SpiritManager.findSpirits(
                 reopened.getConnection().getServerPlayer().getScoreboardName(), mcServer).size() == 1);
@@ -214,7 +216,7 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
             context.waitFor(client -> !DialogHistory.lines().isEmpty());
             int spiritId = reopened.getServer().computeOnServer(mcServer -> SpiritManager.findSpirits(
                 reopened.getConnection().getServerPlayer().getScoreboardName(), mcServer).getFirst().getId());
-            context.runOnClient(client -> require(BubbleStore.get(spiritId) != null, "welcome bubble after world reopen"));
+            context.runOnClient(client -> require(SpiritSpeechHud.size()>0 && BubbleStore.get(spiritId)==null,"fresh welcome speech after world reopen"));
             reopened.getServer().runOnServer(mcServer -> {
                 var player = reopened.getConnection().getServerPlayer();
                 require(worldId.get().equals(WorldStorageContext.worldId()), "world ID survives restart");
@@ -819,6 +821,53 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
                 }
             });
         }
+    }
+
+    private static void verifySpeechHud(ClientGameTestContext context,
+            net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext world) {
+        String spoken="Давай начнём с окрестностей: запишем, кого встретим, и отметим места, куда захочется вернуться.";
+        context.runOnClient(client->{
+            SpiritSpeechHud.clear();
+            var queue=new SpiritSpeechQueue();
+            queue.offer("Дух",0x86C9B0,"first",2500,1000);
+            queue.advance(1000,true);
+            require(queue.current()!=null && queue.current().opacity(1200)==1,"speech fades in within a bounded interval");
+            for(int i=0;i<8;i++)queue.offer("Дух",0x86C9B0,"queued"+i,2500,1100);
+            require(queue.size()==3 && queue.current().speech().text().equals("first"),"bounded queue never interrupts current speech");
+            queue.advance(3501,true);
+            require(queue.current()!=null && !queue.current().speech().text().equals("first"),"expired speech advances to the next card");
+            queue.clear();queue.offer("Дух",0,"stale",2500,1000);queue.advance(32000,false);
+            require(queue.size()==0,"stale speech is discarded while the HUD cannot be shown");
+            for(int width:new int[]{320,427,640}) {
+                var b=SpiritSpeechHud.bounds(width,240,4);
+                require(b.x()+b.width()<width/2 && b.y()+b.height()<=240-92,"speech avoids crosshair, actionbar and hotbar at supported GUI scales");
+            }
+        });
+        world.getServer().runOnServer(server->SpiritBubbles.speak(world.getConnection().getServerPlayer(),spoken));
+        world.getConnection().waitForClientboundPackets();
+        context.waitFor(client->SpiritSpeechHud.texts().contains(spoken));
+        context.runOnClient(client->{
+            require(DialogHistory.lines().stream().anyMatch(line->line.text().equals(spoken)),"full HUD speech is retained in journal history");
+            require(!chatContains(client,spoken),"spoken companion lines are never copied into chat");
+        });
+        context.waitTicks(8);
+        context.takeScreenshot(net.fabricmc.fabric.api.client.gametest.v1.screenshot.TestScreenshotOptions.of("spirit-speech-hud").withSize(800,480));
+        context.runOnClient(client->{client.gui.hud.toggle();require(!SpiritSpeechHud.displayAllowed(client),"Hide HUD hides the speech card");});
+        context.takeScreenshot(net.fabricmc.fabric.api.client.gametest.v1.screenshot.TestScreenshotOptions.of("spirit-speech-hud-hidden").withSize(800,480));
+        context.runOnClient(client->client.gui.hud.toggle());
+        context.setScreen(SpiritDialogScreen::new);
+        context.runOnClient(client->require(!SpiritSpeechHud.displayAllowed(client),"journal and menus do not receive a duplicate HUD card"));
+        context.setScreen(()->null);
+        context.runOnClient(client->SpiritSpeechHud.clear());
+    }
+    private static boolean chatContains(net.minecraft.client.Minecraft client,String text) {
+        try {
+            var state=client.gui.hud.getChat().storeState();
+            var field=state.getClass().getDeclaredField("messages");field.setAccessible(true);
+            var messages=(java.util.List<?>)field.get(state);
+            return messages.stream().map(message->((net.minecraft.client.multiplayer.chat.GuiMessage)message).content().getString())
+                .anyMatch(content->content.contains(text));
+        } catch(ReflectiveOperationException error) {throw new AssertionError("Could not inspect native chat state",error);}
     }
 
     private static void verifyDialogue(ClientGameTestContext context,

@@ -185,5 +185,6 @@
   "journal.wicklen_chronicles.journey.relic.body": "Hold your earned lantern and use it for protection and speed. Its cooldown is 60 seconds.",
   "journal.wicklen_chronicles.journey.relic.why": "When ready, prepare an Empowered trial at a recorded courtyard.",
   "journal.wicklen_chronicles.journey.relic.action": "Try an empowered trial",
-  "journal.wicklen_chronicles.encounter.adaptive_hint": "Wave composition and strength account for your equipment. The plan is frozen before Start; after setbacks, a trial may become gentler."
+  "journal.wicklen_chronicles.encounter.adaptive_hint": "Wave composition and strength account for your equipment. The plan is frozen before Start; after setbacks, a trial may become gentler.",
+  "hud.wicklen_chronicles.history": "%s · open journal"
 }

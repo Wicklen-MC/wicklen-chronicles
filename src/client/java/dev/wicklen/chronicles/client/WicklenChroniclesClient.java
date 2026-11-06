@@ -11,6 +11,7 @@ import com.mojang.blaze3d.platform.InputConstants;
 import dev.wicklen.chronicles.WicklenChronicles;
 import dev.wicklen.chronicles.net.SpiritBubblePayload;
 import dev.wicklen.chronicles.net.SpiritDialogS2CPayload;
+import dev.wicklen.chronicles.net.SpiritSpeechS2CPayload;
 import dev.wicklen.chronicles.net.JournalPagePayload;
 import dev.wicklen.chronicles.net.StoryPagePayload;
 import dev.wicklen.chronicles.net.ResearchPagePayload;
@@ -40,6 +41,14 @@ public class WicklenChroniclesClient implements ClientModInitializer {
         ClientPlayNetworking.registerGlobalReceiver(SpiritDialogS2CPayload.TYPE, (payload, context) ->
             context.client().execute(() ->
                 DialogHistory.add(payload.title(), payload.color(), payload.text())));
+
+        ClientPlayNetworking.registerGlobalReceiver(SpiritSpeechS2CPayload.TYPE,(payload,context)-> {
+            var connection=context.client().getConnection();
+            context.client().execute(()-> {
+                if(connection==null || context.client().getConnection()!=connection || context.client().player==null)return;
+                SpiritSpeechHud.accept(payload.title(),payload.color(),payload.text(),payload.ttlMs());
+            });
+        });
 
         ClientPlayNetworking.registerGlobalReceiver(JournalPagePayload.TYPE, (payload, context) ->
             context.client().execute(() -> {
@@ -75,7 +84,9 @@ public class WicklenChroniclesClient implements ClientModInitializer {
             InputConstants.Type.KEYBOARD,
             InputConstants.KEY_G,
             category()));
+        SpiritSpeechHud.register(dialogKey);
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            SpiritSpeechHud.tick(client);
             JournalClientState.tick();
             StoryClientState.tick();
             ResearchClientState.tick();
@@ -89,6 +100,7 @@ public class WicklenChroniclesClient implements ClientModInitializer {
 
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
             BubbleStore.clear();
+            SpiritSpeechHud.clear();
             DialogHistory.clear();
             JournalClientState.clear();
             StoryClientState.clear();

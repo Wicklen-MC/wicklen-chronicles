@@ -9,7 +9,7 @@ import dev.wicklen.chronicles.ai.SpiritPersonas;
 import dev.wicklen.chronicles.net.SpiritBubblePayload;
 import dev.wicklen.chronicles.net.SpiritChatC2SPayload;
 import dev.wicklen.chronicles.net.SpiritDialogS2CPayload;
-import net.minecraft.network.chat.Component;
+import dev.wicklen.chronicles.net.SpiritSpeechS2CPayload;
 
 /** Сетевой слой духа: облачка (S2C), окно диалога (C2S/S2C). */
 public final class SpiritBubbles {
@@ -18,6 +18,7 @@ public final class SpiritBubbles {
     public static void register() {
         PayloadTypeRegistry.clientboundPlay().register(SpiritBubblePayload.TYPE, SpiritBubblePayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(SpiritDialogS2CPayload.TYPE, SpiritDialogS2CPayload.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(SpiritSpeechS2CPayload.TYPE, SpiritSpeechS2CPayload.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(SpiritChatC2SPayload.TYPE, SpiritChatC2SPayload.CODEC);
 
         // сообщение из окна диалога
@@ -48,17 +49,24 @@ public final class SpiritBubbles {
         }
     }
 
-    /** All spoken lines share the same chat, history and bubble delivery path. */
+    /** One history entry and one HUD card; spirit speech is never duplicated into chat. */
     public static void speak(ServerPlayer player, String text) {
         var persona = SpiritPersonas.of(player.getUUID());
-        player.sendSystemMessage(Component.literal("✦ " + persona.title() + ": ")
-            .withStyle(style -> style.withColor(persona.color())).append(Component.literal(text)));
         sendDialog(player, persona.title(), persona.color(), text);
         show(player, persona.color(), text);
     }
 
-    /** Повесить текст над духом игрока (если дух есть). */
+    /** Prefer the HUD even when the spirit is behind the player or temporarily untracked. */
     public static void show(ServerPlayer player, int color, String text) {
+        if (text == null || text.isBlank()) return;
+        if (ServerPlayNetworking.canSend(player, SpiritSpeechS2CPayload.TYPE)) {
+            String bounded = text.length() > 2000 ? text.substring(0, 1999) + "…" : text;
+            int ttl = Math.min(12_000, 6000 + bounded.length() * 50);
+            ServerPlayNetworking.send(player, new SpiritSpeechS2CPayload(
+                    SpiritPersonas.of(player.getUUID()).title(), color, bounded, ttl));
+            return;
+        }
+        // Compatibility for older clients that only understand entity bubbles.
         Integer id = SPIRIT_IDS.get(player.getUUID());
         if (id == null || text.isBlank() || !ServerPlayNetworking.canSend(player, SpiritBubblePayload.TYPE)) return;
         long ttl = Math.min(20_000, 6_000 + text.length() * 60L);

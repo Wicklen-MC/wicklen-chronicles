@@ -17,7 +17,7 @@ import java.util.concurrent.CompletableFuture;
  * LLM-слой духа: провайдер выбирается абстракцией LlmProviders
  * (SPIRIT_PROVIDER=deepseek|openai|ollama|custom; по умолчанию deepseek).
  * Правила безопасности: ключ только из env; cooldown и лимиты;
- * ИИ никогда не выполняет команды — только текст в чат.
+ * ИИ никогда не выполняет команды — только текст для HUD и дневника.
  *
  * Живость: память диалога (последние реплики), чувства (HP/биом/время/враги),
  * слухи сервера (последние события от SpiritRumors).
@@ -49,7 +49,7 @@ public final class SpiritAi {
         SpiritMemoryStore.append(id, user, spirit);
     }
 
-    /** Dialogue: {@code @spirit <message>}. The spirit replies in chat. */
+    /** Dialogue: {@code @spirit <message>}. The spirit replies on the HUD and in journal history. */
     public static void chat(MinecraftServer server, ServerPlayer player, String message) {
         call(server, player, message, true);
     }
@@ -67,7 +67,7 @@ public final class SpiritAi {
         callInternal(server, player, message, isChat, text -> reply(player, text));
     }
 
-    /** Диалог из окна: ответ уходит в окно (S2C) и облачком, не в чат. */
+    /** Journal conversation: full answer goes to history, with a private HUD notification. */
     public static void chatWindow(MinecraftServer server, ServerPlayer player, String message,
                                   java.util.function.Consumer<String> responder) {
         java.util.function.Consumer<String> deliver = text -> {

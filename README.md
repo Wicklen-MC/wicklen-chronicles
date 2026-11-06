@@ -10,6 +10,9 @@ Loader 0.20.1+, Fabric API 0.165.0+26.3 and Java 25**.
 
 - One animated spirit per player, with four personalities and colours. It follows
   you quietly through walls, with no movement sounds or block effects.
+- Spoken lines appear in a compact, themed **HUD card**, with a portrait and your
+  journal key. They stay out of chat; the full text remains in journal history.
+  Cards queue without interrupting each other and respect hidden HUD and menus.
 - **G** opens a guided field journal: your next step, tasks, records, map,
   collections, trials and the spirit, all directly accessible.
   `@spirit <message>` also starts a conversation.
@@ -42,7 +45,7 @@ is part of the journal. Combat balance still needs playtesting with the full pac
 ## Install and play
 
 Install Fabric Loader and Fabric API, then put
-`wicklen-chronicles-0.3.2.jar` in `mods/` on both server and client. Remove
+`wicklen-chronicles-0.3.3.jar` in `mods/` on both server and client. Remove
 older copies of this mod first. Use matching client/server versions; the
 0.2.1 networking namespace changed. The `-sources.jar` is for developers.
 
@@ -161,7 +164,7 @@ no personal cache path, local server configuration or external LLM key is needed
 
 ```sh
 ./gradlew build
-# build/libs/wicklen-chronicles-0.3.2.jar
+# build/libs/wicklen-chronicles-0.3.3.jar
 ./gradlew -p core check
 ./gradlew runServerSmoke
 ./gradlew runClientGameTest
