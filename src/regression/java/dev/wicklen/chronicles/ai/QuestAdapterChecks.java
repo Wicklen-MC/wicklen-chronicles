@@ -88,6 +88,27 @@ public final class QuestAdapterChecks {
         try { LegacyQuestMigration.read(legacySource, worldId, List.of("minecraft:emerald")); }
         catch (java.io.IOException expected) { futureRejected = true; }
         require(futureRejected, "unknown legacy schema fails closed");
+        var adoptionWorld = directory.resolve("story-adoption-world");
+        WorldStorageContext.open(adoptionWorld);
+        var adoptionDirectory = WorldStorageContext.directory();
+        try {
+            require(SpiritQuests.adoptIssued(owner, original), "persisted story task is adopted");
+            byte[] ledgerBytes = Files.readAllBytes(adoptionDirectory.resolve("quest-ledger.json"));
+            require(SpiritQuests.adoptIssued(owner, original), "story handoff replay recognizes the same active quest");
+            require(java.util.Arrays.equals(ledgerBytes, Files.readAllBytes(adoptionDirectory.resolve("quest-ledger.json"))),
+                "handoff replay never rewrites or rerolls the active task");
+            var other = QuestTransitions.issue(UUID.randomUUID(), owner, definition, 1235L);
+            require(!SpiritQuests.adoptIssued(owner, other), "story recovery cannot overwrite another active task");
+        } finally { WorldStorageContext.close(); }
+        var finishedLedger = new JsonStore<>("quest-ledger.json", type, adoptionDirectory);
+        finishedLedger.get(java.util.HashMap::new).put(owner.toString(), new SpiritQuests.PlayerQuests(null, List.of(delivered)));
+        finishedLedger.saveChecked();
+        WorldStorageContext.open(adoptionWorld);
+        try {
+            require(SpiritQuests.adoptIssued(owner, original), "recovered decision recognizes completed quest history");
+            require(SpiritQuests.active(owner) == null && SpiritQuests.history(owner).equals(List.of(delivered)),
+                "recovery after restart never reactivates a completed story task");
+        } finally { WorldStorageContext.close(); }
         System.out.println("Quest adapter persistence/read-model checks passed.");
     }
 

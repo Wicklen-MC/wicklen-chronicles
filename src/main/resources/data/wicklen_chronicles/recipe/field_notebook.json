@@ -1,0 +1,5 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": ["minecraft:book", "minecraft:paper", "minecraft:string"],
+  "result": {"id": "wicklen_chronicles:field_notebook", "count": 1}
+}

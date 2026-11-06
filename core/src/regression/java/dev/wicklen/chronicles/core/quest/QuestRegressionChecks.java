@@ -18,6 +18,10 @@ public final class QuestRegressionChecks {
         acceptedDefinitionsAndHistoryStayImmutable();
         invalidSnapshotsAreRejected();
         System.out.println("Quest core: 6 behavioral scenarios passed (no Minecraft or external services).");
+        dev.wicklen.chronicles.core.discovery.DiscoveryRegressionChecks.main(args);
+        dev.wicklen.chronicles.core.story.StoryRegressionChecks.main(args);
+        dev.wicklen.chronicles.core.encounter.EncounterRegressionChecks.main(args);
+        dev.wicklen.chronicles.core.research.ResearchRegressionChecks.main(args);
     }
 
     private static void collectionRequiresExplicitSubmission() {

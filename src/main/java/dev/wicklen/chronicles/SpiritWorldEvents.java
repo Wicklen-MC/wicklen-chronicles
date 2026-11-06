@@ -47,7 +47,7 @@ public final class SpiritWorldEvents {
                 dev.wicklen.chronicles.ai.SpiritRumors.add("Слух: " + deathMsg + ".");
 
                 MinecraftServer server = level.getServer();
-                if (!dev.wicklen.chronicles.ai.SpiritConfig.get().proactive || !SpiritAi.enabled()) return;
+                if (!canSpeak(player)) return;
                 SpiritAi.narrate(server, player,
                     "Твой игрок (%s) только что погиб: %s. Скажи ему одну краткую фразу соболезнования с лёгкой надеждой."
                         .formatted(player.getScoreboardName(), deathMsg));
@@ -81,15 +81,13 @@ public final class SpiritWorldEvents {
                     markEvent();
                     long day = level.getOverworldClockTime() / 24000L;
                     String prompt;
-                    if (night && day % 5 == 4) {
-                        prompt = "Наступила ночь, и ты чувствуешь тяжёлый воздух: возможно, сегодня ночь орды. Одной короткой мрачной фразой предупреди игрока.";
-                    } else if (night) {
+                    if (night) {
                         prompt = "Наступила ночь. Скажи одну тревожную короткую фразу: ночью опасно.";
                     } else {
                         prompt = "Наступило утро. Скажи одну короткую бодрую фразу о новом дне.";
                     }
                     for (ServerPlayer p : level.players()) {
-                        SpiritAi.narrate(server, p, prompt);
+                        if (canSpeak(p)) SpiritAi.narrate(server, p, prompt);
                     }
                     // рассвет — летописец пишет главу дня
                     if (!night) {
@@ -104,7 +102,7 @@ public final class SpiritWorldEvents {
                 lastPhase = "full";
                 markEvent();
                 for (ServerPlayer p : level.players()) {
-                    SpiritAi.narrate(server, p,
+                    if (canSpeak(p)) SpiritAi.narrate(server, p,
                         "Сегодня полнолуние. Скажи одну короткую загадочную фразу про луну и духов.");
                 }
             } else if (moonPhase(level) != 0) {
@@ -136,6 +134,12 @@ public final class SpiritWorldEvents {
 
     private static boolean cooldownPassed() {
         return System.currentTimeMillis() - lastEventAt > EVENT_COOLDOWN_MS;
+    }
+
+    private static boolean canSpeak(ServerPlayer player) {
+        return dev.wicklen.chronicles.ai.SpiritConfig.get().proactive
+            && !dev.wicklen.chronicles.ai.SpiritPrefs.isHidden(player.getUUID())
+            && SpiritAi.canNarrate(player);
     }
 
     private static void markEvent() {

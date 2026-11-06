@@ -47,6 +47,7 @@ public final class OllamaProvider implements LlmProvider {
         body.add("messages", messages);
         body.addProperty("stream", false);
         body.add("options", options);
+        if (request.jsonObject()) body.addProperty("format", "json");
 
         HttpRequest req = HttpRequest.newBuilder()
             .uri(URI.create(baseUrl + "/api/chat"))

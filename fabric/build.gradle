@@ -3,6 +3,13 @@ plugins {
 	id 'maven-publish'
 }
 
+def verifyStationsSmoke = providers.gradleProperty('verifyStationsSmokes').map { it.toBoolean() }.getOrElse(false)
+def verifyCombatSmoke = providers.gradleProperty('verifyCombatSmokes').map { it.toBoolean() }.getOrElse(false)
+def smokeFolder = verifyCombatSmoke ? 'combat-smoke' : (verifyStationsSmoke ? 'station-smoke' : 'server-smoke')
+def smokeRunPath = 'build/' + smokeFolder
+def verifyCombatClient = providers.gradleProperty('verifyCombatClient').map { it.toBoolean() }.getOrElse(false)
+def clientRunPath = verifyCombatClient ? 'build/client-combat-gametest' : 'build/client-gametest'
+
 repositories {
 	// Add repositories to retrieve artifacts from in here.
 	// You should only use this when depending on other mods because
@@ -91,6 +98,42 @@ tasks.register('regressionTest', JavaExec) {
 }
 tasks.named('check') { dependsOn tasks.named('regressionTest') }
 
+tasks.register('explorationTest', JavaExec) {
+	group = 'verification'
+	description = 'Checks focus continuity, discovery persistence and optional Field Guide compatibility.'
+	classpath = sourceSets.regression.runtimeClasspath
+	mainClass = 'dev.wicklen.chronicles.exploration.ExplorationChecks'
+}
+tasks.named('check') { dependsOn tasks.named('explorationTest') }
+
+tasks.register('storyPlansTest', JavaExec) {
+	group = 'verification'
+	description = 'Checks the structured model output boundary against server-authored goals.'
+	classpath = sourceSets.regression.runtimeClasspath
+	mainClass = 'dev.wicklen.chronicles.story.StoryPlansChecks'
+}
+tasks.named('check') { dependsOn tasks.named('storyPlansTest') }
+
+tasks.register('stationTest', JavaExec) {
+	group = 'verification'
+	description = 'Checks station variants, rotations, stable manifests and attachment codec.'
+	classpath = sourceSets.regression.runtimeClasspath
+	mainClass = 'dev.wicklen.chronicles.station.StationChecks'
+}
+tasks.named('check') { dependsOn tasks.named('stationTest') }
+
+tasks.register('liveStoryProviderTest', JavaExec) {
+	group = 'verification'
+	description = 'Opt-in external story check using an explicitly supplied private config (never part of check).'
+	classpath = sourceSets.regression.runtimeClasspath
+	mainClass = 'dev.wicklen.chronicles.story.LiveStoryProviderCheck'
+	def configPath = providers.gradleProperty('liveSpiritConfig')
+	if (configPath.isPresent()) args configPath.get()
+	def directory = project.layout.buildDirectory.dir('verification/liveStoryProviderTest')
+	workingDir directory
+	doFirst { directory.get().asFile.mkdirs() }
+}
+
 loom {
 	mods {
 		'wicklen_chronicles-test' { sourceSet sourceSets.clientGameTest }
@@ -101,25 +144,31 @@ loom {
 		clientGameTest {
 			client()
 			source sourceSets.clientGameTest
-			runDir rootProject.file('build/client-gametest').absolutePath
+			runDir rootProject.file(clientRunPath).absolutePath
+			if (verifyCombatClient) vmArg '-Dwicklen.chronicles.client.verifyCombat=true'
 			vmArg '-Dfabric.client.gametest'
 			vmArg '-Dfabric.client.gametest.testModResourcesPath=' + rootProject.file('src/clientGameTest/resources').absolutePath
 		}
 		serverSmoke {
 			server()
 			source sourceSets.serverSmoke
-			runDir rootProject.file('build/server-smoke').absolutePath
+			runDir rootProject.file(smokeRunPath).absolutePath
 			vmArg '-Dwicklen_chronicles.serverSmoke=true'
-			vmArg '-Dwicklen_chronicles.serverSmoke.directory=' + rootProject.file('build/server-smoke').absolutePath
+			vmArg '-Dwicklen_chronicles.serverSmoke.directory=' + rootProject.file(smokeRunPath).absolutePath
 			if (providers.gradleProperty('verifyBalanceSmokes').map { it.toBoolean() }.getOrElse(false)) {
 				vmArg '-Dwicklen.chronicles.smoke.verifyBalance=true'
+			}
+			if (verifyStationsSmoke) vmArg '-Dwicklen.chronicles.smoke.verifyStations=true'
+			if (verifyCombatSmoke) vmArg '-Dwicklen.chronicles.smoke.verifyCombat=true'
+			if (providers.gradleProperty('verifyHostileMigrationSmokes').map { it.toBoolean() }.getOrElse(false)) {
+				vmArg '-Dwicklen.chronicles.smoke.verifyHostileMigration=true'
 			}
 			programArg 'nogui'
 		}
 	}
 }
 
-def smokeDirectory = rootProject.layout.buildDirectory.dir('server-smoke')
+def smokeDirectory = rootProject.layout.buildDirectory.dir(smokeFolder)
 def acceptedEula = rootProject.layout.projectDirectory.file('run/eula.txt')
 tasks.named('runServerSmoke') {
 	group = 'verification'
@@ -145,6 +194,20 @@ simulation-distance=2
 level-name=smoke-world
 max-tick-time=60000
 '''
+		if (verifyStationsSmoke) {
+			def properties = new File(directory, 'server.properties')
+			properties.text = properties.text.replace('level-name=smoke-world', 'level-name=station-smoke-world') + '''level-type=minecraft:flat
+level-seed=732719
+generator-settings={"biome":"minecraft:plains","features":true,"lakes":false,"layers":[{"block":"minecraft:bedrock","height":1},{"block":"minecraft:dirt","height":2},{"block":"minecraft:grass_block","height":1}],"structure_overrides":[]}
+'''
+			def fixture = new File(directory, 'station-smoke-world/datapacks/station-fixture')
+			fixture.mkdirs()
+			new File(fixture, 'pack.mcmeta').text = '''{"pack":{"description":"Isolated station generation fixture","min_format":[101,1],"max_format":999}}'''
+			def feature = new File(fixture, 'data/wicklen_chronicles/worldgen/placed_feature/waystation.json')
+			feature.parentFile.mkdirs()
+			feature.text = '''{"feature":"wicklen_chronicles:waystation","placement":[{"type":"minecraft:rarity_filter","chance":1},{"type":"minecraft:biome"}]}'''
+		}
+
 	}
 	doLast {
 		def marker = new File(smokeDirectory.get().asFile, 'smoke-result.txt')

@@ -11,6 +11,10 @@ import com.mojang.blaze3d.platform.InputConstants;
 import dev.wicklen.chronicles.WicklenChronicles;
 import dev.wicklen.chronicles.net.SpiritBubblePayload;
 import dev.wicklen.chronicles.net.SpiritDialogS2CPayload;
+import dev.wicklen.chronicles.net.JournalPagePayload;
+import dev.wicklen.chronicles.net.StoryPagePayload;
+import dev.wicklen.chronicles.net.ResearchPagePayload;
+import dev.wicklen.chronicles.net.EncounterPagePayload;
 
 public class WicklenChroniclesClient implements ClientModInitializer {
     private static KeyMapping.Category CATEGORY;
@@ -36,6 +40,34 @@ public class WicklenChroniclesClient implements ClientModInitializer {
             context.client().execute(() ->
                 DialogHistory.add(payload.title(), payload.color(), payload.text())));
 
+        ClientPlayNetworking.registerGlobalReceiver(JournalPagePayload.TYPE, (payload, context) ->
+            context.client().execute(() -> {
+                if (payload.view() == null || (context.client().player != null
+                        && payload.view().ownerId().equals(context.client().player.getUUID())))
+                    JournalClientState.accept(payload);
+            }));
+
+        ClientPlayNetworking.registerGlobalReceiver(StoryPagePayload.TYPE, (payload, context) ->
+            context.client().execute(() -> {
+                if (payload.story() == null || (context.client().player != null
+                        && payload.story().ownerId().equals(context.client().player.getUUID())))
+                    StoryClientState.accept(payload);
+            }));
+
+        ClientPlayNetworking.registerGlobalReceiver(ResearchPagePayload.TYPE, (payload, context) ->
+            context.client().execute(() -> {
+                if (payload.data() == null || (context.client().player != null
+                        && payload.data().ownerId().equals(context.client().player.getUUID())))
+                    ResearchClientState.accept(payload);
+            }));
+
+        ClientPlayNetworking.registerGlobalReceiver(EncounterPagePayload.TYPE, (payload, context) ->
+            context.client().execute(() -> {
+                if (payload.data() == null || (context.client().player != null
+                        && payload.data().ownerId().equals(context.client().player.getUUID())))
+                    EncounterClientState.accept(payload);
+            }));
+
         // клавиша G — окно диалога с духом
         KeyMapping dialogKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
             "key.wicklen_chronicles.dialog",
@@ -43,6 +75,10 @@ public class WicklenChroniclesClient implements ClientModInitializer {
             InputConstants.KEY_G,
             category()));
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            JournalClientState.tick();
+            StoryClientState.tick();
+            ResearchClientState.tick();
+            EncounterClientState.tick();
             while (dialogKey.consumeClick()) {
                 if (client.gui.screen() == null && client.player != null) {
                     client.setScreenAndShow(new SpiritDialogScreen());
@@ -53,6 +89,10 @@ public class WicklenChroniclesClient implements ClientModInitializer {
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
             BubbleStore.clear();
             DialogHistory.clear();
+            JournalClientState.clear();
+            StoryClientState.clear();
+            ResearchClientState.clear();
+            EncounterClientState.clear();
         });
     }
 }

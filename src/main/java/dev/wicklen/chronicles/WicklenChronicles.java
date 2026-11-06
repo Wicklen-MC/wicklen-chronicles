@@ -32,6 +32,8 @@ public class WicklenChronicles implements ModInitializer {
 
     @Override
     public void onInitialize() {
+        dev.wicklen.chronicles.item.ChroniclesItems.register();
+        dev.wicklen.chronicles.station.StationService.register();
         FabricDefaultAttributeRegistry.register(SPIRIT, SpiritEntity.createAttributes());
         dev.wicklen.chronicles.compat.LegacyCompatibility.registerLegacySpirit();
         SpiritCommand.register();
@@ -40,6 +42,10 @@ public class WicklenChronicles implements ModInitializer {
         SpiritProactive.register();
         SpiritManager.register();
         SpiritBubbles.register();
+        dev.wicklen.chronicles.exploration.ExplorationService.register();
+        dev.wicklen.chronicles.net.JournalNetwork.register();
+        dev.wicklen.chronicles.story.StoryService.register();
+        dev.wicklen.chronicles.encounter.EncounterService.register();
         net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents.SERVER_STARTING.register(server -> {
             try {
                 dev.wicklen.chronicles.ai.WorldStorageContext.open(
@@ -53,6 +59,7 @@ public class WicklenChronicles implements ModInitializer {
         net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents.SERVER_STOPPING.register(
             server -> {
                 dev.wicklen.chronicles.ai.WorldStorageContext.beginStopping();
+                dev.wicklen.chronicles.ai.AiRequests.reset();
                 dev.wicklen.chronicles.ai.SpiritMemoryStore.flush();
                 try {
                     dev.wicklen.chronicles.ai.WorldStorageContext.flush();
@@ -70,6 +77,7 @@ public class WicklenChronicles implements ModInitializer {
             dev.wicklen.chronicles.ai.llm.LlmProviders.reset();
             SpiritProactive.reset();
             SpiritWorldEvents.reset();
+            dev.wicklen.chronicles.story.StoryService.reset();
         });
         var active = dev.wicklen.chronicles.ai.llm.LlmProviders.active();
         LOGGER.info("[Wicklen: Chronicles] initialized, LLM provider: {}",

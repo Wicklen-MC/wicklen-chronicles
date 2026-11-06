@@ -137,6 +137,23 @@ public final class SpiritQuests {
         return q == null ? null : new Quest(q);
     }
 
+    public static List<QuestInstance> history(UUID playerId) {
+        return state(playerId).history();
+    }
+
+    /** Idempotent recovery of an already persisted story decision. Never reopens a completed quest. */
+    public static boolean adoptIssued(UUID playerId, QuestInstance quest) {
+        if (!quest.ownerId().equals(playerId) || quest.status() != QuestStatus.ACTIVE || quest.progress() != 0)
+            throw new IllegalArgumentException("Expected a new quest owned by the actor");
+        if (!REWARDS.contains(quest.definition().reward().itemId()) || quest.definition().reward().count() > 64)
+            throw new IllegalArgumentException("Reward is outside the adapter policy");
+        var old = state(playerId);
+        if (old.history().stream().anyMatch(q -> q.id().equals(quest.id()))) return true;
+        if (old.active() != null) return old.active().id().equals(quest.id())
+            && old.active().definition().equals(quest.definition());
+        return persist(playerId, old, new PlayerQuests(quest, old.history()));
+    }
+
     public static Quest issue(UUID playerId) {
         var t = TEMPLATES.get(RND.nextInt(TEMPLATES.size()));
         int need = t.minNeed() + RND.nextInt(t.maxNeed() - t.minNeed() + 1);

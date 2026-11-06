@@ -1,0 +1,7 @@
+{
+  "feature": "wicklen_chronicles:waystation",
+  "placement": [
+    { "type": "minecraft:rarity_filter", "chance": 64 },
+    { "type": "minecraft:biome" }
+  ]
+}

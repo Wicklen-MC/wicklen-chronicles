@@ -17,6 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public final class RegressionChecks {
     public static void main(String[] args) throws Exception {
         limits();
+        serverQueue();
         persistence();
         config();
         protocols();
@@ -69,6 +70,42 @@ public final class RegressionChecks {
         Files.delete(directory);
     }
 
+    private static void serverQueue() throws Exception {
+        var clock = new java.util.concurrent.atomic.AtomicLong();
+        var queue = new LlmQueue(1, 1, 3, 20, clock::get);
+        var first = new CompletableFuture<String>();
+        var started = new CountDownLatch(1);
+        var result = queue.submit(5, () -> { started.countDown(); return first; });
+        require(started.await(5, TimeUnit.SECONDS), "first server request starts");
+        var secondStarted = new java.util.concurrent.atomic.AtomicBoolean();
+        var second = queue.submit(5, () -> { secondStarted.set(true); return CompletableFuture.completedFuture("second"); });
+        require(!secondStarted.get(), "queued request waits for a free slot");
+        require(queue.submit(5, () -> CompletableFuture.completedFuture("overflow")).isCompletedExceptionally(),
+            "queue capacity is bounded");
+        first.complete("first");
+        require(result.get(5, TimeUnit.SECONDS).equals("first") && second.get(5, TimeUnit.SECONDS).equals("second"),
+            "completion dispatches the waiting request");
+        require(queue.submit(11, () -> CompletableFuture.completedFuture("over budget")).isCompletedExceptionally(),
+            "maximum output tokens are reserved before dispatch");
+        var failed = queue.submit(5, () -> CompletableFuture.failedFuture(new java.io.IOException("offline")));
+        try { failed.get(5, TimeUnit.SECONDS); throw new AssertionError("failure must propagate"); }
+        catch (ExecutionException expected) { /* transport failure still consumes an admitted request */ }
+        require(queue.submit(1, () -> CompletableFuture.completedFuture("hourly overflow")).isCompletedExceptionally(),
+            "failed requests also consume the shared hourly request budget");
+        clock.set(3_600_000);
+        require(queue.submit(5, () -> CompletableFuture.completedFuture("new hour")).get(5, TimeUnit.SECONDS).equals("new hour"),
+            "server budget renews on the next hourly window");
+        var pending = new CompletableFuture<String>();
+        var pendingStarted = new CountDownLatch(1);
+        var stale = queue.submit(5, () -> { pendingStarted.countDown(); return pending; });
+        require(pendingStarted.await(5, TimeUnit.SECONDS), "pending request starts before close");
+        queue.close();
+        require(stale.isCompletedExceptionally(), "world close rejects its in-flight result");
+        pending.complete("late response");
+        require(queue.submit(1, () -> CompletableFuture.completedFuture("after close")).isCompletedExceptionally(),
+            "closed world cannot submit a new request");
+    }
+
     private static void config() {
         var cfg = new Gson().fromJson("""
             {"deepseek":null,"openai":{"baseUrl":null,"model":null},"ollama":null,"custom":null,
@@ -110,6 +147,14 @@ public final class RegressionChecks {
             require(new OllamaProvider(url + "/", "local").complete(request).get(5, TimeUnit.SECONDS).equals("Я рядом."), "Ollama response");
             var local = requests.get("/api/chat");
             require(!local.get("stream").getAsBoolean() && local.getAsJsonObject("options").get("num_predict").getAsInt() == 222, "native Ollama protocol");
+            var structured = new LlmRequest("Return JSON", List.of(LlmMessage.user("{}")), 1024, 0.7, true);
+            new OpenAiCompatibleProvider("deepseek", url, "mock-model", "test-key").complete(structured).get(5, TimeUnit.SECONDS);
+            var structuredBody = requests.get("/chat/completions");
+            require(structuredBody.getAsJsonObject("response_format").get("type").getAsString().equals("json_object")
+                    && structuredBody.getAsJsonObject("thinking").get("type").getAsString().equals("disabled"),
+                "DeepSeek stories explicitly request non-thinking JSON output");
+            new OllamaProvider(url, "local").complete(structured).get(5, TimeUnit.SECONDS);
+            require(requests.get("/api/chat").get("format").getAsString().equals("json"), "Ollama stories request native JSON mode");
             try {
                 new OpenAiCompatibleProvider("mock", url + "/fail", "mock", null).complete(request).get(5, TimeUnit.SECONDS);
                 throw new AssertionError("HTTP errors must fail");

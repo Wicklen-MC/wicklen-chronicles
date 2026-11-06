@@ -133,6 +133,21 @@ public class SpiritEntity extends PathfinderMob {
     // --- дух неуязвим и не взаимодействует ---
 
     @Override
+    public boolean isSilent() {
+        return true;
+    }
+
+    @Override
+    protected MovementEmission getMovementEmission() {
+        return MovementEmission.NONE;
+    }
+
+    @Override
+    protected boolean isAffectedByBlocks() {
+        return false;
+    }
+
+    @Override
     public boolean isInvulnerableTo(ServerLevel level, DamageSource source) {
         return true;
     }

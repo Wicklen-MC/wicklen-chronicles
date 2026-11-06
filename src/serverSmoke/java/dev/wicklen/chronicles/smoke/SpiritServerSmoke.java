@@ -81,6 +81,7 @@ public final class SpiritServerSmoke implements ModInitializer {
                             && encoded.contains(quest.rewardId().toString()),
                     "persisted ledger must contain stable owner, quest and reward identities");
             verifyLegacyEntity(server);
+            dev.wicklen.chronicles.exploration.ExplorationNativeChecks.prepare(server);
             if (Boolean.getBoolean("wicklen.chronicles.smoke.verifyBalance")) {
                 server.overworld().getChunk(0, 0);
                 var returned = new java.util.concurrent.atomic.AtomicInteger(Integer.MIN_VALUE);
@@ -122,9 +123,54 @@ public final class SpiritServerSmoke implements ModInitializer {
     }
 
     private void finishAfterTicks(MinecraftServer server) {
-        if (!armed || finished || ++ticks < 2) return;
+        if (!armed || finished || ++ticks < 10) return;
         finished = true;
         try {
+            if (failure == null) {
+                try { dev.wicklen.chronicles.exploration.ExplorationNativeChecks.verify(server); }
+                catch (Throwable error) {
+                    failure = error;
+                    LOGGER.error("[Wicklen: Chronicles server smoke] FAIL during warmed observation checks", error);
+                }
+            }
+            if (failure == null) {
+                try { dev.wicklen.chronicles.encounter.EncounterNativeChecks.verify(server); }
+                catch (Throwable error) {
+                    failure = error;
+                    LOGGER.error("[Wicklen: Chronicles server smoke] FAIL during encounter lifecycle checks", error);
+                }
+            }
+            if (failure == null) {
+                try { dev.wicklen.chronicles.story.StoryHandoffNativeChecks.verify(server); }
+                catch (Throwable error) {
+                    failure = error;
+                    LOGGER.error("[Wicklen: Chronicles server smoke] FAIL during story handoff recovery checks", error);
+                }
+            }
+            if (failure == null && Boolean.getBoolean("wicklen.chronicles.smoke.verifyStations")) {
+                try { dev.wicklen.chronicles.station.StationNativeChecks.verify(server); }
+                catch (Throwable error) {
+                    failure = error;
+                    LOGGER.error("[Wicklen: Chronicles server smoke] FAIL during station generation checks", error);
+                }
+            }
+            if (failure == null && Boolean.getBoolean("wicklen.chronicles.smoke.verifyCombat")) {
+                try {
+                    CombatProfileChecks.verify();
+                    dev.wicklen.chronicles.encounter.EncounterNativeChecks.verifyOptionalGateway(server);
+                }
+                catch (Throwable error) {
+                    failure = error;
+                    LOGGER.error("[Wicklen: Chronicles server smoke] FAIL during optional combat profile checks", error);
+                }
+            }
+            if (failure == null && Boolean.getBoolean("wicklen.chronicles.smoke.verifyHostileMigration")) {
+                try { HostileMigrationChecks.verify(server); }
+                catch (Throwable error) {
+                    failure = error;
+                    LOGGER.error("[Wicklen: Chronicles server smoke] FAIL during optional migration fixture", error);
+                }
+            }
             String result = failure == null ? "PASS" : "FAIL " + failure;
             Files.writeString(runDirectory.resolve("smoke-result.txt"), result + System.lineSeparator());
             if (failure == null) LOGGER.info("[Wicklen: Chronicles server smoke] PASS: dedicated server, core quest and world-scoped persistence");

@@ -13,6 +13,6 @@ tasks.named('clean') { dependsOn ':core:clean', ':fabric:clean' }
 
 // Keep the existing developer entry points while the mod becomes a subproject.
 ['runClient', 'runServer', 'runClientGameTest', 'runServerSmoke', 'regressionTest',
- 'worldStorageTest', 'questAdapterTest'].each { entryPoint ->
+ 'worldStorageTest', 'questAdapterTest', 'explorationTest', 'storyPlansTest', 'stationTest', 'liveStoryProviderTest'].each { entryPoint ->
     tasks.register(entryPoint) { dependsOn ":fabric:${entryPoint}" }
 }

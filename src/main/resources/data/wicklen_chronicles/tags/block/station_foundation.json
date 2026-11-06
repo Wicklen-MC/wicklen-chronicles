@@ -1,0 +1,11 @@
+{
+  "replace": false,
+  "values": [
+    { "id": "#minecraft:dirt", "required": false },
+    { "id": "#minecraft:base_stone_overworld", "required": false },
+    { "id": "#minecraft:sand", "required": false },
+    "minecraft:grass_block", "minecraft:dirt", "minecraft:coarse_dirt", "minecraft:podzol",
+    "minecraft:mycelium", "minecraft:rooted_dirt", "minecraft:stone", "minecraft:gravel",
+    "minecraft:terracotta", "minecraft:snow_block"
+  ]
+}

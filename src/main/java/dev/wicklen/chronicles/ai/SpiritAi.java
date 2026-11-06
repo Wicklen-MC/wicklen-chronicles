@@ -191,7 +191,7 @@ public final class SpiritAi {
         var cfg = SpiritConfig.get();
         CompletableFuture<String> future;
         try {
-            future = provider.complete(new LlmRequest(system, messages, maxTokens, cfg.temperature));
+            future = AiRequests.complete(provider, new LlmRequest(system, messages, maxTokens, cfg.temperature));
         } catch (RuntimeException error) {
             future = CompletableFuture.failedFuture(error);
         }

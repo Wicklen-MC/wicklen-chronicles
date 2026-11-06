@@ -8,21 +8,37 @@ Loader 0.20.1+, Fabric API 0.165.0+26.3 and Java 25**.
 
 ## What works today
 
-- One animated companion per player, with different personalities and colours.
-- **G** opens the conversation screen; `@spirit <message>` also starts a conversation.
-- Optional LLM dialogue through an OpenAI-compatible endpoint or local Ollama.
-  Greetings, companion controls and quest rules work without an LLM.
-- Collection, biome-visit and combat quests. Submission and reward collection
-  are explicit; a full inventory keeps the reward pending.
-- World-scoped progress, stable quest/reward IDs, completed history and a chronicle.
+- One animated spirit per player, with four personalities and colours. It follows
+  you quietly through walls, with no movement sounds or block effects.
+- **G** opens a field journal with **Conversation**, **Atlas** and **Tasks**.
+  `@spirit <message>` also starts a conversation.
+- Observe creatures and visible places with the **vanilla spyglass**. The server
+  checks continuous focus, line of sight, range and actual item use. A compatible
+  Field Guide installation can confirm the same observation without a second scan.
+- Personal discoveries, a map of recorded places and small research collections.
+  Unknown locations are never sent to the client as map markers.
+- Collection, biome-visit and combat tasks with explicit submission and reward
+  collection. Full inventories retain pending rewards.
+- Story proposals with two choices, visible objectives/rewards and persistent
+  consequences. An optional LLM selects from server-authored actions; unavailable
+  or invalid responses use an authored fallback.
+- Three waystation variants generate during decoration of **new Overworld chunks**.
+  Existing chunks and player changes are not rebuilt on reload.
+- Optional **Gateway of Doom** courtyard encounters, normal/empowered modes,
+  explicit party consent, frozen participants and personal reward claims.
+- A reusable **Wayfarer's Lantern** grants brief absorption and speed, with a shared
+  60-second cooldown across copies.
+- A **Field Notebook** turns a cartography table into a personal field desk:
+  every three new discoveries fund a kit for the next expedition.
 
-The exploration journal, observation of places, procedural stations and
-structured AI-generated story plans are **planned**, not implemented features.
+New families of places, longer story chains, richer observation conditions,
+additional artefacts and a Xaero map overlay remain future work. The current map
+is part of the journal. Combat balance still needs playtesting with the full pack.
 
 ## Install and play
 
 Install Fabric Loader and Fabric API, then put
-`wicklen-chronicles-0.2.1.jar` in `mods/` on both server and client. Remove
+`wicklen-chronicles-0.3.0.jar` in `mods/` on both server and client. Remove
 older copies of this mod first. Use matching client/server versions; the
 0.2.1 networking namespace changed. The `-sources.jar` is for developers.
 
@@ -42,6 +58,27 @@ Personality IDs: `firefly`, `fox`, `owl`, `cat`.
 Command names and the `@spirit` chat trigger use English in every game language.
 The message itself can be written in your preferred language.
 
+For research, hold the spyglass on a visible target for about two seconds.
+Atlas contains records, a map of known places and collection rewards. Tasks
+contains ordinary tasks and story choices; the conversation remains available.
+
+Craft a Field Notebook from a book, paper and string. Use it on a cartography
+table to bind your desk, then return after three new discoveries and use it
+again to receive **8 torches, 4 bread and 4 paper**. A full inventory preserves
+eligibility. Sneak-use another table to relocate the desk without resetting progress.
+
+Courtyard battles require Gateway of Doom **2.3.6 / Minecraft 26.3** on client and
+server. The first profiles contain two waves and no boss; the mod owns the reward
+ledger. Ordinary exploration and quests work without this optional executor.
+Only personally recorded courtyards can be selected. Prepare/join explicitly,
+then start with the chosen difficulty; death, leaving the arena or disconnecting
+aborts the encounter. Pending earned rewards survive a restart.
+
+Developer commands for parties: `/spirit encounter`, `/spirit encounter prepare
+normal`, `/spirit encounter prepare empowered`, `/spirit encounter join <id>`,
+`/spirit encounter start <id>`, `/spirit encounter leave <id>` and
+`/spirit encounter claim <rewardId>`.
+
 Quest readiness never takes items automatically. Collection quests recheck
 what is actually in the inventory when submitted. Rewards are fixed when
 issued and survive a normal world restart. Inventory and mod data are
@@ -52,7 +89,10 @@ separate save resources, not a shared transaction during abrupt power loss.
 `config/wicklen-chronicles.json` is created on first launch. It controls the
 provider, request limits, token budget, temperature and proactive messages.
 Set `proactive: false` to disable automatic LLM remarks while retaining
-manual conversations and deterministic quests.
+manual conversations and deterministic quests. Server-wide `aiParallelRequests`,
+`aiQueueCapacity`, `aiRequestsPerHour` and `aiOutputTokensPerHour` bound shared
+HTTP concurrency, waiting requests, request count and reserved maximum output tokens.
+Queued requests expire, and late responses from closed worlds are rejected.
 
 Use environment variables for credentials; do not commit keys or personal
 configuration. `SPIRIT_PROVIDER` selects `deepseek`, `openai`, `ollama` or
@@ -88,10 +128,11 @@ no personal cache path, local server configuration or external LLM key is needed
 
 ```sh
 ./gradlew build
-# build/libs/wicklen-chronicles-0.2.1.jar
+# build/libs/wicklen-chronicles-0.3.0.jar
 ./gradlew -p core check
 ./gradlew runServerSmoke
 ./gradlew runClientGameTest
+./gradlew runServerSmoke -PverifyStationsSmokes=true
 ```
 
 `build` runs core rules, storage/migration, quest-adapter and localhost mock
@@ -103,9 +144,25 @@ for you. `runClientGameTest` requires a graphical session and verifies the
 conversation UI, networking, quest hand-in/rewards and world reopen.
 Test worlds, logs and screenshots stay under `build/`.
 
+The station flag uses an isolated flat fixture with increased station frequency,
+checks all variants and leaves a marker to verify persistence on a second run.
+It does not change the normal world generator. Optional combat checks additionally
+require verified Gateway/SIH JARs and the managed profile in `build/combat-smoke/`;
+run with both `-PverifyStationsSmokes=true -PverifyCombatSmokes=true`.
+External LLM credentials are unnecessary for the localhost mock-provider tests.
+
+External-provider verification is opt-in and reads an existing private config:
+
+```sh
+./gradlew liveStoryProviderTest -PliveSpiritConfig=/absolute/private/config.json
+```
+
+It makes a real request, never prints credentials and does not change the config.
+It is deliberately excluded from `build` / `check`.
+
 ## Architecture
 
-`core` contains immutable quest definitions/state and deterministic rules,
+`core` contains immutable discovery, quest, story, research and encounter state and rules,
 with no Minecraft, Fabric, JSON or HTTP dependencies. `fabric` translates
 verified game events into core inputs and owns inventory, registries,
 world storage, network messages, LLM calls and client presentation. One

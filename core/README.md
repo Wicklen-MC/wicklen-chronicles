@@ -1,6 +1,6 @@
 # Wicklen: Chronicles — core
 
-Pure Java quest rules and immutable state. This module has no Minecraft,
+Pure Java gameplay rules and immutable state. This module has no Minecraft,
 Fabric, rendering, serialization or HTTP dependencies. Platform adapters
 translate verified game observations into these values and apply native effects.
 
@@ -18,6 +18,27 @@ The regression scenarios do not launch the game or call external services.
 
 The parent build also includes the core through `:core:check` and bundles its
 classes into the mod JAR. The dependency points from Fabric to core only.
+
+- `quest`: accepted definitions, bounded progress, explicit hand-in and reward acknowledgement.
+- `discovery`: player/world-owned observations with strict creature/place/biome
+  keys, immutable first-known facts and deterministic optional reward entitlements.
+  Repeated observations do not replace facts, increase revisions or reset rewards.
+- `journal`: personal bounded pages of discoveries, current quest and completed
+  history. The view factory rejects foreign data before pagination; it does not
+  receive a global catalogue of hidden places.
+- `story`: typed two-choice plans tied to known discoveries, server capability
+  allowlists, asynchronous-context revision checks, stable selected consequences
+  and deterministic quest instances for native adoption/recovery.
+- `encounter`: prepared frozen parties and modes, explicit start, final executor
+  outcomes and one stable success entitlement per participant. Late joins do not
+  change the captured roster or reward ownership.
+- `research`: small authored creature/place series, counts from personal
+  discoveries and stable one-time entitlements with accepted reward snapshots.
+
+The platform must confirm observations, scope every loaded snapshot to the active
+world and player, persist returned state, and apply native effects. It must read
+the latest stored encounter on each executor callback, not a captured old snapshot.
+Calling a transition against an old snapshot cannot replace durable idempotence.
 
 `turnIn` proposes submitted state; it does not consume items. `claim` acknowledges
 successful delivery; it does not grant items. Persisted quest state and Minecraft

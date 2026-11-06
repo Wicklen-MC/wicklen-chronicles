@@ -27,11 +27,17 @@ public final class SpiritProactive {
 
     private static final Map<UUID, PlayerWatch> WATCH = new ConcurrentHashMap<>();
     private static final Map<String, Long> LAST_FIRED = new ConcurrentHashMap<>();
+    private record AdvancementCount(int total, int checkedAtTick) {}
+    private static final int ADVANCEMENT_CHECK_TICKS = 1200; // at most once per minute
+    private static final Map<UUID, AdvancementCount> ADV_COUNTS = new ConcurrentHashMap<>();
     private static final Map<UUID, Integer> LAST_ADV = new ConcurrentHashMap<>();
     private static final java.util.Random RND = new java.util.Random();
 
     /** Сколько достижений (без рецептов) выполнил игрок. */
     private static int countAdvancements(MinecraftServer server, ServerPlayer player) {
+        var cached = ADV_COUNTS.get(player.getUUID());
+        int tick = server.getTickCount();
+        if (cached != null && tick - cached.checkedAtTick() < ADVANCEMENT_CHECK_TICKS) return cached.total();
         int done = 0;
         try {
             var pa = player.getAdvancements();
@@ -42,46 +48,22 @@ public final class SpiritProactive {
         } catch (Exception e) {
             return LAST_ADV.getOrDefault(player.getUUID(), 0);
         }
+        ADV_COUNTS.put(player.getUUID(), new AdvancementCount(done, tick));
         return done;
-    }
-
-    /** Ближайший спавнер в загруженных чанках (радиус 3): направление или null. */
-    private static String scanSpawners(ServerLevel level, ServerPlayer player) {
-        var pp = player.blockPosition();
-        int pcx = pp.getX() >> 4, pcz = pp.getZ() >> 4;
-        net.minecraft.core.BlockPos best = null;
-        double bestDist = Double.MAX_VALUE;
-        for (int dx = -3; dx <= 3; dx++) {
-            for (int dz = -3; dz <= 3; dz++) {
-                try {
-                    var chunk = level.getChunk(pcx + dx, pcz + dz, net.minecraft.world.level.chunk.status.ChunkStatus.FULL, false);
-                    if (chunk == null) continue;
-                    for (var pos : chunk.getBlockEntitiesPos()) {
-                        var be = level.getBlockEntity(pos);
-                        if (be == null) continue;
-                        var type = be.getType();
-                        if (type != net.minecraft.world.level.block.entity.BlockEntityTypes.MOB_SPAWNER
-                                && type != net.minecraft.world.level.block.entity.BlockEntityTypes.TRIAL_SPAWNER) continue;
-                        double d = pos.distSqr(pp);
-                        if (d < bestDist) { bestDist = d; best = pos; }
-                    }
-                } catch (Exception ignored) {}
-            }
-        }
-        if (best == null) return null;
-        double ddx = best.getX() - pp.getX(), ddz = best.getZ() - pp.getZ();
-        String dir = Math.abs(ddx) > Math.abs(ddz) ? (ddx > 0 ? "к востоку" : "к западу")
-                                                   : (ddz > 0 ? "к югу" : "к северу");
-        return dir + (best.getY() < pp.getY() - 5 ? ", ниже тебя" : best.getY() > pp.getY() + 5 ? ", выше тебя" : "");
     }
 
     private SpiritProactive() {}
 
     public static void register() {
         ServerTickEvents.END_SERVER_TICK.register(SpiritProactive::onTick);
+        net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+            UUID id = handler.player.getUUID();
+            WATCH.remove(id); LAST_ADV.remove(id); ADV_COUNTS.remove(id);
+            LAST_FIRED.keySet().removeIf(key -> key.startsWith(id + ":"));
+        });
     }
 
-    public static void reset() { WATCH.clear(); LAST_FIRED.clear(); LAST_ADV.clear(); }
+    public static void reset() { WATCH.clear(); LAST_FIRED.clear(); LAST_ADV.clear(); ADV_COUNTS.clear(); }
 
     private static void onTick(MinecraftServer server) {
         if (server.getTickCount() % CHECK_EVERY_TICKS != 0) return;
@@ -151,17 +133,6 @@ public final class SpiritProactive {
                     SpiritAi.narrate(server, player,
                         "До тебя дошёл слух: «%s». Перескажи его игроку одной короткой фразой в своей манере."
                             .formatted(rumors.get(0)));
-                    continue;
-                }
-            }
-
-            // --- скаут: чувствует спавнеры поблизости (редко) ---
-            if (ready(player, "scout", 15 * 60_000)) {
-                var found = scanSpawners(level, player);
-                if (found != null) {
-                    SpiritAi.narrate(server, player,
-                        "Ты чувствуешь спавнер мобов %s от игрока (примерно y=%d). Одной короткой фразой поделись предчувствием, не выдавая точных координат."
-                            .formatted(found, (int) player.getY()));
                     continue;
                 }
             }

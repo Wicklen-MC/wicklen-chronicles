@@ -49,6 +49,17 @@ public final class OpenAiCompatibleProvider implements LlmProvider {
         body.add("messages", messages);
         body.addProperty("max_tokens", request.maxTokens());
         body.addProperty("temperature", request.temperature());
+        if (request.jsonObject()) {
+            JsonObject format = new JsonObject();
+            format.addProperty("type", "json_object");
+            body.add("response_format", format);
+        }
+        // Gameplay requests have short, explicit budgets; hidden reasoning must not consume them.
+        if (id.equals("deepseek")) {
+            JsonObject thinking = new JsonObject();
+            thinking.addProperty("type", "disabled");
+            body.add("thinking", thinking);
+        }
 
         var builder = HttpRequest.newBuilder()
             .uri(URI.create(baseUrl + "/chat/completions"))

@@ -75,12 +75,14 @@ public final class SpiritSenses {
         return sb.toString();
     }
 
-    /** Живых враждебных мобов рядом с игроком. */
+    /** Visible hostile mobs only: buried enemies are not player knowledge. */
     public static int countHostiles(ServerPlayer player) {
         return ((ServerLevel) player.level()).getEntities(
             net.minecraft.world.level.entity.EntityTypeTest.forClass(Monster.class),
             AABB.ofSize(player.position(), 32, 12, 32),
-            e -> e.isAlive()).size();
+            e -> e.isAlive() && player.hasLineOfSight(e,
+                net.minecraft.world.level.ClipContext.Block.COLLIDER,
+                net.minecraft.world.level.ClipContext.Fluid.NONE, 32)).size();
     }
 
     /** Имя биома в позиции (для отслеживания смены). */

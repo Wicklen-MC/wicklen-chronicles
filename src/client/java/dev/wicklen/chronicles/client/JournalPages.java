@@ -1,0 +1,226 @@
+package dev.wicklen.chronicles.client;
+
+import dev.wicklen.chronicles.core.quest.QuestInstance;
+import dev.wicklen.chronicles.core.quest.QuestStatus;
+import dev.wicklen.chronicles.core.quest.QuestType;
+import dev.wicklen.chronicles.net.JournalNetwork;
+import dev.wicklen.chronicles.net.JournalRequestPayload;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.network.chat.Component;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
+
+/** Small atlas/task panels. Layout is local; all content/actions come from the server read model. */
+final class JournalPages {
+    private final SpiritDialogScreen screen;
+    private boolean history;
+    private boolean storyMode;
+    private final JournalStories stories;
+    private final JournalResearch research;
+    private final JournalEncounters encounters;
+    private enum AtlasMode { ENTRIES, MAP, RESEARCH, ENCOUNTERS }
+    private AtlasMode atlasMode = AtlasMode.ENTRIES;
+    private int page;
+    private int selected;
+    private int detailScroll;
+
+    JournalPages(SpiritDialogScreen screen) {
+        this.screen = screen;
+        this.stories = new JournalStories(screen, this);
+        this.research = new JournalResearch(screen, this);
+        this.encounters = new JournalEncounters(screen, this);
+    }
+    void resetSelection() { page=0; selected=0; detailScroll=0; }
+    private JournalRequestPayload.Section section() {
+        return screen.atlas() ? JournalRequestPayload.Section.ATLAS : history
+            ? JournalRequestPayload.Section.HISTORY : JournalRequestPayload.Section.TASKS;
+    }
+    boolean needsPage() {
+        if (screen.atlas() && atlasMode == AtlasMode.ENCOUNTERS) return EncounterClientState.data() == null;
+        if (ownsFooter()) return ResearchClientState.data() == null;
+        var response=JournalClientState.response();
+        return response==null || response.section()!=section() || response.page()!=page;
+    }
+    boolean ownsFooter() { return screen.atlas() && atlasMode != AtlasMode.ENTRIES; }
+    void refresh() {
+        if (screen.atlas() && atlasMode == AtlasMode.ENCOUNTERS) encounters.refresh();
+        else if (ownsFooter()) research.refresh();
+        else JournalClientState.request(JournalRequestPayload.Action.REFRESH,section(),page,"");
+    }
+    void showEncounters() {
+        atlasMode = AtlasMode.ENCOUNTERS;
+        resetSelection();
+        encounters.refresh();
+        screen.changed();
+    }
+    void scroll(int direction) { detailScroll=Math.max(0,detailScroll-direction*3); }
+    void resetDetailScroll() { detailScroll=0; }
+    void tick(boolean periodic) {
+        if (!screen.atlas() && storyMode && !StoryClientState.busy()
+                && (StoryClientState.story()==null || periodic)) stories.read();
+    }
+
+    void init(SpiritDialogScreen.Layout box, Consumer<Button> add) {
+        int footer=box.top()+box.height()-38;
+        var refresh=Button.builder(JournalTexts.tr("refresh"),b->refresh()).bounds(box.left()+12,footer,72,18).build();
+        refresh.active = screen.atlas() && atlasMode == AtlasMode.ENCOUNTERS ? !EncounterClientState.busy()
+            : ownsFooter() ? !ResearchClientState.busy() : !JournalClientState.busy();
+        add.accept(refresh);
+        if (screen.atlas()) {
+            add.accept(Button.builder(JournalTexts.tr(atlasMode == AtlasMode.MAP ? "records" : "map"), ignored -> {
+                atlasMode = atlasMode == AtlasMode.MAP ? AtlasMode.ENTRIES : AtlasMode.MAP;
+                resetSelection(); refresh(); screen.changed();
+            }).bounds(box.left() + box.width() - 160, box.contentTop() - 3, 72, 18).build());
+            add.accept(Button.builder(JournalTexts.tr(atlasMode == AtlasMode.RESEARCH ? "records" : "collections"), ignored -> {
+                atlasMode = atlasMode == AtlasMode.RESEARCH ? AtlasMode.ENTRIES : AtlasMode.RESEARCH;
+                resetSelection(); refresh(); screen.changed();
+            }).bounds(box.left() + box.width() - 84, box.contentTop() - 3, 72, 18).build());
+        }
+        if (!screen.atlas()) add.accept(Button.builder(JournalTexts.tr(history?"current":"history"),b->{
+            history=!history; storyMode=false; resetSelection(); refresh(); screen.changed();
+        }).bounds(box.left()+box.width()-84,box.contentTop()-3,72,18).build());
+        if (!screen.atlas()) add.accept(Button.builder(JournalTexts.tr(storyMode?"current":"stories"),b->{
+            storyMode=!storyMode; history=false; resetSelection(); if(storyMode)stories.read(); refresh(); screen.changed();
+        }).bounds(box.left()+box.width()-160,box.contentTop()-3,72,18).build());
+        if (screen.atlas() && atlasMode == AtlasMode.ENCOUNTERS) { encounters.init(box, add); return; }
+        if (ownsFooter()) { research.init(box, add, atlasMode == AtlasMode.MAP); return; }
+        var view=JournalClientState.view();
+        if (view==null) return;
+        if (!screen.atlas() && storyMode) { stories.init(box,add); return; }
+        if (screen.atlas() || history) {
+            int size=screen.atlas()?view.discoveries().size():view.history().size();
+            selected=Math.clamp(selected,0,Math.max(0,size-1));
+            if (box.width()>=430) {
+                for (int i=0;i<size;i++) {
+                    final int index=i;
+                    var label=screen.atlas()?JournalTexts.discovery(view.discoveries().get(i)):JournalTexts.quest(view.history().get(i));
+                    String shortLabel=screen.getFont().plainSubstrByWidth(label.getString(),132);
+                    var button=Button.builder(Component.literal(shortLabel),b->{selected=index;detailScroll=0;screen.changed();})
+                        .bounds(box.left()+12,box.contentTop()+20+i*20,144,18)
+                        .tooltip(Tooltip.create(label)).build();
+                    button.active=i!=selected;
+                    add.accept(button);
+                }
+            } else if (size>1) {
+                add.accept(Button.builder(Component.literal("‹"),b->{selected=Math.floorMod(selected-1,size);detailScroll=0;screen.changed();})
+                    .bounds(box.left()+12,box.contentTop()+19,20,18).build());
+                add.accept(Button.builder(Component.literal("›"),b->{selected=(selected+1)%size;detailScroll=0;screen.changed();})
+                    .bounds(box.left()+box.width()-32,box.contentTop()+19,20,18).build());
+            }
+            int total=screen.atlas()?view.totalDiscoveries():view.totalHistory();
+            int maxPage=Math.max(0,(total-1)/JournalNetwork.PAGE_SIZE);
+            var previous=Button.builder(Component.literal("‹"),b->{page=Math.max(0,page-1);selected=0;detailScroll=0;refresh();screen.changed();})
+                .bounds(box.left()+box.width()-102,footer,22,18).build();
+            previous.active=page>0&&!JournalClientState.busy(); add.accept(previous);
+            var next=Button.builder(Component.literal("›"),b->{page++;selected=0;detailScroll=0;refresh();screen.changed();})
+                .bounds(box.left()+box.width()-34,footer,22,18).build();
+            next.active=page<maxPage&&!JournalClientState.busy(); add.accept(next);
+        } else {
+            var quest=view.activeQuest();
+            if (quest==null) {
+                var take=Button.builder(JournalTexts.tr("take"),b->action(JournalRequestPayload.Action.TAKE_QUEST,""))
+                    .bounds(box.left()+box.width()/2-90,box.contentBottom()-22,180,20).build();
+                take.active=!JournalClientState.busy(); add.accept(take);
+            } else if (quest.status()==QuestStatus.READY || quest.status()==QuestStatus.REWARD_PENDING) {
+                boolean claim=quest.status()==QuestStatus.REWARD_PENDING;
+                var button=Button.builder(JournalTexts.tr(claim?"claim":quest.definition().type()==QuestType.COLLECT?"hand_over":"turn_in"),
+                    b->action(claim?JournalRequestPayload.Action.CLAIM_REWARD:JournalRequestPayload.Action.TURN_IN,
+                        (claim?quest.rewardId():quest.id()).toString()))
+                    .bounds(box.left()+box.width()-170,footer,158,18).build();
+                button.active=!JournalClientState.busy(); add.accept(button);
+            }
+        }
+    }
+
+    private void action(JournalRequestPayload.Action action,String expectedId) {
+        JournalClientState.request(action,section(),page,expectedId);
+        screen.changed();
+    }
+
+    void render(GuiGraphicsExtractor g,SpiritDialogScreen.Layout box,int mouseX,int mouseY) {
+        if (screen.atlas() && atlasMode == AtlasMode.ENCOUNTERS) { encounters.render(g, box); return; }
+        if (ownsFooter()) { research.render(g, box, atlasMode == AtlasMode.MAP); return; }
+        var font=screen.getFont();
+        var view=JournalClientState.view();
+        if (view==null) {
+            g.textWithWordWrap(font,JournalTexts.tr(JournalClientState.busy()?"loading":"empty_connection"),
+                box.left()+14,box.contentTop()+28,box.width()-28,SpiritDialogScreen.MUTED,false);
+            return;
+        }
+        if (!screen.atlas() && storyMode) { stories.render(g,box); return; }
+        g.text(font,JournalTexts.tr(screen.atlas()?"atlas_count":history?"history_count":"tasks_heading",
+            screen.atlas()?view.totalDiscoveries():view.totalHistory()),box.left()+14,box.contentTop()+2,SpiritDialogScreen.INK,false);
+        if (screen.atlas() || history) renderCollection(g,box);
+        else if (view.activeQuest()!=null) renderQuest(g,box,view.activeQuest(),false);
+        else g.textWithWordWrap(font,JournalTexts.tr("no_active"),box.left()+16,box.contentTop()+30,
+            box.width()-32,SpiritDialogScreen.MUTED,false);
+    }
+
+    private void renderCollection(GuiGraphicsExtractor g,SpiritDialogScreen.Layout box) {
+        var view=JournalClientState.view();
+        boolean atlas=screen.atlas();
+        int size=atlas?view.discoveries().size():view.history().size();
+        if (size==0) {
+            g.textWithWordWrap(screen.getFont(),JournalTexts.tr(atlas?"atlas_empty":"history_empty"),box.left()+16,
+                box.contentTop()+28,box.width()-32,SpiritDialogScreen.MUTED,false);
+            return;
+        }
+        selected=Math.clamp(selected,0,size-1);
+        int x=box.left()+(box.width()>=430?170:14);
+        int y=box.contentTop()+(box.width()>=430?22:43);
+        int w=box.width()-(box.width()>=430?184:28);
+        if (box.width()<430) {
+            var label=atlas?JournalTexts.discovery(view.discoveries().get(selected)):JournalTexts.quest(view.history().get(selected));
+            g.centeredText(screen.getFont(),Component.literal(screen.getFont().plainSubstrByWidth(label.getString(),box.width()-88)),
+                box.left()+box.width()/2,box.contentTop()+24,SpiritDialogScreen.INK);
+        }
+        List<Component> lines=new ArrayList<>();
+        if (atlas) {
+            var entry=view.discoveries().get(selected);
+            lines.add(JournalTexts.discovery(entry));
+            lines.add(JournalTexts.tr("kind."+entry.key().kind().name().toLowerCase(java.util.Locale.ROOT)));
+            lines.add(Component.translatableWithFallback(entry.summary(),entry.summary()));
+            var pos=entry.position();
+            lines.add(JournalTexts.tr("recorded_at",pos.x(),pos.y(),pos.z()));
+            lines.add(JournalTexts.tr("dimension",JournalTexts.label("dimension",pos.dimension())));
+            lines.add(JournalTexts.tr("discovery_hint"));
+        } else addQuestLines(lines,view.history().get(selected),true);
+        renderLines(g,box,x,y,w,lines);
+        int total=atlas?view.totalDiscoveries():view.totalHistory();
+        g.centeredText(screen.getFont(),Component.literal((page+1)+"/"+Math.max(1,(total+JournalNetwork.PAGE_SIZE-1)/JournalNetwork.PAGE_SIZE)),
+            box.left()+box.width()-57,box.top()+box.height()-33,SpiritDialogScreen.MUTED);
+    }
+
+    private void renderQuest(GuiGraphicsExtractor g,SpiritDialogScreen.Layout box,QuestInstance quest,boolean completed) {
+        var lines=new ArrayList<Component>(); addQuestLines(lines,quest,completed);
+        int x=box.left()+16,y=box.contentTop()+25,w=box.width()-32;
+        renderLines(g,box,x,y,w,lines);
+    }
+    private void addQuestLines(List<Component> lines,QuestInstance quest,boolean completed) {
+        lines.add(JournalTexts.quest(quest));
+        lines.add(JournalTexts.tr("progress",quest.progress(),quest.definition().required()));
+        lines.add(JournalTexts.tr("status."+quest.status().name().toLowerCase(java.util.Locale.ROOT)));
+        var reward=quest.definition().reward();
+        lines.add(JournalTexts.tr("reward",reward.count(),JournalTexts.item(reward.itemId())));
+        if (!completed && quest.definition().type()==QuestType.COLLECT && quest.status()!=QuestStatus.REWARD_PENDING)
+            lines.add(JournalTexts.tr("collection_cost",quest.definition().required(),JournalTexts.target(quest)));
+        else if (!completed && quest.status()==QuestStatus.REWARD_PENDING) lines.add(JournalTexts.tr("reward_waits"));
+    }
+    void renderLines(GuiGraphicsExtractor g,SpiritDialogScreen.Layout box,int x,int y,int w,List<Component> lines) {
+        var wrapped=new ArrayList<net.minecraft.util.FormattedCharSequence>();
+        for (var line:lines) {
+            wrapped.addAll(screen.getFont().split(line,w));
+        }
+        int capacity=Math.max(1,(box.contentBottom()-y)/11);
+        detailScroll=Math.clamp(detailScroll,0,Math.max(0,wrapped.size()-capacity));
+        g.enableScissor(x,y,x+w,box.contentBottom());
+        for (int i=detailScroll;i<Math.min(wrapped.size(),detailScroll+capacity);i++)
+            g.text(screen.getFont(),wrapped.get(i),x,y+(i-detailScroll)*11,i==0?SpiritDialogScreen.INK:SpiritDialogScreen.MUTED,false);
+        g.disableScissor();
+        if (wrapped.size()>capacity) g.text(screen.getFont(),"↕",x+w-8,box.contentBottom()-9,SpiritDialogScreen.MUTED,false);
+    }
+}

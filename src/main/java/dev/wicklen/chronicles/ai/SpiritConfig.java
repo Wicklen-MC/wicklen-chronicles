@@ -45,6 +45,10 @@ public final class SpiritConfig {
     public int maxTokens = 150;
     public double temperature = 0.8;
     public boolean proactive = true;
+    public int aiParallelRequests = 2;
+    public int aiQueueCapacity = 16;
+    public int aiRequestsPerHour = 120;
+    public int aiOutputTokensPerHour = 100_000;
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static SpiritConfig instance;
@@ -102,6 +106,10 @@ public final class SpiritConfig {
         maxTurnsPerHour = Math.clamp(maxTurnsPerHour, 1, 1000);
         maxTokens = Math.clamp(maxTokens, 32, 2048);
         temperature = Double.isFinite(temperature) ? Math.clamp(temperature, 0, 2) : defaults.temperature;
+        aiParallelRequests = Math.clamp(aiParallelRequests, 1, 8);
+        aiQueueCapacity = Math.clamp(aiQueueCapacity, 0, 64);
+        aiRequestsPerHour = Math.clamp(aiRequestsPerHour, 1, 10_000);
+        aiOutputTokensPerHour = Math.clamp(aiOutputTokensPerHour, 2048, 10_000_000);
     }
 
     private static void restoreDefaults(ProviderCfg cfg, ProviderCfg defaults) {
