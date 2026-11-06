@@ -15,6 +15,9 @@ help context with recipes from the running server. See the
 [development scope](docs/development/spirit-knowledge.md). Published mod **0.4.2**
 and production pack **0.4.3** remain separate from this unreleased work.
 
+[Spirit design explorations](docs/design/spirit/README.md) preserve all concept
+sheets and the selected cloth-wanderer direction.
+
 - One animated spirit per player, with four personalities and colours. It follows
   you quietly through walls, with no movement sounds or block effects.
 - Spoken lines appear in a compact, themed **HUD card**, with a portrait and your

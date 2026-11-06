@@ -5,6 +5,7 @@ tools/
 *.log
 __pycache__/
 *.pyc
+.DS_Store
 
 # Local runtime state and credentials do not belong in the source repository.
 .env

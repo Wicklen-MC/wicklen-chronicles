@@ -1,0 +1,44 @@
+{
+  "date": "2026-11-07",
+  "generator": "image_gen (built-in)",
+  "kind": "Generated design explorations; not Minecraft screenshots or implemented model previews",
+  "processing": "Original generated PNGs copied without image edits",
+  "selection": {
+    "primary_direction": "Variant 5: cloth wanderer, sheets 01 and 02",
+    "also_liked": "Variant 3: woodland hood, sheets 01 and 02",
+    "abc_detail_selection": "Not chosen yet; sheet 03 is a refinement proposal"
+  },
+  "images": [
+    {
+      "file": "01-rough-studies.png",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 3094568,
+      "sha256": "bc82ebef5f57026451ddc32ebeb4b881b845a62ad5c723150fde5571062349cd",
+      "prompt": "prompts.md#01-rough-studies",
+      "reference_images": []
+    },
+    {
+      "file": "02-minecraft-style-options.png",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 2381808,
+      "sha256": "420527ec7cdcfa18dbec6c4201c4097280a6005ed49ff6e8e26212ee5e8e790b",
+      "prompt": "prompts.md#02-minecraft-style-options",
+      "reference_images": [
+        "01-rough-studies.png"
+      ]
+    },
+    {
+      "file": "03-wanderer-variations.png",
+      "width": 2172,
+      "height": 724,
+      "bytes": 2343377,
+      "sha256": "faa2a6a10b0b50576cffd719fe25bdd23a26a8189af692f70293b388b257ecc4",
+      "prompt": "prompts.md#03-wanderer-variations",
+      "reference_images": [
+        "02-minecraft-style-options.png"
+      ]
+    }
+  ]
+}

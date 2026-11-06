@@ -4,6 +4,9 @@
 справки с рецептами текущего сервера. [Описание и границы](docs/development/spirit-knowledge.md).
 Опубликованный мод **0.4.2** и действующая сборка **0.4.3** — отдельные версии.
 
+[Варианты внешности духа](docs/design/spirit/README.ru.md): все наброски и выбранное
+направление странника в тканевом капюшоне.
+
 [English](README.md) | [Русский](README.ru.md)
 
 Проект организации [Wicklen-MC](https://github.com/Wicklen-MC). Сервер и сборка: [wicklen-server](https://github.com/Wicklen-MC/wicklen-server).
