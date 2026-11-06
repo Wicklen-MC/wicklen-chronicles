@@ -3,14 +3,15 @@
     "commit": "117d9ec0858b6f6badd92ab0671744678b0f14f1",
     "files": {
       "wicklen-chronicles-0.4.0-sources.jar": {
-        "bytes": 268528,
-        "sha256": "caba1a02145f908b294893773602e043b0fde25425ff422dc41bd29c10aa02eb"
+        "bytes": 267077,
+        "sha256": "6a952adb19970c7f5748a277e1743ee659ca94affe21554ce4ff0c1b46dfcb5e"
       },
       "wicklen-chronicles-0.4.0.jar": {
         "bytes": 710021,
         "sha256": "b345c69472422f6e550d1971d87435e43ca1bc7bdb59135b7b9ae462ccf7f3e2"
       }
-    }
+    },
+    "note": "Original player JAR retained; sources JAR regenerated from the verified CI build because the cached source archive had an outdated Russian label. See the release workflow documentation."
   },
   "0.4.1": {
     "commit": "88a50087ce1cc712d524a17655f7fb565020e5f6",

@@ -23,7 +23,7 @@ world or client installation. Downloaded release assets inherit repository acces
 
 ## Historical 0.4 releases
 
-The initial 0.4.0–0.4.2 publications preserve the exact existing JARs. A fresh
+The initial 0.4.0–0.4.2 publications preserve the exact existing player JARs. A fresh
 build has identical code/resources but can differ in empty ZIP directory records
 and Loom's client-only manifest list. In particular, pack 0.4.2 already pins the
 original JAR hash; publishing a rebuilt replacement under that identity would
@@ -49,3 +49,9 @@ Before publishing a historical draft, the workflow:
 
 No API credentials, private configuration or runtime saves are included. The
 workflow does not run opt-in live-provider tests or start a graphical game client.
+
+The cached 0.4.0 sources archive had one stale Russian label (`Отметить здесь`
+instead of the committed `Отметка`). Its player JAR already had the correct
+resource. The sources archive was regenerated from the verified CI build before
+its first publication; its reviewed checksum is recorded in the registry. This
+changes no published player JAR or existing pack artifact.
