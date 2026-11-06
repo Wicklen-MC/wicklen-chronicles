@@ -24,6 +24,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,6 +59,7 @@ public final class ExplorationService {
             if (current != null && current.server == server) {
                 current.focus.remove(handler.player.getUUID());
                 current.retryAfter.remove(handler.player.getUUID());
+                current.hints.remove(handler.player.getUUID());
             }
         });
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
@@ -115,6 +117,23 @@ public final class ExplorationService {
             var tracker = state.focus.computeIfAbsent(player.getUUID(), ignored -> new ObservationTracker());
             if (!player.isAlive() || player.isSpectator() || !player.isUsingItem() || !player.getUseItem().is(Items.SPYGLASS)) {
                 tracker.reset();
+                long tick = server.getTickCount();
+                if (player.isAlive() && !player.isSpectator() && tick % 20 == 0
+                        && tick >= state.retryAfter.getOrDefault(player.getUUID(), 0L)) {
+                    try {
+                        // Crosshair-only lookup also identifies supported vanilla places without zooming.
+                        var target = visibleTarget(player, state, ObservationHints.NEARBY_DISTANCE);
+                        if (target != null && target.observation.key().kind() == DiscoveryKind.PLACE) {
+                            boolean known = state.repository.snapshot(player.getUUID()).entries().stream()
+                                    .anyMatch(entry -> entry.key().equals(target.observation.key()));
+                            state.hints.available(player, ObservationHints.title(target.observation, null), target.surface, known, tick);
+                        } else state.hints.nearby(player, tick);
+                    } catch (RuntimeException error) {
+                        // Optional hints must not break the tick or mutate a failing discovery store.
+                        state.retryAfter.put(player.getUUID(), tick + 100);
+                        LOGGER.warn("Nearby observation hint deferred: {}", error.toString());
+                    }
+                }
                 continue;
             }
             long tick = server.getTickCount();
@@ -126,11 +145,13 @@ public final class ExplorationService {
                 var target = visibleTarget(player, state);
                 if (target == null) {
                     tracker.reset();
+                    state.hints.invalid(player, tick);
                     continue;
                 }
                 if (state.repository.snapshot(player.getUUID()).entries().stream()
                         .anyMatch(entry -> entry.key().equals(target.observation.key()))) {
                     tracker.reset();
+                    state.hints.scan(player, target.observation, target.mob, target.surface, 100, true, tick);
                     continue;
                 }
                 boolean confirmedByFieldGuide = target.mob != null && state.fieldGuide.confirms(player,
@@ -138,16 +159,14 @@ public final class ExplorationService {
                 boolean ready = tracker.sample(target.focusId, tick, player.getTicksUsingItem(), true, true,
                         confirmedByFieldGuide, REQUIRED_FOCUS_TICKS);
                 if (!ready) {
-                    if (tracker.focusedTicks() == 1 || tracker.focusedTicks() % 10 == 0)
-                        player.sendOverlayMessage(Component.translatable("journal.wicklen_chronicles.scan_progress",
-                                tracker.focusedTicks() * 100 / REQUIRED_FOCUS_TICKS));
+                    state.hints.scan(player, target.observation, target.mob, target.surface,
+                            tracker.focusedTicks() * 100 / REQUIRED_FOCUS_TICKS, false, tick);
                     continue;
                 }
                 var change = state.repository.observe(player.getUUID(), target.observation);
                 tracker.reset();
                 if (!change.changed()) continue;
-                player.sendOverlayMessage(Component.translatable("journal.wicklen_chronicles.discovery_recorded",
-                        target.mob == null ? Component.literal(target.observation.title()) : target.mob.getType().getDescription()));
+                state.hints.recorded(player, target.observation, target.mob, target.surface, tick);
                 for (var listener : LISTENERS) {
                     try { listener.accept(player, change.snapshot()); }
                     catch (RuntimeException error) { LOGGER.warn("Discovery listener failed after persistence: {}", error.toString()); }
@@ -167,9 +186,13 @@ public final class ExplorationService {
     }
 
     private static Target visibleTarget(ServerPlayer player, RuntimeState state) {
+        return visibleTarget(player, state, MAX_OBSERVATION_DISTANCE);
+    }
+
+    private static Target visibleTarget(ServerPlayer player, RuntimeState state, double maxDistance) {
         if (!(player.level() instanceof ServerLevel level)) return null;
         var from = player.getEyePosition();
-        var to = from.add(player.getViewVector(1.0f).scale(MAX_OBSERVATION_DISTANCE));
+        var to = from.add(player.getViewVector(1.0f).scale(maxDistance));
         var block = new LoadedBlockView(level).clip(new ClipContext(from, to,
                 ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, player));
         var visibleEnd = block.getType() == HitResult.Type.MISS ? to : block.getLocation();
@@ -195,7 +218,9 @@ public final class ExplorationService {
             if (title.length() > 160) title = title.substring(0, 160);
             var observation = new Observation(new DiscoveryKey(DiscoveryKind.CREATURE, id.toString()), title,
                     "journal.wicklen_chronicles.creature_summary", position(level, pos), time);
-            return new Target(observation, level.dimension().identifier() + "|entity|" + nearest.getUUID(), nearest);
+            // A visible point on the near side of the mob, never a beacon above an occluding wall.
+            var surface = from.add(player.getViewVector(1.0f).scale(Math.sqrt(nearestDistance))).subtract(player.getViewVector(1.0f).scale(0.08));
+            return new Target(observation, level.dimension().identifier() + "|entity|" + nearest.getUUID(), nearest, surface);
         }
         if (block.getType() != HitResult.Type.BLOCK) return null;
         BlockPos viewed = block.getBlockPos();
@@ -208,7 +233,8 @@ public final class ExplorationService {
                 if (observation.get().key().kind() != DiscoveryKind.PLACE
                         || !observation.get().position().dimension().equals(level.dimension().identifier().toString()))
                     throw new IllegalArgumentException("Place provider returned a foreign dimension or kind");
-                return new Target(observation.get(), level.dimension().identifier() + "|" + observation.get().key().id(), null);
+                var surface = block.getLocation().subtract(player.getViewVector(1.0f).scale(0.08));
+                return new Target(observation.get(), level.dimension().identifier() + "|" + observation.get().key().id(), null, surface);
             } catch (UncheckedIOException error) {
                 // Metadata indexing can fail temporarily. Let the normal save
                 // retry path handle it rather than disabling this provider.
@@ -225,13 +251,14 @@ public final class ExplorationService {
         return new DiscoveryPosition(level.dimension().identifier().toString(), pos.getX(), pos.getY(), pos.getZ());
     }
 
-    private record Target(Observation observation, String focusId, Mob mob) {}
+    private record Target(Observation observation, String focusId, Mob mob, Vec3 surface) {}
 
     private static final class RuntimeState {
         final MinecraftServer server;
         final UUID sessionId;
         final DiscoveryRepository repository = new DiscoveryRepository();
         final FieldGuideBridge fieldGuide = new FieldGuideBridge();
+        final ObservationHints hints = new ObservationHints();
         final Map<UUID, ObservationTracker> focus = new HashMap<>();
         final Map<UUID, Long> retryAfter = new HashMap<>();
         final Set<VisiblePlaceProvider> failedProviders = new HashSet<>();

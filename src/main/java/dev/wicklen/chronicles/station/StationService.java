@@ -98,6 +98,33 @@ public final class StationService {
                 .limit(32).toList();
     }
 
+    /** Server-only hint candidates from already loaded chunks, never a locate/index/worldgen operation. */
+    public static List<PlaceManifest> nearbyLoaded(ServerPlayer player, double distance) {
+        if (!player.level().getServer().isSameThread()) throw new IllegalStateException("Station lookup must run on the server thread");
+        if (distance <= 0 || distance > 40) throw new IllegalArgumentException("Nearby hint range must be within 40 blocks");
+        var level = player.level();
+        int minX = ((int) Math.floor(player.getX() - distance)) >> 4;
+        int maxX = ((int) Math.floor(player.getX() + distance)) >> 4;
+        int minZ = ((int) Math.floor(player.getZ() - distance)) >> 4;
+        int maxZ = ((int) Math.floor(player.getZ() + distance)) >> 4;
+        var nearby = new java.util.ArrayList<PlaceManifest>();
+        for (int x = minX; x <= maxX; x++) for (int z = minZ; z <= maxZ; z++) {
+            var chunk = level.getChunkSource().getChunkNow(x, z);
+            if (chunk == null) continue;
+            var seed = chunk.getAttached(StationAttachments.STATION);
+            if (seed == null) continue;
+            var place = seed.manifest(WorldStorageContext.worldId(), level.dimension().identifier().toString());
+            var point = place.anchor();
+            double dx = point.x() + 0.5 - player.getX(), dy = point.y() - player.getY(), dz = point.z() + 0.5 - player.getZ();
+            if (dx * dx + dy * dy + dz * dz <= distance * distance) nearby.add(place);
+        }
+        return nearby.stream().sorted(Comparator.comparingDouble(place -> {
+            var point = place.anchor();
+            double dx = point.x() + 0.5 - player.getX(), dy = point.y() - player.getY(), dz = point.z() + 0.5 - player.getZ();
+            return dx * dx + dy * dy + dz * dz;
+        })).limit(4).toList();
+    }
+
     static Optional<PlaceManifest> index(ServerLevel level, LevelChunk chunk) {
         if (!level.getServer().isSameThread()) throw new IllegalStateException("Station indexing must run on the server thread");
         var seed = chunk.getAttached(StationAttachments.STATION);

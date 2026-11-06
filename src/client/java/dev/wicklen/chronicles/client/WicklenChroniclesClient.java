@@ -29,6 +29,7 @@ public class WicklenChroniclesClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        ChroniclesTooltips.register();
         for (var type : dev.wicklen.chronicles.compat.LegacyCompatibility.spiritTypes())
             EntityRenderers.register(type, SpiritRenderer::new);
 
@@ -68,7 +69,7 @@ public class WicklenChroniclesClient implements ClientModInitializer {
                     EncounterClientState.accept(payload);
             }));
 
-        // клавиша G — окно диалога с духом
+        // G opens the field journal at the player's next step.
         KeyMapping dialogKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
             "key.wicklen_chronicles.dialog",
             InputConstants.Type.KEYBOARD,

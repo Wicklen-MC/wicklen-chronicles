@@ -63,6 +63,9 @@ public final class StationNativeChecks {
         try {
             require(StationService.knownStation(player, place.key()).isEmpty(), "unexplored station cannot be selected by ID");
             require(StationService.knownCourtyards(player).isEmpty(), "batch selector excludes every unknown courtyard");
+            require(StationService.nearbyLoaded(player, 40).stream().anyMatch(nearby -> nearby.key().equals(place.key())),
+                    "loaded local hint candidate is available before personal discovery");
+            require(StationService.knownCourtyards(player).isEmpty(), "server-only hint candidate does not reveal a selectable unknown courtyard");
             var entry = new Observation(place.key(), place.variant().title(), place.variant().summary(),
                     new DiscoveryPosition(place.dimension(), place.safeExit().x(), place.safeExit().y(), place.safeExit().z()), System.currentTimeMillis());
             new DiscoveryRepository().observe(player.getUUID(), entry);

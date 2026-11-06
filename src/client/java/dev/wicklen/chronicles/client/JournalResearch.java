@@ -30,9 +30,9 @@ final class JournalResearch {
         if (data == null) return;
         int footer = box.top() + box.height() - 38;
         if (map) {
-            add.accept(Button.builder(JournalTexts.tr("encounter.heading"), button -> pages.showEncounters())
+            add.accept(JournalButton.colored(JournalTexts.tr("encounter.heading"), button -> pages.showEncounters())
                 .bounds(box.left() + 92, footer, 80, 18).build());
-            var scale = Button.builder(JournalTexts.tr("map_scale", mapRange), button -> {
+            var scale = JournalButton.colored(JournalTexts.tr("map_scale", mapRange), button -> {
                 mapRange = mapRange == 128 ? 512 : mapRange == 512 ? 2048 : 128;
                 screen.changed();
             }).bounds(box.left() + box.width() - 96, footer, 84, 18).build();
@@ -48,7 +48,7 @@ final class JournalResearch {
                 if (Math.abs(dx) > mapRange || Math.abs(dz) > mapRange) continue;
                 int x = centerX + (int) Math.round(dx / mapRange * (size / 2 - 9));
                 int y = centerY + (int) Math.round(dz / mapRange * (size / 2 - 9));
-                add.accept(Button.builder(Component.literal("•"), button -> {
+                add.accept(JournalButton.colored(Component.literal("•"), button -> {
                     selectedPlace = entry.key().id();
                     pages.resetDetailScroll();
                     screen.changed();
@@ -67,7 +67,7 @@ final class JournalResearch {
             final int index = i;
             var progress = data.series().get(i);
             var label = Component.translatable(progress.definition().title());
-            var button = Button.builder(Component.literal(screen.getFont().plainSubstrByWidth(label.getString(), width - 14)), ignored -> {
+            var button = JournalButton.colored(Component.literal(screen.getFont().plainSubstrByWidth(label.getString(), width - 14)), ignored -> {
                 selectedSeries = index;
                 pages.resetDetailScroll();
                 screen.changed();
@@ -78,7 +78,7 @@ final class JournalResearch {
         }
         var progress = data.series().get(selectedSeries);
         if (progress.grant() != null && !progress.grant().claimed()) {
-            var claim = Button.builder(JournalTexts.tr("claim"), ignored -> ResearchClientState.request(
+            var claim = JournalButton.colored(JournalTexts.tr("claim"), ignored -> ResearchClientState.request(
                 ResearchRequestPayload.Action.CLAIM, progress.grant().id().toString()))
                 .bounds(box.left() + box.width() - 170, footer, 158, 18).build();
             claim.active = !ResearchClientState.busy();

@@ -10,7 +10,8 @@ Loader 0.20.1+, Fabric API 0.165.0+26.3 and Java 25**.
 
 - One animated spirit per player, with four personalities and colours. It follows
   you quietly through walls, with no movement sounds or block effects.
-- **G** opens a field journal with **Conversation**, **Atlas** and **Tasks**.
+- **G** opens a guided field journal: your next step, tasks, records, map,
+  collections, trials and the spirit, all directly accessible.
   `@spirit <message>` also starts a conversation.
 - Observe creatures and visible places with the **vanilla spyglass**. The server
   checks continuous focus, line of sight, range and actual item use. A compatible
@@ -38,7 +39,7 @@ is part of the journal. Combat balance still needs playtesting with the full pac
 ## Install and play
 
 Install Fabric Loader and Fabric API, then put
-`wicklen-chronicles-0.3.0.jar` in `mods/` on both server and client. Remove
+`wicklen-chronicles-0.3.1.jar` in `mods/` on both server and client. Remove
 older copies of this mod first. Use matching client/server versions; the
 0.2.1 networking namespace changed. The `-sources.jar` is for developers.
 
@@ -59,8 +60,12 @@ Command names and the `@spirit` chat trigger use English in every game language.
 The message itself can be written in your preferred language.
 
 For research, hold the spyglass on a visible target for about two seconds.
-Atlas contains records, a map of known places and collection rewards. Tasks
-contains ordinary tasks and story choices; the conversation remains available.
+The opening **Next step** page explains your current goal and offers its main
+action. Records, map, collection rewards and trials have direct navigation.
+Tasks contains ordinary tasks and story choices; Spirit opens the conversation.
+Look at a visible supported landmark to see its name and a spyglass hint. While
+scanning, the target name and progress appear above the hotbar; a known target
+is marked as already recorded. Only visible surfaces receive personal particles.
 
 Craft a Field Notebook from a book, paper and string. Use it on a cartography
 table to bind your desk, then return after three new discoveries and use it
@@ -71,8 +76,10 @@ Courtyard battles require Gateway of Doom **2.3.6 / Minecraft 26.3** on client a
 server. The first profiles contain two waves and no boss; the mod owns the reward
 ledger. Ordinary exploration and quests work without this optional executor.
 Only personally recorded courtyards can be selected. Prepare/join explicitly,
-then start with the chosen difficulty; death, leaving the arena or disconnecting
-aborts the encounter. Pending earned rewards survive a restart.
+then start with the chosen difficulty. Sparks show the boundary; stepping outside
+gives you five seconds to return. Escaping encounter mobs are safely returned
+instead of cancelling the battle. Death, disconnecting or staying outside for
+the full grace period aborts it. Pending earned rewards survive a restart.
 
 Developer commands for parties: `/spirit encounter`, `/spirit encounter prepare
 normal`, `/spirit encounter prepare empowered`, `/spirit encounter join <id>`,
@@ -128,7 +135,7 @@ no personal cache path, local server configuration or external LLM key is needed
 
 ```sh
 ./gradlew build
-# build/libs/wicklen-chronicles-0.3.0.jar
+# build/libs/wicklen-chronicles-0.3.1.jar
 ./gradlew -p core check
 ./gradlew runServerSmoke
 ./gradlew runClientGameTest

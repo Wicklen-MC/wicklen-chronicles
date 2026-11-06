@@ -13,6 +13,7 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -22,6 +23,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
@@ -36,6 +38,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 /** Explicit-consent encounters. Optional executors never own the mod's reward ledger. */
 public final class EncounterService {
     public static final int MAX_PARTY = 4;
+    static final int RETURN_GRACE_TICKS = 100;
     private static final long LOBBY_TIME = 5 * 60_000L;
     private static final long EXECUTION_TIME = 8 * 60_000L;
     private static final String RELIC = "wicklen_chronicles:wayfarer_lantern";
@@ -159,7 +162,7 @@ public final class EncounterService {
             try { runtime.ledger.put(running); }
             catch (IOException error) { runtime.abort(frozen, "Запуск не удалось сохранить"); throw error; }
             runtime.tell(running, "Испытание началось. Состав зафиксирован: " + running.consenting().size()
-                    + ". Выход за пределы двора, смерть или выход из игры отменяют встречу без награды.");
+                    + ". Светящиеся искры отмечают двор. При выходе есть 5 секунд, чтобы вернуться. Смерть или выход из игры отменяют встречу без награды.");
             return ok("Испытание запущено: " + session.mode(), encounterId);
         });
     }
@@ -284,6 +287,9 @@ public final class EncounterService {
         final Queue<GatewayBridge.Completion> completions = new ConcurrentLinkedQueue<>();
         final Set<UUID> aborting = new HashSet<>();
         final Map<UUID, UUID> mobOwners = new HashMap<>();
+        final Map<UUID, Map<UUID, Integer>> outsideSince = new HashMap<>();
+        final Map<UUID, Vec3> lastSafeMobPositions = new HashMap<>();
+        final Map<UUID, Integer> retryMobReturnAt = new HashMap<>();
         Throwable failure;
 
         RuntimeState(MinecraftServer server, UUID sessionId, UUID worldId) {
@@ -350,18 +356,20 @@ public final class EncounterService {
                     if (aborting.contains(session.id()) || System.currentTimeMillis() > session.deadlineAt()) { abort(session, "Время подготовки или испытания истекло"); continue; }
                     if (session.encounter() == null) {
                         if (session.consenting().stream().anyMatch(owner -> server.getPlayerList().getPlayer(owner) == null)) abort(session, "Участник вышел из игры");
+                        else if (server.getTickCount() % 20 == 0) showBoundary(session, level(session));
                         continue;
                     }
-                    String invalid = validateParty(session, true);
+                    String invalid = validateActiveParty(session);
                     if (invalid != null) { abort(session, invalid); continue; }
                     if (session.portalId() == null || !bridge.exists(session.portalId())) { abort(session, "Портал испытания исчез"); continue; }
                     var level = level(session);
+                    if (server.getTickCount() % 20 == 0) showBoundary(session, level);
                     for (UUID mobId : bridge.trackedMobs(session.portalId())) {
                         mobOwners.put(mobId, session.id());
                         var mob = level == null ? null : level.getEntity(mobId);
                         if (mob == null) continue;
                         mob.addTag(GatewayBridge.sourceId(session.id()));
-                        if (!session.place().arena().contains(mob.blockPosition())) { abort(session, "Противник вышел за пределы двора"); break; }
+                        containMob(session, level, mob);
                     }
                 }
             } catch (RuntimeException error) {
@@ -369,6 +377,111 @@ public final class EncounterService {
                 abortAll("Ошибка исполнителя испытания");
                 failure = error;
             }
+        }
+
+        /** Movement by the executor's AI must never be interpreted as a player's surrender. */
+        void containMob(EncounterSession session, ServerLevel level, Entity entity) {
+            if (!entity.isAlive() || level == null) return;
+            var arena = session.place().arena();
+            if (entity instanceof Mob mob) {
+                var target = mob.getTarget();
+                if (!(target instanceof ServerPlayer player) || !session.consenting().contains(player.getUUID())
+                        || !arena.contains(player.blockPosition())) {
+                    var nearest = session.consenting().stream().map(server.getPlayerList()::getPlayer)
+                            .filter(player -> player != null && player.isAlive() && player.level() == level
+                                    && arena.contains(player.blockPosition()))
+                            .min(Comparator.comparingDouble(entity::distanceToSqr)).orElse(null);
+                    mob.setTarget(nearest);
+                }
+            }
+            if (insideInset(arena, entity.position()) && safeReturn(level, entity, entity.position())) {
+                lastSafeMobPositions.put(entity.getUUID(), entity.position());
+                retryMobReturnAt.remove(entity.getUUID());
+                return;
+            }
+            if (arena.contains(entity.blockPosition())) return;
+            if (server.getTickCount() < retryMobReturnAt.getOrDefault(entity.getUUID(), 0)) return;
+            Vec3 destination = lastSafeMobPositions.get(entity.getUUID());
+            if (destination == null || !insideInset(arena, destination) || !safeReturn(level, entity, destination)) {
+                destination = returnPosition(session, level, entity);
+            }
+            if (destination == null) {
+                // Terrain can be changed by players. Retry safely without putting a mob into a wall.
+                retryMobReturnAt.put(entity.getUUID(), server.getTickCount() + 20);
+                return;
+            }
+            if (entity instanceof Mob mob) mob.getNavigation().stop();
+            entity.teleportTo(destination.x, destination.y, destination.z);
+            entity.setDeltaMovement(Vec3.ZERO);
+            entity.resetFallDistance();
+            lastSafeMobPositions.put(entity.getUUID(), destination);
+            retryMobReturnAt.remove(entity.getUUID());
+        }
+
+        private Vec3 returnPosition(EncounterSession session, ServerLevel level, Entity entity) {
+            var arena = session.place().arena();
+            var candidates = new ArrayList<Vec3>();
+            for (int x = arena.minX() + 1; x < arena.maxX(); x++) {
+                for (int z = arena.minZ() + 1; z < arena.maxZ(); z++) {
+                    for (int y = arena.minY(); y <= arena.maxY(); y++) candidates.add(new Vec3(x + 0.5, y, z + 0.5));
+                }
+            }
+            candidates.sort(Comparator.comparingDouble(point -> point.distanceToSqr(entity.position())));
+            for (var point : candidates) if (safeReturn(level, entity, point)) return point;
+            return null;
+        }
+
+        private static boolean insideInset(PlaceManifest.Bounds arena, Vec3 point) {
+            return point.x >= arena.minX() + 1 && point.x < arena.maxX()
+                    && point.z >= arena.minZ() + 1 && point.z < arena.maxZ()
+                    && point.y >= arena.minY() && point.y <= arena.maxY();
+        }
+
+        private static boolean safeReturn(ServerLevel level, Entity entity, Vec3 point) {
+            var feet = BlockPos.containing(point);
+            return safePoint(level, feet) && level.noBlockCollision(entity,
+                    entity.getBoundingBox().move(point.subtract(entity.position())));
+        }
+
+        String validateActiveParty(EncounterSession session) {
+            int tick = server.getTickCount();
+            var departed = outsideSince.computeIfAbsent(session.id(), ignored -> new HashMap<>());
+            for (UUID owner : session.consenting()) {
+                var player = server.getPlayerList().getPlayer(owner);
+                if (player == null) return "Участник группы не в игре";
+                if (!player.isAlive() || player.isSpectator()) return "Участник погиб или перешёл в режим наблюдателя";
+                if (!session.place().dimension().equals(player.level().dimension().identifier().toString())) return "Участник покинул измерение испытания";
+                if (session.place().arena().contains(player.blockPosition())) {
+                    if (departed.remove(owner) != null) player.sendOverlayMessage(Component.literal("Ты снова во дворе — испытание продолжается"));
+                    continue;
+                }
+                int elapsed = tick - departed.computeIfAbsent(owner, ignored -> tick);
+                if (elapsed >= RETURN_GRACE_TICKS) return "Участник покинул двор испытания";
+                if (elapsed % 20 == 0) player.sendOverlayMessage(Component.literal("Вернись за светящуюся границу: "
+                        + (RETURN_GRACE_TICKS - elapsed + 19) / 20 + " с"));
+            }
+            return null;
+        }
+
+        private void showBoundary(EncounterSession session, ServerLevel level) {
+            if (level == null) return;
+            var arena = session.place().arena();
+            for (UUID owner : session.consenting()) {
+                var player = server.getPlayerList().getPlayer(owner);
+                if (player == null || player.level() != level) continue;
+                double y = arena.minY() + 0.12;
+                for (int offset = 0; offset <= arena.width(); offset += 2) {
+                    double x = arena.minX() + offset, z = arena.minZ() + offset;
+                    boundaryParticle(level, player, x, y, arena.minZ());
+                    boundaryParticle(level, player, x, y, arena.maxZ() + 1);
+                    boundaryParticle(level, player, arena.minX(), y, z);
+                    boundaryParticle(level, player, arena.maxX() + 1, y, z);
+                }
+            }
+        }
+
+        private static void boundaryParticle(ServerLevel level, ServerPlayer player, double x, double y, double z) {
+            level.sendParticles(player, ParticleTypes.END_ROD, false, false, x, y, z, 1, 0, 0.02, 0, 0);
         }
 
         void completion(GatewayBridge.Completion event) {
@@ -387,7 +500,7 @@ public final class EncounterService {
                 default -> EncounterStatus.ABORTED;
             };
             if (status == EncounterStatus.SUCCESS && (System.currentTimeMillis() > session.deadlineAt()
-                    || validateParty(session, true) != null)) status = EncounterStatus.ABORTED;
+                    || validateActiveParty(session) != null)) status = EncounterStatus.ABORTED;
             var change = EncounterTransitions.finish(session.encounter(), id, status,
                     Math.max(System.currentTimeMillis(), session.encounter().startedAt()));
             if (!change.changed()) return;
@@ -442,7 +555,12 @@ public final class EncounterService {
                 }
             }
             bridge.closeSource(session.id());
-            for (UUID id : owned) mobOwners.remove(id);
+            outsideSince.remove(session.id());
+            for (UUID id : owned) {
+                mobOwners.remove(id);
+                lastSafeMobPositions.remove(id);
+                retryMobReturnAt.remove(id);
+            }
         }
 
         void entityLoaded(Entity entity) {

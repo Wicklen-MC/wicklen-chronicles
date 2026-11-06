@@ -22,6 +22,7 @@ final class JournalPages {
     private final JournalStories stories;
     private final JournalResearch research;
     private final JournalEncounters encounters;
+    private final JournalJourney journey;
     private enum AtlasMode { ENTRIES, MAP, RESEARCH, ENCOUNTERS }
     private AtlasMode atlasMode = AtlasMode.ENTRIES;
     private int page;
@@ -33,8 +34,23 @@ final class JournalPages {
         this.stories = new JournalStories(screen, this);
         this.research = new JournalResearch(screen, this);
         this.encounters = new JournalEncounters(screen, this);
+        this.journey = new JournalJourney(screen, this);
     }
     void resetSelection() { page=0; selected=0; detailScroll=0; }
+    void select(SpiritDialogScreen.Tab tab) {
+        history=false; storyMode=false;
+        atlasMode=switch(tab) {
+            case MAP -> AtlasMode.MAP;
+            case COLLECTIONS -> AtlasMode.RESEARCH;
+            case TRIALS -> AtlasMode.ENCOUNTERS;
+            default -> AtlasMode.ENTRIES;
+        };
+        resetSelection();
+    }
+    void showStories() {
+        screen.open(SpiritDialogScreen.Tab.TASKS);
+        storyMode=true; stories.read(); screen.changed();
+    }
     private JournalRequestPayload.Section section() {
         return screen.atlas() ? JournalRequestPayload.Section.ATLAS : history
             ? JournalRequestPayload.Section.HISTORY : JournalRequestPayload.Section.TASKS;
@@ -51,43 +67,29 @@ final class JournalPages {
         else if (ownsFooter()) research.refresh();
         else JournalClientState.request(JournalRequestPayload.Action.REFRESH,section(),page,"");
     }
-    void showEncounters() {
-        atlasMode = AtlasMode.ENCOUNTERS;
-        resetSelection();
-        encounters.refresh();
-        screen.changed();
-    }
+    void showEncounters() { screen.open(SpiritDialogScreen.Tab.TRIALS); }
     void scroll(int direction) { detailScroll=Math.max(0,detailScroll-direction*3); }
     void resetDetailScroll() { detailScroll=0; }
     void tick(boolean periodic) {
-        if (!screen.atlas() && storyMode && !StoryClientState.busy()
+        if (!screen.atlas() && (storyMode || screen.journey()) && !StoryClientState.busy()
                 && (StoryClientState.story()==null || periodic)) stories.read();
     }
 
     void init(SpiritDialogScreen.Layout box, Consumer<Button> add) {
         int footer=box.top()+box.height()-38;
-        var refresh=Button.builder(JournalTexts.tr("refresh"),b->refresh()).bounds(box.left()+12,footer,72,18).build();
+        var refresh=JournalButton.colored(JournalTexts.tr("refresh"),b->refresh()).bounds(box.left()+12,footer,72,18).build();
         refresh.active = screen.atlas() && atlasMode == AtlasMode.ENCOUNTERS ? !EncounterClientState.busy()
             : ownsFooter() ? !ResearchClientState.busy() : !JournalClientState.busy();
-        add.accept(refresh);
-        if (screen.atlas()) {
-            add.accept(Button.builder(JournalTexts.tr(atlasMode == AtlasMode.MAP ? "records" : "map"), ignored -> {
-                atlasMode = atlasMode == AtlasMode.MAP ? AtlasMode.ENTRIES : AtlasMode.MAP;
-                resetSelection(); refresh(); screen.changed();
-            }).bounds(box.left() + box.width() - 160, box.contentTop() - 3, 72, 18).build());
-            add.accept(Button.builder(JournalTexts.tr(atlasMode == AtlasMode.RESEARCH ? "records" : "collections"), ignored -> {
-                atlasMode = atlasMode == AtlasMode.RESEARCH ? AtlasMode.ENTRIES : AtlasMode.RESEARCH;
-                resetSelection(); refresh(); screen.changed();
-            }).bounds(box.left() + box.width() - 84, box.contentTop() - 3, 72, 18).build());
-        }
-        if (!screen.atlas()) add.accept(Button.builder(JournalTexts.tr(history?"current":"history"),b->{
+        if (!screen.journey() && box.width()>=260) add.accept(refresh);
+        if (!screen.atlas() && !screen.journey()) add.accept(JournalButton.colored(JournalTexts.tr(history?"current":"history"),b->{
             history=!history; storyMode=false; resetSelection(); refresh(); screen.changed();
         }).bounds(box.left()+box.width()-84,box.contentTop()-3,72,18).build());
-        if (!screen.atlas()) add.accept(Button.builder(JournalTexts.tr(storyMode?"current":"stories"),b->{
+        if (!screen.atlas() && !screen.journey()) add.accept(JournalButton.colored(JournalTexts.tr(storyMode?"current":"stories"),b->{
             storyMode=!storyMode; history=false; resetSelection(); if(storyMode)stories.read(); refresh(); screen.changed();
         }).bounds(box.left()+box.width()-160,box.contentTop()-3,72,18).build());
         if (screen.atlas() && atlasMode == AtlasMode.ENCOUNTERS) { encounters.init(box, add); return; }
         if (ownsFooter()) { research.init(box, add, atlasMode == AtlasMode.MAP); return; }
+        if (screen.journey()) { journey.init(box,add); return; }
         var view=JournalClientState.view();
         if (view==null) return;
         if (!screen.atlas() && storyMode) { stories.init(box,add); return; }
@@ -99,35 +101,35 @@ final class JournalPages {
                     final int index=i;
                     var label=screen.atlas()?JournalTexts.discovery(view.discoveries().get(i)):JournalTexts.quest(view.history().get(i));
                     String shortLabel=screen.getFont().plainSubstrByWidth(label.getString(),132);
-                    var button=Button.builder(Component.literal(shortLabel),b->{selected=index;detailScroll=0;screen.changed();})
+                    var button=JournalButton.colored(Component.literal(shortLabel),b->{selected=index;detailScroll=0;screen.changed();})
                         .bounds(box.left()+12,box.contentTop()+20+i*20,144,18)
                         .tooltip(Tooltip.create(label)).build();
                     button.active=i!=selected;
                     add.accept(button);
                 }
             } else if (size>1) {
-                add.accept(Button.builder(Component.literal("‹"),b->{selected=Math.floorMod(selected-1,size);detailScroll=0;screen.changed();})
+                add.accept(JournalButton.colored(Component.literal("‹"),b->{selected=Math.floorMod(selected-1,size);detailScroll=0;screen.changed();})
                     .bounds(box.left()+12,box.contentTop()+19,20,18).build());
-                add.accept(Button.builder(Component.literal("›"),b->{selected=(selected+1)%size;detailScroll=0;screen.changed();})
+                add.accept(JournalButton.colored(Component.literal("›"),b->{selected=(selected+1)%size;detailScroll=0;screen.changed();})
                     .bounds(box.left()+box.width()-32,box.contentTop()+19,20,18).build());
             }
             int total=screen.atlas()?view.totalDiscoveries():view.totalHistory();
             int maxPage=Math.max(0,(total-1)/JournalNetwork.PAGE_SIZE);
-            var previous=Button.builder(Component.literal("‹"),b->{page=Math.max(0,page-1);selected=0;detailScroll=0;refresh();screen.changed();})
+            var previous=JournalButton.colored(Component.literal("‹"),b->{page=Math.max(0,page-1);selected=0;detailScroll=0;refresh();screen.changed();})
                 .bounds(box.left()+box.width()-102,footer,22,18).build();
             previous.active=page>0&&!JournalClientState.busy(); add.accept(previous);
-            var next=Button.builder(Component.literal("›"),b->{page++;selected=0;detailScroll=0;refresh();screen.changed();})
+            var next=JournalButton.colored(Component.literal("›"),b->{page++;selected=0;detailScroll=0;refresh();screen.changed();})
                 .bounds(box.left()+box.width()-34,footer,22,18).build();
             next.active=page<maxPage&&!JournalClientState.busy(); add.accept(next);
         } else {
             var quest=view.activeQuest();
             if (quest==null) {
-                var take=Button.builder(JournalTexts.tr("take"),b->action(JournalRequestPayload.Action.TAKE_QUEST,""))
+                var take=JournalButton.colored(JournalTexts.tr("take"),b->action(JournalRequestPayload.Action.TAKE_QUEST,""))
                     .bounds(box.left()+box.width()/2-90,box.contentBottom()-22,180,20).build();
                 take.active=!JournalClientState.busy(); add.accept(take);
             } else if (quest.status()==QuestStatus.READY || quest.status()==QuestStatus.REWARD_PENDING) {
                 boolean claim=quest.status()==QuestStatus.REWARD_PENDING;
-                var button=Button.builder(JournalTexts.tr(claim?"claim":quest.definition().type()==QuestType.COLLECT?"hand_over":"turn_in"),
+                var button=JournalButton.colored(JournalTexts.tr(claim?"claim":quest.definition().type()==QuestType.COLLECT?"hand_over":"turn_in"),
                     b->action(claim?JournalRequestPayload.Action.CLAIM_REWARD:JournalRequestPayload.Action.TURN_IN,
                         (claim?quest.rewardId():quest.id()).toString()))
                     .bounds(box.left()+box.width()-170,footer,158,18).build();
@@ -136,12 +138,13 @@ final class JournalPages {
         }
     }
 
-    private void action(JournalRequestPayload.Action action,String expectedId) {
+    void action(JournalRequestPayload.Action action,String expectedId) {
         JournalClientState.request(action,section(),page,expectedId);
         screen.changed();
     }
 
     void render(GuiGraphicsExtractor g,SpiritDialogScreen.Layout box,int mouseX,int mouseY) {
+        if (screen.journey()) { journey.render(g,box); return; }
         if (screen.atlas() && atlasMode == AtlasMode.ENCOUNTERS) { encounters.render(g, box); return; }
         if (ownsFooter()) { research.render(g, box, atlasMode == AtlasMode.MAP); return; }
         var font=screen.getFont();

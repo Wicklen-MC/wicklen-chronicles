@@ -30,11 +30,17 @@ final class JournalTexts {
         return Component.translatableWithFallback(type + "." + identifier.getNamespace() + "." + identifier.getPath().replace('/', '.'),
             identifier.getPath().replace('_', ' '));
     }
+    static Component placeTitle(String title) {
+        for(var variant:dev.wicklen.chronicles.station.StationVariant.values())
+            if(variant.title().equals(title))
+                return Component.translatableWithFallback("station.wicklen_chronicles."+variant.name().toLowerCase(java.util.Locale.ROOT)+".title",title);
+        return Component.literal(title);
+    }
     static Component discovery(DiscoveryEntry entry) {
         return switch (entry.key().kind()) {
             case CREATURE -> label("entity", entry.key().id());
             case BIOME -> label("biome", entry.key().id());
-            case PLACE -> Component.translatableWithFallback("journal.wicklen_chronicles.place." + entry.key().id().replace(':', '.').replace('/', '.'), entry.title());
+            case PLACE -> Component.translatableWithFallback("journal.wicklen_chronicles.place." + entry.key().id().replace(':', '.').replace('/', '.'), placeTitle(entry.title()).getString());
         };
     }
     static Component quest(QuestInstance quest) {

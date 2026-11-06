@@ -15,10 +15,10 @@ import java.util.ArrayList;
 
 /** G opens one field journal. Native widgets send intentions; the server owns every result. */
 public class SpiritDialogScreen extends Screen {
-    enum Tab { CONVERSATION, ATLAS, TASKS }
+    enum Tab { JOURNEY, TASKS, ATLAS, MAP, COLLECTIONS, TRIALS, CONVERSATION }
     static final int INK = 0xFF493B36;
     static final int MUTED = 0xFF796555;
-    private Tab tab = Tab.CONVERSATION;
+    private Tab tab = Tab.JOURNEY;
     private final JournalPages pages = new JournalPages(this);
     private EditBox input;
     private String draft = "";
@@ -34,27 +34,44 @@ public class SpiritDialogScreen extends Screen {
     public SpiritDialogScreen() { super(JournalTexts.tr("title")); }
 
     record Layout(int left, int top, int width, int height) {
-        int contentTop() { return top + 61; }
+        int contentTop() { return top + 13; }
         int contentBottom() { return top + height - 43; }
     }
-    Layout layout() {
-        int w = Math.max(230, Math.min(560, width - 24));
-        int h = Math.max(190, Math.min(340, height - 18));
+    private Layout frame() {
+        int w = Math.max(290, Math.min(660, width - 20));
+        int h = Math.max(220, Math.min(390, height - 18));
         return new Layout((width-w)/2, (height-h)/2, w, h);
     }
+    private int navWidth() { return frame().width() < 480 ? 104 : 116; }
+    Layout layout() {
+        var f=frame();
+        return new Layout(f.left()+navWidth()+8,f.top()+31,f.width()-navWidth()-16,f.height()-37);
+    }
+    boolean journey() { return tab==Tab.JOURNEY; }
+    Tab tab() { return tab; }
+    void open(Tab selected) { select(selected); }
 
     @Override protected void init() {
         var box = layout();
         if (input != null) draft = input.getValue();
         input = null;
-        int tabWidth = (box.width()-30)/3;
-        for (Tab candidate : Tab.values()) {
-            var button = addRenderableWidget(Button.builder(JournalTexts.tr("tab." + candidate.name().toLowerCase(java.util.Locale.ROOT)), b -> select(candidate))
-                .bounds(box.left()+12+candidate.ordinal()*(tabWidth+3), box.top()+32, tabWidth, 20).build());
-            button.active = candidate != tab;
+        var frame=frame();
+        net.minecraft.world.item.Item[] icons={net.minecraft.world.item.Items.COMPASS,net.minecraft.world.item.Items.WRITABLE_BOOK,
+            net.minecraft.world.item.Items.SPYGLASS,net.minecraft.world.item.Items.MAP,net.minecraft.world.item.Items.BUNDLE,
+            net.minecraft.world.item.Items.IRON_SWORD,net.minecraft.world.item.Items.SOUL_LANTERN};
+        int[] colors={0xFF547C6B,0xFFAB7854,0xFF7A668A,0xFF597C8C,0xFF9A7549,0xFFA46354,0xFF6E7C95};
+        int navStep=Math.min(27,(frame.height()-49)/7);
+        for (Tab candidate:Tab.values()) {
+            var label=JournalTexts.tr("tab."+candidate.name().toLowerCase(java.util.Locale.ROOT));
+            var button=addRenderableWidget(JournalButton.colored(label,b->select(candidate))
+                .bounds(frame.left()+8,frame.top()+41+candidate.ordinal()*navStep,navWidth()-8,navStep-2)
+                .icon(new net.minecraft.world.item.ItemStack(icons[candidate.ordinal()]))
+                .accent(colors[candidate.ordinal()]).selected(candidate==tab)
+                .tooltip(net.minecraft.client.gui.components.Tooltip.create(label)).build());
+            button.active=candidate!=tab;
         }
-        addRenderableWidget(Button.builder(Component.literal("×"), b -> onClose())
-            .bounds(box.left()+box.width()-29, box.top()+7, 18, 18).build());
+        addRenderableWidget(JournalButton.colored(Component.literal("×"),b->onClose())
+            .bounds(frame.left()+frame.width()-29,frame.top()+8,18,18).build());
         if (tab == Tab.CONVERSATION) {
             input = new EditBox(font, box.left()+12, box.top()+box.height()-38, box.width()-100, 20,
                 JournalTexts.tr("input"));
@@ -62,7 +79,7 @@ public class SpiritDialogScreen extends Screen {
             input.setValue(draft);
             input.setHint(JournalTexts.tr("input"));
             addRenderableWidget(input);
-            addRenderableWidget(Button.builder(JournalTexts.tr("send"), b -> send())
+            addRenderableWidget(JournalButton.colored(JournalTexts.tr("send"), b -> send())
                 .bounds(box.left()+box.width()-82, box.top()+box.height()-38, 70, 20).build());
             setInitialFocus(input);
         } else pages.init(box, this::addRenderableWidget);
@@ -74,12 +91,12 @@ public class SpiritDialogScreen extends Screen {
 
     private void select(Tab selected) {
         tab = selected;
-        pages.resetSelection();
+        pages.select(selected);
         if (tab != Tab.CONVERSATION) pages.refresh();
         dirty = true;
     }
     void changed() { dirty = true; }
-    boolean atlas() { return tab == Tab.ATLAS; }
+    boolean atlas() { return tab == Tab.ATLAS || tab==Tab.MAP || tab==Tab.COLLECTIONS || tab==Tab.TRIALS; }
 
     @Override public void tick() {
         ticks++;
@@ -95,24 +112,27 @@ public class SpiritDialogScreen extends Screen {
 
     @Override public void extractBackground(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
         super.extractBackground(g, mouseX, mouseY, delta);
-        var b = layout();
-        g.fill(b.left()-3,b.top()-3,b.left()+b.width()+3,b.top()+b.height()+3,0xFF765A49);
-        g.fill(b.left(),b.top(),b.left()+b.width(),b.top()+b.height(),0xFFE5D4B4);
-        g.fill(b.left()+4,b.top()+4,b.left()+b.width()/2,b.top()+b.height()-4,0xFFF1E5CD);
-        g.fill(b.left()+b.width()/2,b.top()+4,b.left()+b.width()-4,b.top()+b.height()-4,0xFFEDE0C4);
-        g.fill(b.left()+b.width()/2,b.top()+57,b.left()+b.width()/2+1,b.top()+b.height()-5,0xFFD8C5A5);
-        g.fill(b.left()+12,b.top()+28,b.left()+b.width()-12,b.top()+29,0xFFBA9977);
-        int color = tab == Tab.CONVERSATION ? 0xFF8B9C85 : tab == Tab.ATLAS ? 0xFFAC8BAC : 0xFFBE9366;
-        g.fill(b.left()+12+tab.ordinal()*((b.width()-30)/3+3),b.top()+29,
-            b.left()+12+tab.ordinal()*((b.width()-30)/3+3)+(b.width()-30)/3,b.top()+32,color);
+        var b = frame();
+        g.fill(b.left()+3,b.top()+4,b.left()+b.width()+4,b.top()+b.height()+4,0x66281E21);
+        g.fill(b.left()-2,b.top()-2,b.left()+b.width()+2,b.top()+b.height()+2,0xFF5C4841);
+        g.fill(b.left(),b.top(),b.left()+b.width(),b.top()+b.height(),0xFFE8D8BB);
+        g.fill(b.left()+4,b.top()+4,b.left()+navWidth()+3,b.top()+b.height()-4,0xFFDBC5A3);
+        g.fill(b.left()+navWidth()+4,b.top()+32,b.left()+b.width()-4,b.top()+b.height()-5,0xFFF3E8D2);
+        g.fill(b.left()+8,b.top()+30,b.left()+b.width()-8,b.top()+31,0xFFBC9C78);
+        g.fill(b.left()+navWidth()+2,b.top()+35,b.left()+navWidth()+3,b.top()+b.height()-8,0xFFB79A77);
+        if (b.height()>280) {
+            g.fakeItem(new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.PAPER),b.left()+16,b.top()+b.height()-46);
+            g.text(font,JournalTexts.tr("ui.field_notes"),b.left()+36,b.top()+b.height()-42,MUTED,false);
+        }
     }
 
     @Override public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
         var box = layout();
-        g.text(font, JournalTexts.tr("title"), box.left()+14,box.top()+13, INK,false);
+        var frame=frame();
+        g.text(font, JournalTexts.tr("title"), frame.left()+14,frame.top()+13, INK,false);
         if (tab == Tab.CONVERSATION) renderConversation(g,box);
         else pages.render(g,box,mouseX,mouseY);
-        if (tab != Tab.CONVERSATION && !pages.ownsFooter()) {
+        if (tab != Tab.CONVERSATION && !journey() && !pages.ownsFooter()) {
             String local = JournalClientState.localNotice();
             var response = JournalClientState.response();
             Component notice = !local.isEmpty() ? Component.translatable(local)

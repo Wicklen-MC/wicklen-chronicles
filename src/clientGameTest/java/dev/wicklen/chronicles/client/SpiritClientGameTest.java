@@ -68,6 +68,21 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
             connection.waitForClientboundPackets();
             context.waitFor(client -> !DialogHistory.lines().isEmpty());
             verifyGhostInsideSolidBlocks(context, world);
+            context.setScreen(SpiritDialogScreen::new);
+            context.waitFor(client -> JournalClientState.view()!=null && !JournalClientState.busy());
+            context.runOnClient(client -> require(JournalJourney.nextStep().equals("observe"),
+                "a fresh journal opens on a concrete first observation, not empty conversation"));
+            captureJournal(context,"journal-first-step");
+            var languageReload=new AtomicReference<java.util.concurrent.CompletableFuture<Void>>();
+            context.runOnClient(client->{
+                client.getLanguageManager().setSelected("ru_ru");
+                languageReload.set(client.reloadResourcePacks());
+            });
+            context.waitFor(client->languageReload.get().isDone() && client.gui.overlay()==null);
+            context.waitTicks(4);
+            context.setScreen(SpiritDialogScreen::new);
+            captureJournal(context,"journal-first-step-ru");
+            context.setScreen(() -> null);
             verifySpyglassObservation(context, world);
             server.runOnServer(mcServer -> SpiritBubbles.speak(connection.getServerPlayer(), "Я здесь. Нажми G — откроем дневник!"));
             connection.waitForClientboundPackets();
@@ -124,6 +139,10 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
                 require(count(player, net.minecraft.world.item.Items.APPLE) == 3, "rejected action preserves materials");
             });
             context.setScreen(SpiritDialogScreen::new);
+            context.waitFor(client -> JournalClientState.view()!=null && JournalClientState.view().activeQuest()!=null
+                && JournalClientState.view().activeQuest().status()==QuestStatus.READY && !JournalClientState.busy());
+            context.runOnClient(client->require(JournalJourney.nextStep().equals("submit"),"ready quest becomes the default next action"));
+            captureJournal(context,"journey-ready-task");
             clickJournal(context, "tab.tasks");
             context.waitFor(client -> JournalClientState.view() != null && JournalClientState.view().activeQuest() != null
                 && JournalClientState.view().activeQuest().status() == QuestStatus.READY && !JournalClientState.busy());
@@ -300,9 +319,7 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
         });
         connection.waitForClientboundPackets();
         context.setScreen(SpiritDialogScreen::new);
-        clickJournal(context, "tab.atlas");
-        clickJournal(context, "map");
-        clickJournal(context, "encounter.heading");
+        clickJournal(context, "tab.trials");
         context.waitFor(client -> EncounterClientState.data() != null && !EncounterClientState.busy()
             && EncounterClientState.data().courtyards().stream().anyMatch(court -> court.id().equals(place.key().id())));
         context.runOnClient(client -> require(EncounterClientState.data().gatewayAvailable(),
@@ -325,6 +342,22 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
         context.waitFor(client -> !EncounterClientState.busy() && EncounterClientState.data() != null
             && EncounterClientState.data().encounters().stream().anyMatch(row -> row.id().equals(encounter)
                 && row.status().equals("ACTIVE")));
+        var escapedMob=new AtomicReference<UUID>();
+        server.waitFor(mcServer -> {
+            UUID mob=GatewayWaveProbe.forceFirstMobEscape(connection.getServerPlayer(),encounter,place);
+            if(mob!=null)escapedMob.set(mob);
+            return mob!=null;
+        },200);
+        context.waitTicks(40);
+        server.runOnServer(mcServer -> {
+            var player=connection.getServerPlayer();
+            require(GatewayWaveProbe.isAliveInside(player,escapedMob.get(),place),
+                "escaped wave mob keeps its identity and returns alive to the courtyard");
+            require(dev.wicklen.chronicles.encounter.EncounterService.knownEncounters(player).stream()
+                .anyMatch(row->row.id().equals(encounter)&&row.status().equals("ACTIVE")),
+                "a moving/escaped mob never cancels the trial");
+        });
+        context.waitTicks(60);
         var waves = new java.util.HashSet<Integer>();
         var defeated = new java.util.HashSet<UUID>();
         server.waitFor(mcServer -> {
@@ -367,8 +400,7 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
 
     private static void verifyEncounterUnavailable(ClientGameTestContext context,
             net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext world) {
-        clickJournal(context, "map");
-        clickJournal(context, "encounter.heading");
+        clickJournal(context, "tab.trials");
         context.waitFor(client -> EncounterClientState.data() != null && !EncounterClientState.busy());
         context.runOnClient(client -> {
             var data = EncounterClientState.data();
@@ -397,8 +429,7 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
             net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext world) {
         var server = world.getServer();
         var connection = world.getConnection();
-        clickJournal(context, "tab.atlas");
-        clickJournal(context, "map");
+        clickJournal(context, "tab.map");
         context.waitFor(client -> ResearchClientState.data() != null && !ResearchClientState.busy());
         context.runOnClient(client -> {
             var data = ResearchClientState.data();
@@ -411,7 +442,7 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
         context.clickScreenButton("•");
         context.waitTicks(3);
         captureJournal(context, "journal-known-place-map");
-        clickJournal(context, "collections");
+        clickJournal(context, "tab.collections");
         context.waitFor(client -> ResearchClientState.data() != null && !ResearchClientState.busy());
         context.clickScreenButton(context.computeOnClient(client -> JournalTexts.tr("research.waypoints").getString()));
         context.waitTicks(3);
@@ -514,6 +545,8 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
             connection.waitForClientboundPackets();
             context.getInput().lookAt(target.get());
             context.getInput().holdKey(options -> options.keyUse);
+            context.waitTicks(15);
+            context.takeScreenshot("spyglass-target-progress");
             server.waitFor(mcServer->dev.wicklen.chronicles.exploration.ExplorationService.snapshot(connection.getServerPlayer())
                 .entries().stream().anyMatch(entry->entry.key().id().equals("minecraft:cow")),200);
         } finally {

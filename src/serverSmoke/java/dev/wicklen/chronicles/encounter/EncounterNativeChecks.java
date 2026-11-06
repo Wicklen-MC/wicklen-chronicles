@@ -121,6 +121,7 @@ public final class EncounterNativeChecks {
             require(found.isPresent(), "real portal is registered in Gateway API");
             var portal = (Entity) found.orElseThrow();
             require(GatewayBridge.sourceId(id).equals(runtime.bridge.sourceOf(portal)), "actual portal carries our source identity");
+            verifyEscapingMob(runtime, runtime.find(id), level);
             runtime.bridge.closeSource(id);
             var state = (Enum<?>) portal.getClass().getMethod("getGatewayState").invoke(portal);
             require(portal.isRemoved() || state.name().equals("CLOSING"), "our portal closes through the public API");
@@ -148,6 +149,31 @@ public final class EncounterNativeChecks {
         var export = FabricLoader.getInstance().getGameDir().resolve("wicklen-gateway-profile.json");
         Files.writeString(export, new com.google.gson.GsonBuilder().setPrettyPrinting().create().toJson(managed));
         System.out.println("PASS: actual optional Gateway API profiles/snapshot/open/source/close with own rewards disabled");
+    }
+
+    private static void verifyEscapingMob(EncounterService.RuntimeState runtime, EncounterSession session,
+                                         net.minecraft.server.level.ServerLevel level) {
+        var type = BuiltInRegistries.ENTITY_TYPE.get(Identifier.parse("minecraft:zombie")).orElseThrow().value();
+        var mob = (net.minecraft.world.entity.Mob) type.create(level, net.minecraft.world.entity.EntitySpawnReason.MOB_SUMMONED);
+        require(mob != null, "native containment fixture creates a real hostile mob");
+        var arena = session.place().arena();
+        var anchor = session.place().anchor();
+        mob.setPos(anchor.x() + 0.5, anchor.y(), anchor.z() + 0.5);
+        level.addFreshEntity(mob);
+        try {
+            // Repeated knockback/AI escapes must preserve this mob and the encounter identity.
+            runtime.containMob(session, level, mob);
+            for (int attempt = 0; attempt < 10; attempt++) {
+                mob.teleportTo(arena.minX() - 4.5, arena.minY(), anchor.z() + 0.5);
+                mob.setDeltaMovement(-0.7, 0.2, 0);
+                runtime.containMob(session, level, mob);
+                require(arena.contains(mob.blockPosition()), "escaped wave mob is returned inside the courtyard");
+                require(mob.getDeltaMovement().lengthSqr() == 0 && mob.isAlive(), "return clears knockback without killing the mob");
+                require(level.noBlockCollision(mob, mob.getBoundingBox()), "return never puts a wave mob into a wall");
+                require(runtime.find(session.id()).active(), "mob movement does not abort the live encounter");
+            }
+        } finally { mob.discard(); }
+        System.out.println("PASS: native repeated mob escape returns safely without aborting the encounter");
     }
 
     private static PlaceManifest fixturePlace(UUID id) {

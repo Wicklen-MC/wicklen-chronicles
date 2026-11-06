@@ -29,7 +29,7 @@ final class JournalStories {
         int footer = box.top() + box.height() - 38;
         if (plan == null) {
             var view = JournalClientState.view();
-            var request = Button.builder(JournalTexts.tr("story_request"), button ->
+            var request = JournalButton.colored(JournalTexts.tr("story_request"), button ->
                 StoryClientState.request(StoryRequestPayload.Action.REQUEST, "", ""))
                 .bounds(box.left() + box.width() - 196, footer, 184, 18).build();
             request.active = !StoryClientState.busy() && view != null
@@ -43,7 +43,7 @@ final class JournalStories {
             final int index = i;
             var choice = plan.choices().get(i);
             var label = Component.literal(screen.getFont().plainSubstrByWidth(choice.label(), width - 16));
-            var button = Button.builder(label, ignored -> {
+            var button = JournalButton.colored(label, ignored -> {
                 selected = index;
                 pages.resetDetailScroll();
                 screen.changed();
@@ -54,7 +54,7 @@ final class JournalStories {
             add.accept(button);
         }
         var choice = plan.choices().get(selected);
-        var choose = Button.builder(JournalTexts.tr("story_choose"), button ->
+        var choose = JournalButton.colored(JournalTexts.tr("story_choose"), button ->
             StoryClientState.request(StoryRequestPayload.Action.CHOOSE, plan.id().toString(), choice.id()))
             .bounds(box.left() + box.width() - 196, footer, 184, 18).build();
         choose.active = !StoryClientState.busy();

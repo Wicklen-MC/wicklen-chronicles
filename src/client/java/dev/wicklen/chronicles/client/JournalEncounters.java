@@ -37,51 +37,53 @@ final class JournalEncounters {
         }
         if (data.encounters().isEmpty()) preparing = true;
         int footer = box.top() + box.height() - 38;
+        int actionLeft=box.width()<260?12:92;
+        int actionWidth=(box.width()-actionLeft-16)/2;
         if (preparing) {
             selectedCourt = Math.clamp(selectedCourt, 0, Math.max(0, data.courtyards().size() - 1));
             if (data.courtyards().size() > 1) selector(box, add, data.courtyards().size(), true);
             String id = data.courtyards().isEmpty() ? "" : data.courtyards().get(selectedCourt).id();
-            var normal = Button.builder(JournalTexts.tr("encounter.normal"), button ->
+            var normal = JournalButton.colored(JournalTexts.tr("encounter.normal"), button ->
                 EncounterClientState.request(EncounterRequestPayload.Action.PREPARE_NORMAL, id))
-                .bounds(box.left() + 92, footer, 88, 18).build();
-            var empowered = Button.builder(JournalTexts.tr("encounter.empowered"), button ->
+                .bounds(box.left() + actionLeft, footer, actionWidth, 18).build();
+            var empowered = JournalButton.colored(JournalTexts.tr("encounter.empowered"), button ->
                 EncounterClientState.request(EncounterRequestPayload.Action.PREPARE_EMPOWERED, id))
-                .bounds(box.left() + box.width() - 112, footer, 100, 18).build();
+                .bounds(box.left() + box.width() - actionWidth - 12, footer, actionWidth, 18).build();
             normal.active = empowered.active = data.gatewayAvailable() && !id.isEmpty() && !EncounterClientState.busy();
             add.accept(normal);
             add.accept(empowered);
-            if (!data.encounters().isEmpty()) add.accept(Button.builder(JournalTexts.tr("encounter.own"), button -> {
+            if (!data.encounters().isEmpty()) add.accept(JournalButton.colored(JournalTexts.tr("encounter.own"), button -> {
                 preparing = false;
                 pages.resetDetailScroll();
                 screen.changed();
-            }).bounds(box.left() + box.width() - 118, box.contentTop() + 20, 106, 18).build());
+            }).bounds(box.left() + box.width() - 118, box.contentTop() - 3, 106, 18).build());
             return;
         }
         selectedEncounter = Math.clamp(selectedEncounter, 0, data.encounters().size() - 1);
         if (data.encounters().size() > 1) selector(box, add, data.encounters().size(), false);
         var row = data.encounters().get(selectedEncounter);
-        add.accept(Button.builder(JournalTexts.tr("encounter.new"), button -> {
+        add.accept(JournalButton.colored(JournalTexts.tr("encounter.new"), button -> {
             preparing = true;
             pages.resetDetailScroll();
             screen.changed();
-        }).bounds(box.left() + box.width() - 118, box.contentTop() + 20, 106, 18).build());
+        }).bounds(box.left() + box.width() - 118, box.contentTop() - 3, 106, 18).build());
         if (row.status().equals("LOBBY") && row.leader()) {
-            var start = Button.builder(JournalTexts.tr("encounter.start"), button ->
+            var start = JournalButton.colored(JournalTexts.tr("encounter.start"), button ->
                 EncounterClientState.request(EncounterRequestPayload.Action.START, row.id().toString()))
-                .bounds(box.left() + box.width() - 112, footer, 100, 18).build();
+                .bounds(box.left() + box.width() - actionWidth - 12, footer, actionWidth, 18).build();
             start.active = data.gatewayAvailable() && !EncounterClientState.busy();
             add.accept(start);
         }
         if (row.status().equals("LOBBY") || row.status().equals("ACTIVE")) {
-            var leave = Button.builder(JournalTexts.tr("encounter.leave"), button ->
+            var leave = JournalButton.colored(JournalTexts.tr("encounter.leave"), button ->
                 EncounterClientState.request(EncounterRequestPayload.Action.LEAVE, row.id().toString()))
-                .bounds(box.left() + 92, footer, 88, 18).build();
+                .bounds(box.left() + actionLeft, footer, actionWidth, 18).build();
             leave.active = !EncounterClientState.busy();
             add.accept(leave);
         }
         var reward = row.rewards().stream().filter(value -> !value.claimed()).findFirst().orElse(null);
         if (reward != null) {
-            var claim = Button.builder(JournalTexts.tr("claim"), button ->
+            var claim = JournalButton.colored(JournalTexts.tr("claim"), button ->
                 EncounterClientState.request(EncounterRequestPayload.Action.CLAIM, reward.id().toString()))
                 .bounds(box.left() + box.width() - 170, footer, 158, 18).build();
             claim.active = !EncounterClientState.busy();
@@ -90,13 +92,13 @@ final class JournalEncounters {
     }
 
     private void selector(SpiritDialogScreen.Layout box, Consumer<Button> add, int count, boolean courtyard) {
-        add.accept(Button.builder(Component.literal("‹"), button -> {
+        add.accept(JournalButton.colored(Component.literal("‹"), button -> {
             if (courtyard) selectedCourt = Math.floorMod(selectedCourt - 1, count);
             else selectedEncounter = Math.floorMod(selectedEncounter - 1, count);
             pages.resetDetailScroll();
             screen.changed();
         }).bounds(box.left() + 12, box.contentTop() + 20, 20, 18).build());
-        add.accept(Button.builder(Component.literal("›"), button -> {
+        add.accept(JournalButton.colored(Component.literal("›"), button -> {
             if (courtyard) selectedCourt = (selectedCourt + 1) % count;
             else selectedEncounter = (selectedEncounter + 1) % count;
             pages.resetDetailScroll();
@@ -116,29 +118,27 @@ final class JournalEncounters {
             if (data.courtyards().isEmpty()) lines.add(JournalTexts.tr("encounter.no_courtyard"));
             else {
                 var court = data.courtyards().get(Math.clamp(selectedCourt, 0, data.courtyards().size() - 1));
-                lines.add(Component.literal(court.title()));
+                lines.add(JournalTexts.placeTitle(court.title()));
                 lines.add(JournalTexts.tr("recorded_at", court.position().x(), court.position().y(), court.position().z()));
             }
             lines.add(JournalTexts.tr("encounter.prepare_hint"));
-            lines.add(JournalTexts.tr("encounter.consent"));
             lines.add(JournalTexts.tr("encounter.conditions"));
             lines.add(JournalTexts.tr("encounter.reward"));
         } else if (!data.encounters().isEmpty()) {
             var row = data.encounters().get(Math.clamp(selectedEncounter, 0, data.encounters().size() - 1));
-            lines.add(Component.literal(row.title()));
+            lines.add(JournalTexts.placeTitle(row.title()));
             lines.add(JournalTexts.tr("encounter.mode", JournalTexts.tr("encounter." + row.mode().toLowerCase(java.util.Locale.ROOT))));
             lines.add(JournalTexts.tr("encounter.status." + row.status().toLowerCase(java.util.Locale.ROOT)));
             lines.add(JournalTexts.tr("encounter.party", row.participants()));
-            if (row.status().equals("LOBBY")) lines.add(JournalTexts.tr("encounter.consent"));
+            lines.add(JournalTexts.tr("encounter.reward"));
             if (row.status().equals("LOBBY") || row.status().equals("ACTIVE"))
                 lines.add(JournalTexts.tr("encounter.conditions"));
             if (!row.rewards().isEmpty()) lines.add(JournalTexts.tr(
                 row.rewards().stream().allMatch(reward -> reward.claimed()) ? "status.rewarded" : "status.reward_pending"));
-            lines.add(JournalTexts.tr("encounter.reward"));
         }
         var response = EncounterClientState.response();
         if (response != null && !response.feedback().isBlank()) lines.add(Component.literal(response.feedback()));
         if (response != null && response.error() && response.feedback().isBlank()) lines.add(JournalTexts.tr("action_failed"));
-        pages.renderLines(graphics, box, box.left() + 14, box.contentTop() + 44, box.width() - 28, lines);
+        pages.renderLines(graphics, box, box.left() + 14, box.contentTop() + (data!=null && (preparing?data.courtyards().size():data.encounters().size())>1?44:24), box.width() - 28, lines);
     }
 }

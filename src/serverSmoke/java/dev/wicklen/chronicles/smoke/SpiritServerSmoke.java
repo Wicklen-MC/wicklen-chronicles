@@ -124,6 +124,9 @@ public final class SpiritServerSmoke implements ModInitializer {
 
     private void finishAfterTicks(MinecraftServer server) {
         if (!armed || finished || ++ticks < 10) return;
+        // A loaded LevelChunk can precede its asynchronous entity-ticking state.
+        // Wait for the fixture's actual prerequisite, bounded to ten seconds.
+        if (failure == null && !dev.wicklen.chronicles.exploration.ExplorationNativeChecks.ready(server) && ticks < 200) return;
         finished = true;
         try {
             if (failure == null) {

@@ -33,5 +33,27 @@ final class GatewayWaveProbe {
         }
     }
 
+    static UUID forceFirstMobEscape(ServerPlayer player,UUID encounterId,
+            dev.wicklen.chronicles.station.PlaceManifest place) {
+        try {
+            var api=Class.forName("de.mrstilu2k6.gateway_of_doom.api.GatewayApi");
+            var portals=(List<?>)api.getMethod("activeGatewaysBySourceId",String.class)
+                .invoke(null,"wicklen_chronicles:encounter/"+encounterId);
+            for(Object portal:portals) {
+                var ids=(List<?>)portal.getClass().getMethod("trackedMobIds").invoke(portal);
+                for(Object raw:ids) if(player.level().getEntity((UUID)raw) instanceof LivingEntity mob && mob.isAlive()) {
+                    mob.teleportTo(place.arena().minX()-4.5,place.arena().minY(),place.anchor().z()+0.5);
+                    return mob.getUUID();
+                }
+            }
+            return null;
+        } catch(ReflectiveOperationException error) { throw new AssertionError(error); }
+    }
+    static boolean isAliveInside(ServerPlayer player,UUID mobId,
+            dev.wicklen.chronicles.station.PlaceManifest place) {
+        return player.level().getEntity(mobId) instanceof LivingEntity mob && mob.isAlive()
+            && place.arena().contains(mob.blockPosition());
+    }
+
     private GatewayWaveProbe() {}
 }
