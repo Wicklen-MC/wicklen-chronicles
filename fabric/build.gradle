@@ -366,3 +366,21 @@ tasks.register('liveJourneyMemoryTest', JavaExec) {
     doFirst { if (!configPath.isPresent()) throw new GradleException('Supply -PliveSpiritConfig with an explicitly approved private config') }
     if (configPath.isPresent()) args configPath.get()
 }
+
+
+tasks.register('mapCameraTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks fractional map movement, cursor-anchored zoom and bounded camera geometry.'
+    classpath = sourceSets.clientGameTest.runtimeClasspath
+    mainClass = 'dev.wicklen.chronicles.client.TerrainMapCameraChecks'
+}
+tasks.named('check') { dependsOn tasks.named('mapCameraTest') }
+
+
+tasks.register('automaticSpeechTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks personal automatic-speech cadence, fresh causes and manual/automatic separation.'
+    classpath = sourceSets.regression.runtimeClasspath
+    mainClass = 'dev.wicklen.chronicles.ai.SpiritAutomaticSpeechChecks'
+}
+tasks.named('check') { dependsOn tasks.named('automaticSpeechTest') }

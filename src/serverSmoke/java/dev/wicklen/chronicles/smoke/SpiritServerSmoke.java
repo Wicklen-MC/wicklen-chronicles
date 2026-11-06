@@ -192,6 +192,10 @@ public final class SpiritServerSmoke implements ModInitializer {
                     dev.wicklen.chronicles.ai.SpiritJourneyNativeChecks.verify(server);
                 } catch (Throwable error) { failure=error; LOGGER.error("Companion journey memory native checks failed",error); }
             }
+            if (failure == null) {
+                try { dev.wicklen.chronicles.ai.SpiritAutomaticSpeechNativeChecks.verify(server); }
+                catch (Throwable error) { failure=error; LOGGER.error("Automatic speech preferences/cadence checks failed",error); }
+            }
             String result = failure == null ? "PASS" : "FAIL " + failure;
             Files.writeString(runDirectory.resolve("smoke-result.txt"), result + System.lineSeparator());
             if (failure == null) LOGGER.info("[Wicklen: Chronicles server smoke] PASS: dedicated server, core quest and world-scoped persistence");

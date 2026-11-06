@@ -40,6 +40,7 @@ public class WicklenChronicles implements ModInitializer {
         SpiritEvents.register();
         SpiritWorldEvents.register();
         SpiritProactive.register();
+        dev.wicklen.chronicles.ai.SpiritSpeechPreferences.register();
         SpiritManager.register();
         SpiritBubbles.register();
         dev.wicklen.chronicles.exploration.ExplorationService.register();

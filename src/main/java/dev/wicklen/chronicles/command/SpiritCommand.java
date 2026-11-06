@@ -82,20 +82,8 @@ public final class SpiritCommand {
                     .executes(ctx -> {
                         var player = ctx.getSource().getPlayerOrException();
                         var server = ctx.getSource().getServer();
-                        var recent = new java.util.ArrayList<String>();
-                        try {
-                            var pa = player.getAdvancements();
-                            for (var holder : server.getAdvancements().getAllAdvancements()) {
-                                if (holder.id().getPath().startsWith("recipes/")) continue;
-                                if (pa.getOrStartProgress(holder).isDone()) {
-                                    holder.value().display().ifPresent(d -> recent.add(d.title().getString()));
-                                }
-                            }
-                        } catch (Exception ignored) {}
-                        var last = recent.stream().skip(Math.max(0, recent.size() - 6)).toList();
-                        dev.wicklen.chronicles.ai.SpiritAi.narrate(server, player,
-                            "Игрок просит совета-проводника. Некоторые его выполненные достижения: %s. Подскажи одной-двумя короткими фразами, куда двигаться дальше по духу сборки."
-                                .formatted(String.join(", ", last)));
+                        dev.wicklen.chronicles.ai.SpiritAi.requestedAction(server, player,
+                            "Игрок явно просит совета, куда отправиться. По его личным записям, выбранному маршруту и текущей цели предложи один конкретный следующий шаг. Если подходящей находки ещё нет — предложи осмотреть видимую постройку или существо в подзорную трубу. Ответь одной-двумя короткими фразами.");
                         ctx.getSource().sendSuccess(() -> Component.literal("Дух думает над советом…"), false);
                         return 1;
                     }))
@@ -139,7 +127,7 @@ public final class SpiritCommand {
             ctx.getSource().sendSuccess(() -> Component.literal(
                 "Новое задание от духа: " + q.describe() + "\n" + q.instructions()
                     + "\nКогда условия выполнены: /spirit quest turnin. Затем /spirit quest claim."), false);
-            dev.wicklen.chronicles.ai.SpiritAi.narrate(ctx.getSource().getServer(), player,
+            dev.wicklen.chronicles.ai.SpiritAi.requestedAction(ctx.getSource().getServer(), player,
                 "Ты даёшь игроку задание: «%s». Объяви его одной короткой фразой в своей манере."
                     .formatted(q.describe()));
             return 1;

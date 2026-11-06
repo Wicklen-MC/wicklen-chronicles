@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BooleanSupplier;
 
 /**
  * LLM-слой духа: провайдер выбирается абстракцией LlmProviders
@@ -36,7 +37,9 @@ public final class SpiritAi {
     public static void reset() { LIMITER.clear(); }
 
     public static boolean canNarrate(ServerPlayer player) {
-        return enabled() && !SpiritJourneyContext.inActiveEncounter(player)
+        return automaticPresentationAllowed(player)
+            && SpiritSpeechPreferences.automaticAllowed(player.getUUID(), System.currentTimeMillis())
+            && enabled()
             && LIMITER.check(player.getUUID(), System.currentTimeMillis(), cooldownMs(), maxTurnsPerHour())
             == RequestLimiter.Result.ACCEPTED;
     }
@@ -57,8 +60,39 @@ public final class SpiritAi {
 
     /** Реплика по событию мира (ночь/рассвет/полнолуние/смерть). */
     public static void narrate(MinecraftServer server, ServerPlayer player, String prompt) {
-        if(SpiritJourneyContext.inActiveEncounter(player))return;
+        narrate(server, player, prompt, () -> true);
+    }
+
+    /** Automatic events are dropped at dispatch and rechecked at delivery; they never wait for the interval. */
+    public static void narrate(MinecraftServer server, ServerPlayer player, String prompt, BooleanSupplier stillRelevant) {
+        if (!canNarrate(player) || !relevant(stillRelevant)) return;
+        long now = System.currentTimeMillis();
+        if (!SpiritSpeechPreferences.reserveAutomatic(player.getUUID(), now)) return;
+        long preferenceRevision = SpiritSpeechPreferences.revision(player.getUUID());
+        callInternal(server, player, prompt, false, text -> {
+            if (System.currentTimeMillis() - now > 120_000
+                    || !automaticPresentationAllowed(player)
+                    || !SpiritSpeechPreferences.deliveryAllowed(player.getUUID(), preferenceRevision)
+                    || !relevant(stillRelevant)) return;
+            reply(player, text);
+        });
+    }
+
+    /** Explicit quest/guide feedback follows the ordinary request budget, independently of automatic speech settings. */
+    public static void requestedAction(MinecraftServer server, ServerPlayer player, String prompt) {
         call(server, player, prompt, false);
+    }
+
+    private static boolean automaticPresentationAllowed(ServerPlayer player) {
+        try {
+            return SpiritConfig.get().proactive && !SpiritPrefs.isHidden(player.getUUID())
+                    && !SpiritJourneyContext.inActiveEncounter(player);
+        } catch (RuntimeException unavailable) { return false; }
+    }
+
+    private static boolean relevant(BooleanSupplier condition) {
+        try { return condition.getAsBoolean(); }
+        catch (RuntimeException unavailable) { return false; }
     }
 
     private static void call(MinecraftServer server, ServerPlayer player, String message, boolean isChat) {
@@ -100,7 +134,7 @@ public final class SpiritAi {
 
         try {
             String context = SpiritSenses.context(player,isChat?message:"");
-            request(server, persona, player.getScoreboardName(), memory(playerId), context, message,
+            request(server, persona, player.getScoreboardName(), isChat ? memory(playerId) : List.of(), context, message,
                 language(player), SpiritConfig.get().maxTokens, text -> {
                     if (isChat) remember(playerId, message, text);
                     responder.accept(text);
@@ -232,6 +266,7 @@ public final class SpiritAi {
             +"Если сохранённого подтверждения нет, честно скажи, что не знаешь. Не выдумывай новые структуры, координаты, тайники, события и результаты экспедиций. "
             +"Технические ключи и значения контекста используй только для понимания: firstLight, SURVEY, OBSERVE, ENCOUNTER, ACTIVE, READY, CLAIMED и другие названия полей в реплику не выводи. "
             +"Говори естественно как спутник: «мы ещё разведываем окрестности», «осталась одна полевая отметка», «припасы ждут в дневнике». Название обычного вида переводи на язык ответа, личную подпись сохраняй точно. "
+            +"Не называй количество достижений и не поздравляй с ачивками, если игрок сам явно об этом не спросил. Автоматическая реплика касается только свежего конкретного повода; без статистики достижений, скуки и бесцельных вопросов. "
             +"Кратко связывай реплику с реальными личными названиями, решениями и результатами, когда это уместно; не пересказывай весь список памяти.";
     }
 
