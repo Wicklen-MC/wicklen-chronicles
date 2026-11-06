@@ -46,6 +46,10 @@ public final class ExplorationService {
     private static final Logger LOGGER = LoggerFactory.getLogger("wicklen_chronicles.exploration");
     private static final List<VisiblePlaceProvider> PLACE_PROVIDERS = new ArrayList<>(List.of(new VanillaPlaceObserver()));
     private static final List<BiConsumer<ServerPlayer, DiscoverySnapshot>> LISTENERS = new ArrayList<>();
+    private static final List<ConfirmedListener> CONFIRMED = new ArrayList<>();
+    @FunctionalInterface public interface ConfirmedListener {
+        void confirmed(ServerPlayer player, Observation observation, DiscoveryPosition observerPosition);
+    }
     private static RuntimeState current;
     private static boolean registered;
 
@@ -59,6 +63,7 @@ public final class ExplorationService {
             if (current != null && current.server == server) {
                 current.focus.remove(handler.player.getUUID());
                 current.retryAfter.remove(handler.player.getUUID());
+                current.confirmedFocus.remove(handler.player.getUUID());
                 current.hints.remove(handler.player.getUUID());
             }
         });
@@ -76,6 +81,8 @@ public final class ExplorationService {
     public static void onChanged(BiConsumer<ServerPlayer, DiscoverySnapshot> listener) {
         LISTENERS.add(java.util.Objects.requireNonNull(listener));
     }
+    /** Genuine focused observations, including familiar species; listeners cannot revoke a base discovery. */
+    public static void onConfirmed(ConfirmedListener listener) { CONFIRMED.add(java.util.Objects.requireNonNull(listener)); }
 
     public static DiscoverySnapshot snapshot(ServerPlayer player) {
         var state = state(player.level().getServer());
@@ -117,6 +124,7 @@ public final class ExplorationService {
             var tracker = state.focus.computeIfAbsent(player.getUUID(), ignored -> new ObservationTracker());
             if (!player.isAlive() || player.isSpectator() || !player.isUsingItem() || !player.getUseItem().is(Items.SPYGLASS)) {
                 tracker.reset();
+                state.confirmedFocus.remove(player.getUUID());
                 long tick = server.getTickCount();
                 if (player.isAlive() && !player.isSpectator() && tick % 20 == 0
                         && tick >= state.retryAfter.getOrDefault(player.getUUID(), 0L)) {
@@ -145,31 +153,42 @@ public final class ExplorationService {
                 var target = visibleTarget(player, state);
                 if (target == null) {
                     tracker.reset();
+                    state.confirmedFocus.remove(player.getUUID());
                     state.hints.invalid(player, tick);
                     continue;
                 }
-                if (state.repository.snapshot(player.getUUID()).entries().stream()
-                        .anyMatch(entry -> entry.key().equals(target.observation.key()))) {
+                boolean known = state.repository.snapshot(player.getUUID()).entries().stream()
+                        .anyMatch(entry -> entry.key().equals(target.observation.key()));
+                var observerPosition = position(player.level(), player.blockPosition());
+                String focusKey = target.focusId + "|" + Math.floorDiv(target.observation.position().x(),128) + "|"
+                        + Math.floorDiv(target.observation.position().z(),128) + "|" + Math.floorDiv(observerPosition.x(),128) + "|" + Math.floorDiv(observerPosition.z(),128);
+                if (focusKey.equals(state.confirmedFocus.get(player.getUUID()))) {
                     tracker.reset();
                     state.hints.scan(player, target.observation, target.mob, target.surface, 100, true, tick);
                     continue;
                 }
-                boolean confirmedByFieldGuide = target.mob != null && state.fieldGuide.confirms(player,
+                boolean confirmedByFieldGuide = !known && target.mob != null && state.fieldGuide.confirms(player,
                         BuiltInRegistries.ENTITY_TYPE.getKey(target.mob.getType()), target.mob.getId());
                 boolean ready = tracker.sample(target.focusId, tick, player.getTicksUsingItem(), true, true,
                         confirmedByFieldGuide, REQUIRED_FOCUS_TICKS);
                 if (!ready) {
                     state.hints.scan(player, target.observation, target.mob, target.surface,
-                            tracker.focusedTicks() * 100 / REQUIRED_FOCUS_TICKS, false, tick);
+                            tracker.focusedTicks() * 100 / REQUIRED_FOCUS_TICKS, known, tick);
                     continue;
                 }
                 var change = state.repository.observe(player.getUUID(), target.observation);
                 tracker.reset();
-                if (!change.changed()) continue;
-                state.hints.recorded(player, target.observation, target.mob, target.surface, tick);
-                for (var listener : LISTENERS) {
-                    try { listener.accept(player, change.snapshot()); }
-                    catch (RuntimeException error) { LOGGER.warn("Discovery listener failed after persistence: {}", error.toString()); }
+                state.confirmedFocus.put(player.getUUID(),focusKey);
+                if (change.changed()) {
+                    state.hints.recorded(player, target.observation, target.mob, target.surface, tick);
+                    for (var listener : LISTENERS) {
+                        try { listener.accept(player, change.snapshot()); }
+                        catch (RuntimeException error) { LOGGER.warn("Discovery listener failed after persistence: {}", error.toString()); }
+                    }
+                }
+                for (var listener : CONFIRMED) {
+                    try { listener.confirmed(player,target.observation,observerPosition); }
+                    catch (RuntimeException error) { LOGGER.warn("Field observation listener deferred; discovery preserved: {}",error.toString()); }
                 }
             } catch (IOException | UncheckedIOException error) {
                 tracker.reset();
@@ -260,6 +279,7 @@ public final class ExplorationService {
         final FieldGuideBridge fieldGuide = new FieldGuideBridge();
         final ObservationHints hints = new ObservationHints();
         final Map<UUID, ObservationTracker> focus = new HashMap<>();
+        final Map<UUID, String> confirmedFocus = new HashMap<>();
         final Map<UUID, Long> retryAfter = new HashMap<>();
         final Set<VisiblePlaceProvider> failedProviders = new HashSet<>();
         RuntimeException failure;

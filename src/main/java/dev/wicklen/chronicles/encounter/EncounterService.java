@@ -45,6 +45,11 @@ public final class EncounterService {
     private static final Logger LOGGER = LoggerFactory.getLogger("wicklen_chronicles.encounter");
     private static RuntimeState current;
     private static boolean registered;
+    public record CompletedEncounter(UUID id, DiscoveryKey place, long finishedAt) {}
+    private static final List<java.util.function.BiConsumer<ServerPlayer,CompletedEncounter>> COMPLETED = new ArrayList<>();
+    public static void onCompleted(java.util.function.BiConsumer<ServerPlayer,CompletedEncounter> listener) {
+        COMPLETED.add(Objects.requireNonNull(listener));
+    }
 
     public record ActionResult(boolean success, String message, UUID encounterId) {}
     public record View(UUID id, DiscoveryKey place, EncounterMode mode, String status, boolean leader,
@@ -240,6 +245,15 @@ public final class EncounterService {
     public static EncounterPlan frozenPlan(ServerPlayer player, UUID encounterId) {
         var session = state(player.level().getServer()).find(encounterId);
         return session != null && session.consenting().contains(player.getUUID()) ? session.plan() : null;
+    }
+    /** Durable success projection repairs consumers if their own checked save failed after completion. */
+    public static Optional<CompletedEncounter> completionSince(ServerPlayer player,DiscoveryKey place,long acceptedAt) {
+        return state(player.level().getServer()).ledger.all().values().stream()
+                .filter(session->session.consenting().contains(player.getUUID()) && session.encounter()!=null
+                        && session.encounter().status()==EncounterStatus.SUCCESS && session.place().key().equals(place)
+                        && session.encounter().finishedAt()>=acceptedAt)
+                .max(Comparator.comparingLong(session->session.encounter().finishedAt()))
+                .map(session->new CompletedEncounter(session.id(),session.place().key(),session.encounter().finishedAt()));
     }
 
     static RuntimeState state(MinecraftServer server) {
@@ -542,6 +556,12 @@ public final class EncounterService {
                 diagnostics.finished(ended, "EXECUTOR_" + event.outcome(), debugParty(session));
                 cleanup(session);
                 if (status == EncounterStatus.SUCCESS) {
+                    var fact=new CompletedEncounter(session.id(),session.place().key(),change.instance().finishedAt());
+                    for(UUID owner:session.consenting()) {
+                        var player=server.getPlayerList().getPlayer(owner);if(player==null)continue;
+                        for(var listener:COMPLETED)try{listener.accept(player,fact);}
+                        catch(RuntimeException error){LOGGER.warn("Encounter completion listener deferred; reward remains saved: {}",error.toString());}
+                    }
                     for (var grant : change.instance().rewards()) send(grant.ownerId(), "Испытание пройдено. Получить реликвию: /spirit encounter claim " + grant.id());
                 } else tell(session, "Испытание закончено: " + status + ". Штрафа и награды нет.");
             } catch (IOException error) {

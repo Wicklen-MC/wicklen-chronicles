@@ -44,8 +44,11 @@ public class WicklenChronicles implements ModInitializer {
         SpiritBubbles.register();
         dev.wicklen.chronicles.exploration.ExplorationService.register();
         dev.wicklen.chronicles.net.JournalNetwork.register();
+        dev.wicklen.chronicles.net.AnnotationNetwork.register();
         dev.wicklen.chronicles.story.StoryService.register();
         dev.wicklen.chronicles.encounter.EncounterService.register();
+        dev.wicklen.chronicles.terrain.TerrainMapService.register();
+        dev.wicklen.chronicles.net.FirstLightNetwork.register();
         net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents.SERVER_STARTING.register(server -> {
             try {
                 dev.wicklen.chronicles.ai.WorldStorageContext.open(
@@ -79,6 +82,7 @@ public class WicklenChronicles implements ModInitializer {
             SpiritWorldEvents.reset();
             dev.wicklen.chronicles.story.StoryService.reset();
             dev.wicklen.chronicles.encounter.EncounterPlanningService.reset();
+            dev.wicklen.chronicles.firstlight.FirstLightNarrationService.reset();
         });
         var active = dev.wicklen.chronicles.ai.llm.LlmProviders.active();
         LOGGER.info("[Wicklen: Chronicles] initialized, LLM provider: {}",

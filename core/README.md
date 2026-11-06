@@ -23,6 +23,13 @@ classes into the mod JAR. The dependency points from Fabric to core only.
 - `discovery`: player/world-owned observations with strict creature/place/biome
   keys, immutable first-known facts and deterministic optional reward entitlements.
   Repeated observations do not replace facts, increase revisions or reset rewards.
+- `annotation`: personal names/notes with their own optimistic revision and clear
+  semantics; canonical discoveries and quest targets remain separate.
+- `map`: immutable per-player surveyed chunks, region grids, negative coordinates,
+  opaque unknown pixels and viewport projection; no world/block/texture types.
+- `field`: meaningful regional evidence and the First Light state machine:
+  explicit route choice, spaced survey marks, observation/encounter proof and
+  one reward acknowledgement. Native effects and persistence remain in adapters.
 - `journal`: personal bounded pages of discoveries, current quest and completed
   history. The view factory rejects foreign data before pagination; it does not
   receive a global catalogue of hidden places.

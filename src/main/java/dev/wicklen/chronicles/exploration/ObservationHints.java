@@ -33,7 +33,7 @@ final class ObservationHints {
         if (percent > 0 && percent <= 3 || tick % 10 == 0) {
             player.sendOverlayMessage(Component.translatable(known
                             ? "journal.wicklen_chronicles.scan.known" : "journal.wicklen_chronicles.scan.focus",
-                    title(observation, mob), percent).withStyle(known ? ChatFormatting.GREEN : ChatFormatting.GOLD));
+                    title(player, observation, mob), percent).withStyle(known ? ChatFormatting.GREEN : ChatFormatting.GOLD));
         }
     }
 
@@ -46,7 +46,7 @@ final class ObservationHints {
     void recorded(ServerPlayer player, Observation observation, Mob mob, Vec3 surface, long tick) {
         preserveUntil.put(player.getUUID(), tick + 50);
         sparkle(player, surface, true);
-        player.sendOverlayMessage(Component.translatable("journal.wicklen_chronicles.scan.recorded", title(observation, mob))
+        player.sendOverlayMessage(Component.translatable("journal.wicklen_chronicles.scan.recorded", title(player, observation, mob))
                 .withStyle(ChatFormatting.GREEN));
     }
 
@@ -93,6 +93,15 @@ final class ObservationHints {
             return Optional.of(hit.getLocation().add(eye.subtract(hit.getLocation()).normalize().scale(0.08)));
         }
         return Optional.empty();
+    }
+
+    private static Component title(ServerPlayer player,Observation observation,Mob mob) {
+        var canonical=title(observation,mob);
+        try {
+            var annotation=dev.wicklen.chronicles.annotation.AnnotationService.get(player,observation.key()).orElse(null);
+            if(annotation!=null&&!annotation.label().isBlank())return Component.literal(annotation.label()).append(" · ").append(canonical);
+        } catch(IllegalStateException ignored) { /* Personal metadata failure never disables observation. */ }
+        return canonical;
     }
 
     static Component title(Observation observation, Mob mob) {

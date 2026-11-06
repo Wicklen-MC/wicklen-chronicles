@@ -51,6 +51,7 @@ public final class SpiritConfig {
     public int aiOutputTokensPerHour = 100_000;
     // Select a bounded combat variation during preparation; equipment-based fallback is always immediate.
     public boolean encounterAiPlanning = true;
+    public boolean firstLightAiNarration = true;
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static SpiritConfig instance;

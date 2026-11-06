@@ -122,6 +122,23 @@ tasks.register('encounterPlanningTest', JavaExec) {
 }
 tasks.named('check') { dependsOn tasks.named('encounterPlanningTest') }
 
+tasks.register('firstLightNarrationTest', JavaExec) {
+	group = 'verification'
+	classpath = sourceSets.regression.runtimeClasspath
+	mainClass = 'dev.wicklen.chronicles.firstlight.FirstLightNarrationChecks'
+}
+tasks.named('check') { dependsOn tasks.named('firstLightNarrationTest') }
+
+tasks.register('liveFirstLightNarrationTest', JavaExec) {
+	group = 'verification'
+	description = 'Opt-in external first-light narration check; explicit private config required.'
+	classpath = sourceSets.regression.runtimeClasspath
+	mainClass = 'dev.wicklen.chronicles.firstlight.FirstLightNarrationChecks'
+	def configPath = providers.gradleProperty('liveSpiritConfig')
+	doFirst { if (!configPath.isPresent()) throw new GradleException('Supply -PliveSpiritConfig with an explicitly approved private config') }
+	if (configPath.isPresent()) args configPath.get()
+}
+
 tasks.register('stationTest', JavaExec) {
 	group = 'verification'
 	description = 'Checks station variants, rotations, stable manifests and attachment codec.'
@@ -161,6 +178,7 @@ loom {
 		clientGameTest {
 			client()
 			source sourceSets.clientGameTest
+			if (System.getProperty('os.name').toLowerCase(java.util.Locale.ROOT).contains('mac')) vmArg '-XstartOnFirstThread'
 			runDir rootProject.file(clientRunPath).absolutePath
 			if (verifyCombatClient) vmArg '-Dwicklen.chronicles.client.verifyCombat=true'
 			vmArg '-Dfabric.client.gametest'
@@ -301,3 +319,11 @@ tasks.withType(JavaExec).configureEach {
 		doFirst { directory.get().asFile.mkdirs() }
 	}
 }
+
+tasks.register('terrainMapTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks bounded regional terrain persistence and private map projection offline.'
+    classpath = sourceSets.regression.runtimeClasspath
+    mainClass = 'dev.wicklen.chronicles.terrain.TerrainMapChecks'
+}
+tasks.named('check') { dependsOn tasks.named('terrainMapTest') }

@@ -137,11 +137,19 @@ public final class SpiritServerSmoke implements ModInitializer {
                 }
             }
             if (failure == null) {
+                try { dev.wicklen.chronicles.terrain.TerrainMapNativeChecks.verify(server); }
+                catch (Throwable error) { failure=error; LOGGER.error("Terrain-map native sampling checks failed",error); }
+            }
+            if (failure == null) {
                 try { dev.wicklen.chronicles.encounter.EncounterNativeChecks.verify(server); }
                 catch (Throwable error) {
                     failure = error;
                     LOGGER.error("[Wicklen: Chronicles server smoke] FAIL during encounter lifecycle checks", error);
                 }
+            }
+            if (failure == null) {
+                try { dev.wicklen.chronicles.firstlight.FirstLightNativeChecks.verify(server); }
+                catch (Throwable error) { failure=error; LOGGER.error("First-light persistence/delivery smoke failed",error); }
             }
             if (failure == null) {
                 try { dev.wicklen.chronicles.story.StoryHandoffNativeChecks.verify(server); }

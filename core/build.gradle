@@ -26,3 +26,18 @@ tasks.register('regressionTest', JavaExec) {
 tasks.named('check') {
     dependsOn tasks.named('regressionTest')
 }
+
+tasks.register('firstLightTest', JavaExec) {
+    group = 'verification'
+    classpath = sourceSets.regression.runtimeClasspath
+    mainClass = 'dev.wicklen.chronicles.core.field.FirstLightChecks'
+}
+tasks.named('check') { dependsOn tasks.named('firstLightTest') }
+
+tasks.register('mapRegressionTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks immutable personal terrain, strict fog and map projection without Minecraft.'
+    classpath = sourceSets.regression.runtimeClasspath
+    mainClass = 'dev.wicklen.chronicles.core.map.MapRegressionChecks'
+}
+tasks.named('check') { dependsOn tasks.named('mapRegressionTest') }
