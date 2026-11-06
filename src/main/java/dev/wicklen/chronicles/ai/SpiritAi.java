@@ -134,6 +134,7 @@ public final class SpiritAi {
 
         try {
             String context = SpiritSenses.context(player,isChat?message:"");
+            if (isChat) context += "\n" + SpiritGameKnowledge.context(server, message, memory(playerId));
             request(server, persona, player.getScoreboardName(), isChat ? memory(playerId) : List.of(), context, message,
                 language(player), SpiritConfig.get().maxTokens, text -> {
                     if (isChat) remember(playerId, message, text);
@@ -183,7 +184,7 @@ public final class SpiritAi {
             responder.accept("LLM disabled: провайдер не настроен (SPIRIT_PROVIDER/SPIRIT_API_KEY)");
             return;
         }
-        request(server, SpiritPersonas.ALL.get("owl"), "console", List.of(), null, message, "русский",
+        request(server, SpiritPersonas.ALL.get("owl"), "console", List.of(), SpiritGameKnowledge.context(server, message, List.of()), message, "русский",
             SpiritConfig.get().maxTokens, responder, responder, () -> {}, () -> true);
     }
 
@@ -207,16 +208,7 @@ public final class SpiritAi {
             return;
         }
 
-        String system = """
-            Ты — дух-компаньон игрока в Minecraft: летающий светящийся светлячок.
-            Твой характер: %s. Оставайся в характере во всех репликах.
-            Отвечай КРАТКО (1–2 предложения), живо и тепло, от первого лица.
-            Ты не даёшь точных рецептов и не выполняешь команды; не выдумывай факты о мире.
-            Ты помнишь недавний разговор и чувствуешь, что происходит вокруг твоего игрока.
-            Отвечай на языке: %s.
-            Игрок: %s.""".formatted(persona.character(), language, playerName);
-        system += "\n" + groundingRules();
-        if (context != null) system += "\n" + context;
+        String system = systemPrompt(persona, playerName, language, context);
 
         var messages = new ArrayList<LlmMessage>();
         for (var t : history) {
@@ -253,6 +245,23 @@ public final class SpiritAi {
             }));
     }
 
+    static String systemPrompt(SpiritPersonas.Persona persona, String playerName, String language, String context) {
+        String system = """
+            Ты — дух-компаньон игрока в Minecraft: летающий светящийся светлячок.
+            Твой характер: %s. Оставайся в характере во всех репликах.
+            Отвечай живо и тепло, от первого лица: обычно 1–2 предложения; на вопрос о механике игры — до 5 коротких предложений с понятными действиями.
+            Помогай с обычными ванильными механиками Minecraft. Подтверждённые справочные данные и рецепты текущего сервера имеют приоритет над общими знаниями.
+            Точные ингредиенты, количество и раскладку рецепта называй только по переданным данным activeServerRecipes. Не выполняй команды и не выдумывай факты о мире.
+            Не приписывай сторонним модам механики, которых нет в справке. Для вопроса о конкретном моде честно обозначь отсутствие проверенной информации.
+            Различай общее «как это работает» и «где это в нашем мире»: без сохранённого подтверждения можно объяснить способ поиска, но нельзя обещать объект рядом или придумывать его координаты.
+            Ты помнишь недавний разговор и чувствуешь, что происходит вокруг твоего игрока.
+            Отвечай на языке: %s.
+            Игрок: %s.""".formatted(persona.character(), language, playerName);
+        system += "\n" + groundingRules();
+        if (context != null) system += "\n" + context;
+        return system;
+    }
+
     private static void reply(ServerPlayer player, String text) {
         dev.wicklen.chronicles.SpiritBubbles.speak(player, text);
     }
@@ -263,7 +272,7 @@ public final class SpiritAi {
             +"Сохраняй исходный canonical тип существа или места; личная подпись не превращает его в другой вид или строение. "
             +"Различай выбранный путь, текущий прогресс, победу SUCCESS, поражение FAILURE и отмену ABORTED. Выбор ветки не означает её выполнение. "
             +"Для firstLight READY означает выполненную цель с ожидающей наградой, CLAIMED — полученную награду. Для обычного поручения actualQuestStatus READY означает только возможность сдачи, REWARD_PENDING — награда ждёт, REWARDED — награда получена. "
-            +"Если сохранённого подтверждения нет, честно скажи, что не знаешь. Не выдумывай новые структуры, координаты, тайники, события и результаты экспедиций. "
+            +"О конкретных событиях и объектах этого мира: если сохранённого подтверждения нет, честно скажи, что не знаешь. Это не запрещает объяснять общие ванильные механики и переданную справку. Не выдумывай новые структуры, координаты, тайники, события и результаты экспедиций. "
             +"Технические ключи и значения контекста используй только для понимания: firstLight, SURVEY, OBSERVE, ENCOUNTER, ACTIVE, READY, CLAIMED и другие названия полей в реплику не выводи. "
             +"Говори естественно как спутник: «мы ещё разведываем окрестности», «осталась одна полевая отметка», «припасы ждут в дневнике». Название обычного вида переводи на язык ответа, личную подпись сохраняй точно. "
             +"Не называй количество достижений и не поздравляй с ачивками, если игрок сам явно об этом не спросил. Автоматическая реплика касается только свежего конкретного повода; без статистики достижений, скуки и бесцельных вопросов. "

@@ -10,6 +10,11 @@ Loader 0.20.1+, Fabric API 0.165.0+26.3 and Java 25**.
 
 ## What works today
 
+Development **0.4.3-SNAPSHOT** adds a refined companion model and a small vanilla
+help context with recipes from the running server. See the
+[development scope](docs/development/spirit-knowledge.md). Published mod **0.4.2**
+and production pack **0.4.3** remain separate from this unreleased work.
+
 - One animated spirit per player, with four personalities and colours. It follows
   you quietly through walls, with no movement sounds or block effects.
 - Spoken lines appear in a compact, themed **HUD card**, with a portrait and your

@@ -98,6 +98,23 @@ tasks.register('regressionTest', JavaExec) {
 }
 tasks.named('check') { dependsOn tasks.named('regressionTest') }
 
+tasks.register('spiritKnowledgeTest', JavaExec) {
+	group = 'verification'
+	classpath = sourceSets.regression.runtimeClasspath
+	mainClass = 'dev.wicklen.chronicles.ai.SpiritKnowledgeChecks'
+}
+tasks.named('check') { dependsOn tasks.named('spiritKnowledgeTest') }
+
+tasks.register('liveGameKnowledgeTest', JavaExec) {
+	group = 'verification'
+	description = 'Opt-in: one live vanilla-help question using fictional facts and an explicit private config.'
+	classpath = sourceSets.regression.runtimeClasspath
+	mainClass = 'dev.wicklen.chronicles.ai.LiveGameKnowledgeCheck'
+	def configPath = providers.gradleProperty('liveSpiritConfig')
+	doFirst { if (!configPath.isPresent()) throw new GradleException('Supply -PliveSpiritConfig with a private provider config') }
+	if (configPath.isPresent()) args configPath.get()
+}
+
 tasks.register('explorationTest', JavaExec) {
 	group = 'verification'
 	description = 'Checks focus continuity, discovery persistence and optional Field Guide compatibility.'

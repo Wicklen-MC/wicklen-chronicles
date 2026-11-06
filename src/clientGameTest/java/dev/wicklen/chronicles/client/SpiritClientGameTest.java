@@ -68,6 +68,7 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
             });
             connection.waitForClientboundPackets();
             context.waitFor(client -> !DialogHistory.lines().isEmpty());
+            SpiritModelVisualChecks.capture(context, world);
             verifyGhostInsideSolidBlocks(context, world);
             context.setScreen(SpiritDialogScreen::new);
             context.waitFor(client -> JournalClientState.view()!=null && !JournalClientState.busy());
@@ -926,7 +927,7 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
             });
             int memoryBefore = server.computeOnServer(mcServer -> SpiritMemoryStore.turns(connection.getServerPlayer().getUUID()).size());
             context.runOnClient(client -> {
-                ClientPlayNetworking.send(new SpiritChatC2SPayload("Ты здесь?"));
+                ClientPlayNetworking.send(new SpiritChatC2SPayload("Где добыть мёд?"));
                 ClientPlayNetworking.send(new SpiritChatC2SPayload("Второй вопрос подряд"));
             });
             context.waitFor(client -> requests.get() == 1);
@@ -936,6 +937,12 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
             captureJournal(context, "spirit-dialog-conversation");
             require(requests.get() == 1, "one in-flight HTTP call despite two C2S questions");
             require(requestBody.get().get("max_tokens").getAsInt() == 222, "configured token budget reaches LLM");
+            String system = requestBody.get().getAsJsonArray("messages").get(0).getAsJsonObject().get("content").getAsString();
+            require(system.contains("FULL bee nest") && system.contains("campfire") && system.contains("activeServerRecipes")
+                    && system.contains("minecraft:glass_bottle") && system.contains("minecraft:beehive")
+                    && system.contains("crafting_shaped"),
+                "real chat sends honey facts and recipe JSON from the running server to the model");
+            require(!system.contains("Ты не даёшь точных рецептов"), "the old blanket recipe refusal is removed");
             server.runOnServer(mcServer -> {
                 require(SpiritMemoryStore.turns(connection.getServerPlayer().getUUID()).size() == Math.min(8, memoryBefore + 1),
                     "only the answered question enters memory");

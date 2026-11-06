@@ -20,6 +20,8 @@ The parent build also includes the core through `:core:check` and bundles its
 classes into the mod JAR. The dependency points from Fabric to core only.
 
 - `quest`: accepted definitions, bounded progress, explicit hand-in and reward acknowledgement.
+- `knowledge`: bounded immutable reference cards and Russian/English alias retrieval;
+  resource loading, current recipes and model prompts belong to the adapter.
 - `discovery`: player/world-owned observations with strict creature/place/biome
   keys, immutable first-known facts and deterministic optional reward entitlements.
   Repeated observations do not replace facts, increase revisions or reset rewards.

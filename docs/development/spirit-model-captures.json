@@ -1,0 +1,27 @@
+{
+  "status": "development preview, not a published release",
+  "version": "0.4.3-SNAPSHOT",
+  "date": "2026-11-07",
+  "source": "SpiritModelVisualChecks.capture; real Minecraft client test world; no image editing",
+  "run_log": "build/spirit-refresh-client-final.log",
+  "files": [
+    {
+      "file": "images/spirit-front-day.png",
+      "sha256": "cd90c529758d7663072ab0607fab1258c91ed9e21e481604f126a3ae13a8d589",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "file": "images/spirit-side-day.png",
+      "sha256": "53cc5b6bb3214605a74c630e959f4094257c604d3aa4d3f2365bfafe6bfd41d2",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "file": "images/spirit-front-night.png",
+      "sha256": "65670049a6d3f4a67e1823e34246f47bfccb607b82c879b84616e1db918231d8",
+      "width": 1280,
+      "height": 800
+    }
+  ]
+}

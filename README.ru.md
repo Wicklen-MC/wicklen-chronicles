@@ -1,5 +1,9 @@
 # Wicklen: Chronicles
 
+В разработке **0.4.3-SNAPSHOT**: доработка модели духа и небольшой слой ванильной
+справки с рецептами текущего сервера. [Описание и границы](docs/development/spirit-knowledge.md).
+Опубликованный мод **0.4.2** и действующая сборка **0.4.3** — отдельные версии.
+
 [English](README.md) | [Русский](README.ru.md)
 
 Проект организации [Wicklen-MC](https://github.com/Wicklen-MC). Сервер и сборка: [wicklen-server](https://github.com/Wicklen-MC/wicklen-server).

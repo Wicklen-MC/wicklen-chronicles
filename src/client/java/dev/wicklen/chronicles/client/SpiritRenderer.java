@@ -5,6 +5,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.MobRenderer;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.client.renderer.entity.layers.RenderLayer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.renderer.rendertype.RenderType;
@@ -22,15 +24,33 @@ import dev.wicklen.chronicles.entity.SpiritEntity;
  */
 public class SpiritRenderer extends MobRenderer<SpiritEntity, SpiritRenderState, SpiritModel> {
     private static final Identifier TEXTURE =
-        Identifier.fromNamespaceAndPath(WicklenChronicles.MOD_ID, "textures/entity/spirit.png");
+        Identifier.fromNamespaceAndPath(WicklenChronicles.MOD_ID, "spirit_flat_material");
     private static final int WRAP_WIDTH = 170; // pixels, including wide Cyrillic glyphs
     private static final int MAX_BUBBLE_LINES = 6;
     private static final double BUBBLE_HEIGHT = 0.35;
 
     public SpiritRenderer(EntityRendererProvider.Context context) {
-        super(context, new SpiritModel(false), 0);
+        super(context, new SpiritModel(SpiritModel.Layer.SHELL), 0);
+        // Geometry supplies the details; a neutral procedural material preserves every persona's tint.
+        // TextureManager owns and closes this texture, including a replaced renderer on reload.
+        var material = new DynamicTexture("Wicklen spirit flat material", 1, 1, false);
+        material.getPixels().setPixel(0, 0, 0xFFFFFFFF);
+        material.upload();
+        Minecraft.getInstance().getTextureManager().register(TEXTURE, material);
         addLayer(new RenderLayer<>(this) {
-            private final SpiritModel eyes = new SpiritModel(true);
+            private final SpiritModel core = new SpiritModel(SpiritModel.Layer.CORE);
+
+            @Override
+            public void submit(PoseStack pose, SubmitNodeCollector collector, int light,
+                               SpiritRenderState state, float yRot, float xRot) {
+                int color = 0xE0000000 | ((state.spiritColor & 0xFEFEFE) >>> 1) + 0x7F7F7F;
+                // The inner light must be drawn before the shell writes its depth.
+                collector.order(-1).submitModel(core, state, pose, RenderTypes.entityTranslucentEmissive(TEXTURE),
+                    0xF000F0, OverlayTexture.NO_OVERLAY, color, null, 0);
+            }
+        });
+        addLayer(new RenderLayer<>(this) {
+            private final SpiritModel eyes = new SpiritModel(SpiritModel.Layer.EYES);
 
             @Override
             public void submit(PoseStack pose, SubmitNodeCollector collector, int light,
@@ -60,7 +80,7 @@ public class SpiritRenderer extends MobRenderer<SpiritEntity, SpiritRenderState,
 
     @Override
     protected int getModelTint(SpiritRenderState state) {
-        return 0xDC000000 | state.spiritColor;
+        return 0x98000000 | state.spiritColor;
     }
 
     @Override

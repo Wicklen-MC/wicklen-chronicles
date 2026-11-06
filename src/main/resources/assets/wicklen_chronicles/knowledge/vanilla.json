@@ -1,0 +1,62 @@
+[
+  {
+    "id": "honey",
+    "aliases": ["мед", "меда", "меду", "медом", "honey", "медов*"],
+    "facts": "Honey is collected by using an empty glass bottle on a FULL bee nest or beehive (honey level 5). A lit campfire underneath, with smoke reaching the nest/hive, calms the bees during harvesting. Shears collect honeycomb instead of bottled honey. This explains a mechanic, not the location or fullness of any nest in this player's world.",
+    "recipes": ["glass_bottle", "beehive"]
+  },
+  {
+    "id": "honeycomb",
+    "aliases": ["соты", "сотами", "сот", "honeycomb", "honeycombs"],
+    "facts": "Use shears on a full bee nest or beehive to collect honeycomb; a glass bottle collects honey instead. Campfire smoke reaching the nest/hive calms the bees during harvesting. A crafted beehive does not create bees or instantly fill with honey.",
+    "recipes": ["shears", "beehive"]
+  },
+  {
+    "id": "bees",
+    "aliases": ["пчел*", "улей", "улья", "ульи", "ульев", "bee", "bees", "beehive", "bee nest"],
+    "facts": "Bees gather pollen from flowers and return to their nest/hive; successful visits increase its honey level. Bees shelter at night and in rain. Flowers can breed bees. Follow visible bees back to their home when exploring. A nest's actual location is unknown unless supplied by this player's confirmed observations; do not invent a nearby nest or mark new terrain.",
+    "recipes": ["beehive"]
+  },
+  {
+    "id": "glass",
+    "aliases": ["стекл*", "бутыл*", "пузыр*", "glass", "bottle", "bottles"],
+    "facts": "The active recipe data below is the authority for glass and glass bottles. Smelting uses a furnace and fuel. Do not claim a particular ingredient or quantity if the current recipe could not be read.",
+    "recipes": ["glass", "glass_bottle"]
+  },
+  {
+    "id": "iron",
+    "aliases": ["желез*", "iron", "raw iron"],
+    "facts": "The supplied smelting recipe explains how raw iron becomes an ingot. It does not locate ore in the saved world or establish its height distribution. Do not invent exact ore coordinates or heights.",
+    "recipes": ["iron_ingot_from_smelting_raw_iron", "iron_pickaxe"]
+  },
+  {
+    "id": "torches",
+    "aliases": ["факел*", "torch", "torches"],
+    "facts": "Use the active recipe for torch ingredients and quantities. A recipe tag denotes an allowed ingredient group, not a requirement to collect every member of that group.",
+    "recipes": ["torch", "torch_from_charcoal"]
+  },
+  {
+    "id": "bread",
+    "aliases": ["хлеб*", "пшениц*", "bread", "wheat"],
+    "facts": "The active recipe below describes crafting bread from wheat. It does not establish that the player owns the ingredients or has completed a collection task.",
+    "recipes": ["bread"]
+  },
+  {
+    "id": "campfire",
+    "aliases": ["костер", "костра", "костром", "campfire"],
+    "facts": "A lit campfire's smoke can calm bees during harvesting when it reaches their hive/nest. Merely carrying a campfire does not pacify bees. The active recipe below describes its crafting ingredients.",
+    "recipes": ["campfire"]
+  },
+  {
+    "id": "spyglass",
+    "aliases": ["подзорн*", "spyglass"],
+    "facts": "The spyglass is a vanilla item. In Wicklen: Chronicles, hold it steadily on a visible creature or supported place for about two seconds to record an observation; naming and notes are available afterwards in the journal. A crafting recipe does not itself confirm an observation.",
+    "recipes": ["spyglass"]
+  },
+  {
+    "id": "maps",
+    "aliases": ["карта", "карты", "карту", "карте", "картой", "картограф*", "компас*", "map", "maps", "compass"],
+    "facts": "Vanilla maps/compasses and the personal Chronicles journal atlas are different tools. The atlas charts nearby loaded surface terrain as the player explores and keeps unexplored terrain covered. It cannot reveal an unknown dungeon or a nest just because the player asks. Recipes below concern vanilla items only.",
+    "recipes": ["map", "compass"]
+  }
+]
