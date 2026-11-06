@@ -186,6 +186,10 @@ LLM может написать вступление по факту найде�
 
 ## Установка и игра
 
+[Скачать последний релиз](https://github.com/Wicklen-MC/wicklen-chronicles/releases/latest) ·
+[Все релизы](https://github.com/Wicklen-MC/wicklen-chronicles/releases) ·
+[Выпуск через workflow](docs/releases/README.md)
+
 Установите Fabric Loader и Fabric API, затем положите
 `wicklen-chronicles-0.4.2.jar` в `mods/` сервера и клиента. Сначала удалите
 старые копии этого мода. Версии на клиенте и сервере должны совпадать:

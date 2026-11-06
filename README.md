@@ -147,6 +147,10 @@ activate it if you prefer keyboard navigation.
 
 ## Install and play
 
+[Download the latest release](https://github.com/Wicklen-MC/wicklen-chronicles/releases/latest) ·
+[All releases](https://github.com/Wicklen-MC/wicklen-chronicles/releases) ·
+[Release workflow](docs/releases/README.md)
+
 Install Fabric Loader and Fabric API, then put
 `wicklen-chronicles-0.4.2.jar` in `mods/` on both server and client. Remove
 older copies of this mod first. Use matching client/server versions; the

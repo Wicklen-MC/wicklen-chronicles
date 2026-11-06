@@ -1,0 +1,41 @@
+{
+  "0.4.0": {
+    "commit": "117d9ec0858b6f6badd92ab0671744678b0f14f1",
+    "files": {
+      "wicklen-chronicles-0.4.0-sources.jar": {
+        "bytes": 268528,
+        "sha256": "caba1a02145f908b294893773602e043b0fde25425ff422dc41bd29c10aa02eb"
+      },
+      "wicklen-chronicles-0.4.0.jar": {
+        "bytes": 710021,
+        "sha256": "b345c69472422f6e550d1971d87435e43ca1bc7bdb59135b7b9ae462ccf7f3e2"
+      }
+    }
+  },
+  "0.4.1": {
+    "commit": "88a50087ce1cc712d524a17655f7fb565020e5f6",
+    "files": {
+      "wicklen-chronicles-0.4.1-sources.jar": {
+        "bytes": 295058,
+        "sha256": "87bb78aff256d3465272a1ac7a81b90f87e995f3bbd307a47b1dbe5f13d04778"
+      },
+      "wicklen-chronicles-0.4.1.jar": {
+        "bytes": 782596,
+        "sha256": "c9f6688898d4de858a99bb217616455f8f2e93716e231aeabf4e454d70da4886"
+      }
+    }
+  },
+  "0.4.2": {
+    "commit": "33a5ec99982b87c3995d333803d892c36ac2f256",
+    "files": {
+      "wicklen-chronicles-0.4.2-sources.jar": {
+        "bytes": 306642,
+        "sha256": "562d9e1bd5d15528c2ae4e7c05dff5c6ddcdfc9e48878786bf515c15398bac02"
+      },
+      "wicklen-chronicles-0.4.2.jar": {
+        "bytes": 815723,
+        "sha256": "234907125b2c2dc13cde6fbab8de8d742f8042ab9dd81e434070c3ecf3ca5268"
+      }
+    }
+  }
+}
