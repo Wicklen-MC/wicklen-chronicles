@@ -2,6 +2,8 @@
 
 [English](README.md) | [Русский](README.ru.md)
 
+Проект организации [Wicklen-MC](https://github.com/Wicklen-MC). Сервер и сборка: [wicklen-server](https://github.com/Wicklen-MC/wicklen-server).
+
 Дух-компаньон для мира **Wicklen (Виклен)**: диалоги, небольшие задания и
 сохраняемая летопись. **Minecraft 26.3, Fabric Loader 0.20.1+,
 Fabric API 0.165.0+26.3 и Java 25**.
