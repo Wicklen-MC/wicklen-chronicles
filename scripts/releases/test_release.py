@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 import zipfile
 
 SPEC = importlib.util.spec_from_file_location('release_tools', Path(__file__).with_name('release.py'))
@@ -57,6 +58,15 @@ class ArtifactChecks(unittest.TestCase):
         del self.payload['dev/wicklen/chronicles/core/Rule.class']
         with self.assertRaisesRegex(ValueError, 'bundled independent core'):
             TOOLS.validate_mod(self.jar('mod.jar'), '0.4.2')
+
+    def test_finds_unpublished_draft_when_tag_endpoint_omits_it(self):
+        draft = {'tag_name': 'v0.4.2', 'draft': True, 'id': 123}
+        with patch.object(TOOLS, 'github', side_effect=[None, [draft]]):
+            self.assertEqual(draft, TOOLS.find_release('org/repo', 'v0.4.2'))
+
+    def test_missing_release_is_not_confused_with_an_unrelated_draft(self):
+        with patch.object(TOOLS, 'github', side_effect=[None, [{'tag_name': 'v0.4.1'}]]):
+            self.assertIsNone(TOOLS.find_release('org/repo', 'v0.4.2'))
 
 
 if __name__ == '__main__':

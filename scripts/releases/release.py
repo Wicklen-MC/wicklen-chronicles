@@ -107,6 +107,23 @@ def github(repository, endpoint, allow_missing=False):
     return json.loads(result.stdout)
 
 
+def find_release(repository, tag):
+    release = github(repository, 'releases/tags/' + tag, allow_missing=True)
+    if release:
+        return release
+    # GitHub's by-tag endpoint omits drafts whose tags have not been published.
+    page = 1
+    while True:
+        releases = github(repository, f'releases?per_page=100&page={page}')
+        matches = [item for item in releases if item['tag_name'] == tag]
+        require(len(matches) <= 1, 'Multiple drafts use the requested release tag')
+        if matches:
+            return matches[0]
+        if len(releases) < 100:
+            return None
+        page += 1
+
+
 def publish(output, repository):
     data = json.loads((output / 'release.json').read_text())
     require(re.fullmatch(r'v\d+\.\d+\.\d+', data['tag']), 'Invalid release tag')
@@ -121,7 +138,7 @@ def publish(output, repository):
     if existing_tag:
         resolved = github(repository, 'commits/' + data['tag'])
         require(resolved['sha'] == data['commit'], 'Existing tag points elsewhere')
-    release = github(repository, 'releases/tags/' + data['tag'], allow_missing=True)
+    release = find_release(repository, data['tag'])
     common = ['--repo', repository, '--title', 'Wicklen: Chronicles ' + data['version'],
               '--notes-file', str(output / 'release-notes.md'),
               '--latest=' + ('true' if os.environ.get('MAKE_LATEST') == 'true' else 'false')]
@@ -134,8 +151,12 @@ def publish(output, repository):
         require(release['target_commitish'] == data['commit'], 'Draft target commit differs')
         require({a['name'] for a in release['assets']} == expected_names, 'Draft asset membership changed')
         with tempfile.TemporaryDirectory() as directory:
-            subprocess.run(['gh', 'release', 'download', data['tag'], '--repo', repository,
-                            '--dir', directory], check=True)
+            for asset in release['assets']:
+                with (Path(directory) / asset['name']).open('wb') as stream:
+                    result = subprocess.run(['gh', 'api', '--header', 'Accept: application/octet-stream',
+                                             f"repos/{repository}/releases/assets/{asset['id']}"],
+                                            stdout=stream, stderr=subprocess.PIPE)
+                require(result.returncode == 0, result.stderr.decode())
             for name, expected in record['files'].items():
                 candidate = Path(directory) / name
                 require(candidate.stat().st_size == expected['bytes'] and digest(candidate) == expected['sha256'],
@@ -144,7 +165,12 @@ def publish(output, repository):
                                   set(data['client_entries']) if not name.endswith('-sources.jar') else None)
             sums = ''.join(f"{record['files'][n]['sha256']}  {n}\n" for n in sorted(record['files']))
             require((Path(directory) / 'SHA256SUMS.txt').read_text() == sums, 'Historical checksum file differs')
-        subprocess.run(['gh', 'release', 'edit', data['tag'], '--draft=false', *common], check=True)
+            payload = Path(directory) / 'publish.json'
+            payload.write_text(json.dumps({'draft': False, 'name': 'Wicklen: Chronicles ' + data['version'],
+                                           'body': (output / 'release-notes.md').read_text(),
+                                           'make_latest': 'true' if os.environ.get('MAKE_LATEST') == 'true' else 'false'}))
+            subprocess.run(['gh', 'api', '--method', 'PATCH', f"repos/{repository}/releases/{release['id']}",
+                            '--input', str(payload), '--silent'], check=True)
     else:
         require(release is None, 'Release already exists; published releases are never overwritten')
         subprocess.run(['gh', 'release', 'create', data['tag'], *[str(output / n) for n in sorted(expected_names)],
