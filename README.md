@@ -19,8 +19,21 @@ Loader 0.20.1+, Fabric API 0.165.0+26.3 and Java 25**.
 - Observe creatures and visible places with the **vanilla spyglass**. The server
   checks continuous focus, line of sight, range and actual item use. A compatible
   Field Guide installation can confirm the same observation without a second scan.
-- Personal discoveries, a map of recorded places and small research collections.
-  Unknown locations are never sent to the client as map markers.
+- Give each personal discovery a **name and note**, without changing its canonical
+  species/place, other players' records or quest objectives. Clear an edit to restore
+  the original name; creature names label the species record, not individual mobs.
+- A personal **terrain atlas** with real water, forest and ground, opaque unexplored
+  areas, known places, a player arrow, pan/zoom and the active survey area. Nearby
+  loaded surface chunks are charted as you travel; underground travel and distant
+  rendering do not reveal the map. Snapshots persist on the server per player/world.
+- Meaningful repeat observations: recording the same species at least 128 blocks
+  from its previous recorded encounter adds field evidence, without farming first-
+  discovery or collection rewards.
+- **First Light**, a short Waylight expedition from a personally recorded station:
+  survey its surroundings or complete its courtyard trial. Without the optional
+  combat executor, the alternative is wildlife observations. One clear next step,
+  visible progress, a choice of approach and an explicitly claimed supply kit.
+- Small research collections. Unknown places never become hidden map markers.
 - Collection, biome-visit and combat tasks with explicit submission and reward
   collection. Full inventories retain pending rewards.
 - Story proposals with two choices, visible objectives/rewards and persistent
@@ -45,7 +58,7 @@ is part of the journal. Combat balance still needs playtesting with the full pac
 ## Install and play
 
 Install Fabric Loader and Fabric API, then put
-`wicklen-chronicles-0.3.3.jar` in `mods/` on both server and client. Remove
+`wicklen-chronicles-0.4.0.jar` in `mods/` on both server and client. Remove
 older copies of this mod first. Use matching client/server versions; the
 0.2.1 networking namespace changed. The `-sources.jar` is for developers.
 
@@ -68,7 +81,18 @@ The message itself can be written in your preferred language.
 For research, hold the spyglass on a visible target for about two seconds.
 The opening **Next step** page explains your current goal and offers its main
 action. Records, map, collection rewards and trials have direct navigation.
-Tasks contains ordinary tasks and story choices; Spirit opens the conversation.
+Tasks contains ordinary tasks, story choices and **First Light**; Spirit opens the
+conversation. In Records, select a known creature/place and choose **Name and note**.
+The terrain map charts a 3×3 area of already loaded chunks around your surface
+position, independently of render distance. It starts blank until you travel;
+existing discoveries can still be shown over fog. Use +/− to zoom, arrows to pan
+and Center to return to your position. Only the Overworld is charted in this release.
+
+After recording a waystation, open **Next step → First Light**. Survey asks for two
+surface marks at least 48 blocks apart inside the highlighted area, away from the
+station; use the story's mark button or confirm an observation there. The other
+route uses that station's real courtyard trial, or two new wildlife observations
+when combat is unavailable. Claim **8 torches, 4 bread and 4 paper** when ready.
 Look at a visible supported landmark to see its name and a spyglass hint. While
 scanning, the target name and progress appear above the hotbar; a known target
 is marked as already recorded. Only visible surfaces receive personal particles.
@@ -125,7 +149,10 @@ inventories; a logging failure does not block gameplay or rewards.
 `config/wicklen-chronicles.json` is created on first launch. It controls the
 provider, request limits, token budget, temperature and proactive messages.
 Set `proactive: false` to disable automatic LLM remarks while retaining
-manual conversations and deterministic quests. Server-wide `aiParallelRequests`,
+manual conversations and deterministic quests. `firstLightAiNarration: false`
+disables the optional opening prose for First Light. Its authored version remains
+complete; AI never defines its objectives, creates structures or changes rewards.
+Server-wide `aiParallelRequests`,
 `aiQueueCapacity`, `aiRequestsPerHour` and `aiOutputTokensPerHour` bound shared
 HTTP concurrency, waiting requests, request count and reserved maximum output tokens.
 Queued requests expire, and late responses from closed worlds are rejected.
@@ -137,7 +164,11 @@ configuration. `SPIRIT_PROVIDER` selects `deepseek`, `openai`, `ollama` or
 `CUSTOM_API_KEY`. A config value `env:VARIABLE_NAME` reads an environment variable.
 
 Progress is stored in `<world>/wicklen-chronicles/`. JSON saves have a schema
-version; unknown or corrupt formats are preserved rather than reset.
+version; unknown or corrupt formats are preserved rather than reset. Personal
+annotations, field evidence and First Light have separate ledgers. Terrain uses
+checked, bounded binary region snapshots under `terrain-map/`; it is a map of past
+surface visits, not live satellite imagery. Names do not advance discovery revisions.
+Existing station records can offer First Light after upgrading; no world reset is needed.
 
 ### Compatibility with earlier releases
 
@@ -164,7 +195,7 @@ no personal cache path, local server configuration or external LLM key is needed
 
 ```sh
 ./gradlew build
-# build/libs/wicklen-chronicles-0.3.3.jar
+# build/libs/wicklen-chronicles-0.4.0.jar
 ./gradlew -p core check
 ./gradlew runServerSmoke
 ./gradlew runClientGameTest

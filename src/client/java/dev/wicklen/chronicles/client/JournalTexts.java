@@ -37,6 +37,10 @@ final class JournalTexts {
         return Component.literal(title);
     }
     static Component discovery(DiscoveryEntry entry) {
+        var annotation=AnnotationClientState.lookup(entry.key());
+        return annotation!=null&&!annotation.label().isBlank()?Component.literal(annotation.label()):canonicalDiscovery(entry);
+    }
+    static Component canonicalDiscovery(DiscoveryEntry entry) {
         return switch (entry.key().kind()) {
             case CREATURE -> label("entity", entry.key().id());
             case BIOME -> label("biome", entry.key().id());

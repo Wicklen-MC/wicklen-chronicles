@@ -31,7 +31,7 @@ final class JournalStories {
             var view = JournalClientState.view();
             var request = JournalButton.colored(JournalTexts.tr("story_request"), button ->
                 StoryClientState.request(StoryRequestPayload.Action.REQUEST, "", ""))
-                .bounds(box.left() + box.width() - 196, footer, 184, 18).build();
+                .bounds(box.left()+box.width()-12-Math.min(184,box.width()-24),footer,Math.min(184,box.width()-24),18).build();
             request.active = !StoryClientState.busy() && view != null
                 && view.totalDiscoveries() > 0 && view.activeQuest() == null;
             add.accept(request);
@@ -56,7 +56,7 @@ final class JournalStories {
         var choice = plan.choices().get(selected);
         var choose = JournalButton.colored(JournalTexts.tr("story_choose"), button ->
             StoryClientState.request(StoryRequestPayload.Action.CHOOSE, plan.id().toString(), choice.id()))
-            .bounds(box.left() + box.width() - 196, footer, 184, 18).build();
+            .bounds(box.left()+box.width()-12-Math.min(184,box.width()-24),footer,Math.min(184,box.width()-24),18).build();
         choose.active = !StoryClientState.busy();
         add.accept(choose);
     }

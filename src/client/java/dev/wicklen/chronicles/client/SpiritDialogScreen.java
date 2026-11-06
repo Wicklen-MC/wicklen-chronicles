@@ -28,6 +28,9 @@ public class SpiritDialogScreen extends Screen {
     private long seenStoryRevision = -1;
     private long seenResearchRevision = -1;
     private long seenEncounterRevision = -1;
+    private long seenAnnotationRevision = -1;
+    private long seenTerrainRevision = -1;
+    private long seenFirstLightRevision = -1;
     private int ticks;
     private boolean dirty;
 
@@ -87,6 +90,9 @@ public class SpiritDialogScreen extends Screen {
         seenStoryRevision = StoryClientState.revision();
         seenResearchRevision = ResearchClientState.revision();
         seenEncounterRevision = EncounterClientState.revision();
+        seenAnnotationRevision = AnnotationClientState.revision();
+        seenTerrainRevision = TerrainMapClientState.revision();
+        seenFirstLightRevision = FirstLightClientState.revision();
     }
 
     private void select(Tab selected) {
@@ -104,7 +110,9 @@ public class SpiritDialogScreen extends Screen {
         if (tab != Tab.CONVERSATION && !JournalClientState.busy()
                 && (ticks % 40 == 0 || pages.needsPage())) pages.refresh();
         if (dirty || seenRevision != JournalClientState.revision() || seenStoryRevision != StoryClientState.revision()
-                || seenResearchRevision != ResearchClientState.revision() || seenEncounterRevision != EncounterClientState.revision()) {
+                || seenResearchRevision != ResearchClientState.revision() || seenEncounterRevision != EncounterClientState.revision()
+                || seenAnnotationRevision != AnnotationClientState.revision() || seenTerrainRevision != TerrainMapClientState.revision()
+                || seenFirstLightRevision != FirstLightClientState.revision()) {
             dirty = false;
             rebuildWidgets();
         }

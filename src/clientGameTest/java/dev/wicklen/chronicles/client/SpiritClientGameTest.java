@@ -85,6 +85,7 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
             context.setScreen(() -> null);
             verifySpeechHud(context,world);
             verifySpyglassObservation(context, world);
+            AnnotationUiChecks.verify(context, world);
             server.runOnServer(mcServer -> SpiritBubbles.speak(connection.getServerPlayer(), "Я здесь. Нажми G — откроем дневник!"));
             connection.waitForClientboundPackets();
             int entityId = server.computeOnServer(mcServer -> SpiritManager.findSpirits(
@@ -273,11 +274,13 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
             } else {
                 verifyEncounterUnavailable(context, reopened);
             }
+            TerrainMapUiChecks.verify(context, reopened);
             context.setScreen(() -> null);
         }
         try (var reopened = savedWorld.open()) {
             reopened.getServer().runOnServer(mcServer -> {
                 var player = reopened.getConnection().getServerPlayer();
+                FirstLightUiChecks.verifyReload(player);
                 var story = dev.wicklen.chronicles.story.StoryService.view(player);
                 require(story.pending() == null && story.history().size() == 1, "story choice survives world restart exactly once");
                 var outcome = story.history().getFirst();
@@ -299,6 +302,7 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
                     == dev.wicklen.chronicles.research.ResearchService.ClaimResult.REJECTED, "research reward cannot be reclaimed after restart");
             });
         }
+        FirstLightUiChecks.verifySurvey(context);
     }
 
     private static UUID verifyEncounterCombat(ClientGameTestContext context,
@@ -323,6 +327,7 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
         });
         connection.waitForClientboundPackets();
         observeCourtyard(context,world,place);
+        FirstLightUiChecks.offerAndChooseBattle(context,world);
         context.setScreen(SpiritDialogScreen::new);
         clickJournal(context, "tab.trials");
         context.waitFor(client -> EncounterClientState.data() != null && !EncounterClientState.busy()
@@ -405,6 +410,7 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
         });
         captureJournal(context, "journal-trials-rewarded");
         useEarnedLantern(context,world);
+        FirstLightUiChecks.verifyBattleReward(context,world);
         verifyEmpoweredFollowup(context,world,place,encounter);
         System.out.println("PASS: connected discovery/story/task/reward/courtyard/normal battle/earned lantern use/empowered battle cycle");
         return reward.id();
@@ -575,7 +581,11 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
             require(data.places().stream().allMatch(entry -> entry.key().kind()
                 == dev.wicklen.chronicles.core.discovery.DiscoveryKind.PLACE), "map sends places only");
         });
-        context.clickScreenButton("•");
+        var knownPlace=context.computeOnClient(client -> ResearchClientState.data().places().getFirst());
+        context.runOnClient(client -> TerrainMapClientState.focus(knownPlace.position().x(),knownPlace.position().z(),256));
+        context.waitFor(client -> !TerrainMapClientState.busy() && TerrainMapClientState.page()!=null
+            && TerrainMapClientState.page().viewport().centerX()==knownPlace.position().x());
+        context.clickScreenButton(context.computeOnClient(client -> JournalTexts.discovery(knownPlace).getString()));
         context.waitTicks(3);
         captureJournal(context, "journal-known-place-map");
         clickJournal(context, "tab.collections");

@@ -31,6 +31,9 @@ public class WicklenChroniclesClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         ChroniclesTooltips.register();
+        AnnotationClientState.register();
+        TerrainMapClientState.register();
+        FirstLightClientState.register();
         for (var type : dev.wicklen.chronicles.compat.LegacyCompatibility.spiritTypes())
             EntityRenderers.register(type, SpiritRenderer::new);
 
@@ -91,6 +94,7 @@ public class WicklenChroniclesClient implements ClientModInitializer {
             StoryClientState.tick();
             ResearchClientState.tick();
             EncounterClientState.tick();
+            AnnotationClientState.tick();
             while (dialogKey.consumeClick()) {
                 if (client.gui.screen() == null && client.player != null) {
                     client.setScreenAndShow(new SpiritDialogScreen());
@@ -106,6 +110,7 @@ public class WicklenChroniclesClient implements ClientModInitializer {
             StoryClientState.clear();
             ResearchClientState.clear();
             EncounterClientState.clear();
+            AnnotationClientState.clear();
         });
     }
 }
