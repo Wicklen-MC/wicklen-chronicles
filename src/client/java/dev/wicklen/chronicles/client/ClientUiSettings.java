@@ -19,12 +19,21 @@ import java.util.Objects;
 /** Local presentation preferences. Only the two effective automatic-speech preferences leave the client. */
 public final class ClientUiSettings {
     public record Preferences(double journalScale, double speechScale, double speechOpacity,
-                              boolean speechVisible, boolean automaticRemarksEnabled, int minIntervalMinutes) {
+                              boolean speechVisible, boolean automaticRemarksEnabled, int minIntervalMinutes,
+                              double speechHorizontal, double speechVertical) {
         public Preferences {
             journalScale = bounded(journalScale, 0.65, 1.15, 0.85);
             speechScale = bounded(speechScale, 0.65, 1.25, 0.85);
             speechOpacity = bounded(speechOpacity, 0.25, 1, 0.9);
             minIntervalMinutes = Math.max(2, Math.min(30, minIntervalMinutes));
+            speechHorizontal = bounded(speechHorizontal, 0, 1, 0);
+            speechVertical = bounded(speechVertical, 0, 1, 1);
+        }
+
+        public Preferences(double journalScale, double speechScale, double speechOpacity,
+                           boolean speechVisible, boolean automaticRemarksEnabled, int minIntervalMinutes) {
+            this(journalScale, speechScale, speechOpacity, speechVisible, automaticRemarksEnabled,
+                    minIntervalMinutes, 0, 1);
         }
 
         public boolean effectiveAutomatic() {
@@ -89,7 +98,7 @@ public final class ClientUiSettings {
     public static void setJournalScale(double value) {
         var p = current;
         update(new Preferences(value, p.speechScale(), p.speechOpacity(), p.speechVisible(),
-                p.automaticRemarksEnabled(), p.minIntervalMinutes()));
+                p.automaticRemarksEnabled(), p.minIntervalMinutes(), p.speechHorizontal(), p.speechVertical()));
     }
 
     public static void reset() { update(DEFAULTS); }
@@ -108,7 +117,8 @@ public final class ClientUiSettings {
             if (object == null) throw new IOException("Empty presentation preferences");
             current = new Preferences(number(object, "journalScale", 0.85), number(object, "speechScale", 0.85),
                     number(object, "speechOpacity", 0.9), bool(object, "speechVisible", true),
-                    bool(object, "automaticRemarksEnabled", true), (int) number(object, "minIntervalMinutes", 10));
+                    bool(object, "automaticRemarksEnabled", true), (int) number(object, "minIntervalMinutes", 10),
+                    number(object, "speechHorizontal", 0), number(object, "speechVertical", 1));
             dirty = false;
             saveFailed = false;
             if (!current.speechVisible()) SpiritSpeechHud.clear();

@@ -10,10 +10,10 @@ Loader 0.20.1+, Fabric API 0.165.0+26.3 and Java 25**.
 
 ## What works today
 
-Development **0.4.3-SNAPSHOT** adds a refined companion model and a small vanilla
-help context with recipes from the running server. See the
-[development scope](docs/development/spirit-knowledge.md). Published mod **0.4.2**
-and production pack **0.4.3** remain separate from this unreleased work.
+Version **0.4.3** adds the cloth wanderer spirit, movable speech cards and vanilla
+help using recipes from the running server. See [release notes](docs/releases/0.4.3.md)
+and the [game-help scope](docs/development/spirit-knowledge.md). Mod and modpack
+versions are separate: use the exact pack selected by your server when joining it.
 
 [Spirit design explorations](docs/design/spirit/README.md) preserve all concept
 sheets and the selected cloth-wanderer direction.
@@ -146,9 +146,15 @@ keep working when automatic speech is off. Reconnecting or adjusting a slider
 does not reset the last automatic remark's clock; switching off drops a pending
 automatic reply before it reaches the HUD or history.
 
+Two local sliders also place spirit speech horizontally (left → right) and vertically
+(top → bottom, above the hotbar). Older settings keep the lower-left position; Reset
+restores it. The settings window scales to fit small viewports.
+
+[Native 0.4.3 settings and HUD captures](docs/releases/0.4.3.md#native-game-captures).
+
 Presentation settings are local to `config/wicklen-chronicles-client.json`.
 The server saves your automatic-speech preference and interval for this world;
-visual scale and opacity stay on your computer.
+visual scale, opacity and position stay on your computer.
 
 Drag the map with the **left mouse button** and use the **wheel** to zoom around
 the pointer. A short click still selects a place marker. Arrow, +/− and Center
@@ -162,7 +168,7 @@ activate it if you prefer keyboard navigation.
 [Release workflow](docs/releases/README.md)
 
 Install Fabric Loader and Fabric API, then put
-`wicklen-chronicles-0.4.2.jar` in `mods/` on both server and client. Remove
+`wicklen-chronicles-0.4.3.jar` in `mods/` on both server and client. Remove
 older copies of this mod first. Use matching client/server versions; the
 0.2.1 networking namespace changed. The `-sources.jar` is for developers.
 
@@ -347,7 +353,7 @@ no personal cache path, local server configuration or external LLM key is needed
 
 ```sh
 ./gradlew build
-# build/libs/wicklen-chronicles-0.4.2.jar
+# build/libs/wicklen-chronicles-0.4.3.jar
 ./gradlew -p core check
 ./gradlew runServerSmoke
 ./gradlew runClientGameTest

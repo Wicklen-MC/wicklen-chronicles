@@ -1,0 +1,17 @@
+{
+  "version": "0.4.3",
+  "capture": "Real Minecraft client gametest framebuffer; synthetic fixture dialogue, no live LLM call.",
+  "scenario": "SettingsUiChecks: native slider drags, persistence, reset, scaled bounds and top-right HUD.",
+  "notes": "Settings screenshot is 640x480 via the game-test screenshot API; HUD uses the actual window size to avoid the API retaining stale GUI dimensions.",
+  "source_sha256": {
+    "src/client/java/dev/wicklen/chronicles/client/ClientUiSettings.java": "9151fdc23efe87d16b225935f35b559ffba98427d4afdf8118f0be17932595dc",
+    "src/client/java/dev/wicklen/chronicles/client/JournalSettingsScreen.java": "e98d3375c313332700d8a96c63b93b1998dc28429b526dd9288c048cd6a45e3c",
+    "src/client/java/dev/wicklen/chronicles/client/JournalScaledScreen.java": "35c4d65b4468bbc23fbc5ca37bf25b6853de29755395cd056b8670be309f5e4d",
+    "src/client/java/dev/wicklen/chronicles/client/SpiritSpeechHud.java": "9144399fdea8fb2a3925f09966f00afda7958c53350964aec694bf209918fbe3",
+    "src/clientGameTest/java/dev/wicklen/chronicles/client/SettingsUiChecks.java": "04e852062384d4b2aab9115aef2afd490c8d873046dd9be8b9e2230860b9466d"
+  },
+  "screenshots": {
+    "0.4.3-settings.png": "f28f5284bc99a065d225e5f25885b51cbb3e179b5c99a0423d5355c73191c311",
+    "0.4.3-speech-top-right.png": "0785dfb40b9f67fee6145783d2036f29004e2aa07cf42e36675606d6919221fe"
+  }
+}

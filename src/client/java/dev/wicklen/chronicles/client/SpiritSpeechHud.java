@@ -45,7 +45,10 @@ final class SpiritSpeechHud {
     static Bounds bounds(int screenWidth,int screenHeight,int lines) {
         int width=Math.min(260,Math.max(96,screenWidth/2-20));
         int height=44+Math.clamp(lines,1,4)*10;
-        return new Bounds(12,Math.max(28,screenHeight-92-height),width,height);
+        var p=ClientUiSettings.snapshot();
+        int x=12+(int)Math.round(Math.max(0,screenWidth-width-24)*p.speechHorizontal());
+        int y=28+(int)Math.round(Math.max(0,screenHeight-92-height-28)*p.speechVertical());
+        return new Bounds(x,y,width,height);
     }
     private static void render(GuiGraphicsExtractor g,net.minecraft.client.DeltaTracker delta) {
         var client=Minecraft.getInstance();

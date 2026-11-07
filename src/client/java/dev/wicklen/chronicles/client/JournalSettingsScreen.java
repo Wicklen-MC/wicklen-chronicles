@@ -9,7 +9,7 @@ import net.minecraft.network.chat.Component;
 import java.util.function.DoubleConsumer;
 
 /** Presentation only: the same journal instance remains behind this small native settings page. */
-final class JournalSettingsScreen extends Screen {
+final class JournalSettingsScreen extends JournalScaledScreen {
     private final Screen parent;
 
     JournalSettingsScreen(Screen parent) {
@@ -17,12 +17,12 @@ final class JournalSettingsScreen extends Screen {
         this.parent = parent;
     }
 
-    private int panelWidth() { return Math.min(360, width - 20); }
-    private int panelHeight() { return Math.min(226, height - 14); }
+    @Override protected int panelWidth() { return Math.min(360, Math.max(290, viewportWidth() - 20)); }
+    @Override protected int panelHeight() { return 274; }
     private int left() { return (width - panelWidth()) / 2; }
     private int top() { return (height - panelHeight()) / 2; }
 
-    @Override protected void init() {
+    @Override protected void initJournal() {
         int x = left() + 12;
         int y = top() + 35;
         int w = panelWidth() - 24;
@@ -31,29 +31,39 @@ final class JournalSettingsScreen extends Screen {
         slider(x, y + 24, w, "speech_scale", p.speechScale(), 0.65, 1.25, false, value -> {
             var s = ClientUiSettings.snapshot();
             ClientUiSettings.update(new ClientUiSettings.Preferences(s.journalScale(), value, s.speechOpacity(),
-                    s.speechVisible(), s.automaticRemarksEnabled(), s.minIntervalMinutes()));
+                    s.speechVisible(), s.automaticRemarksEnabled(), s.minIntervalMinutes(), s.speechHorizontal(), s.speechVertical()));
         });
         slider(x, y + 48, w, "opacity", p.speechOpacity(), 0.25, 1, false, value -> {
             var s = ClientUiSettings.snapshot();
             ClientUiSettings.update(new ClientUiSettings.Preferences(s.journalScale(), s.speechScale(), value,
-                    s.speechVisible(), s.automaticRemarksEnabled(), s.minIntervalMinutes()));
+                    s.speechVisible(), s.automaticRemarksEnabled(), s.minIntervalMinutes(), s.speechHorizontal(), s.speechVertical()));
+        });
+        slider(x, y + 72, w, "horizontal", p.speechHorizontal(), 0, 1, false, value -> {
+            var s = ClientUiSettings.snapshot();
+            ClientUiSettings.update(new ClientUiSettings.Preferences(s.journalScale(), s.speechScale(), s.speechOpacity(),
+                    s.speechVisible(), s.automaticRemarksEnabled(), s.minIntervalMinutes(), value, s.speechVertical()));
+        });
+        slider(x, y + 96, w, "vertical", p.speechVertical(), 0, 1, false, value -> {
+            var s = ClientUiSettings.snapshot();
+            ClientUiSettings.update(new ClientUiSettings.Preferences(s.journalScale(), s.speechScale(), s.speechOpacity(),
+                    s.speechVisible(), s.automaticRemarksEnabled(), s.minIntervalMinutes(), s.speechHorizontal(), value));
         });
         addRenderableWidget(JournalButton.colored(toggle("speech_visible", p.speechVisible()), button -> {
             var s = ClientUiSettings.snapshot();
             ClientUiSettings.update(new ClientUiSettings.Preferences(s.journalScale(), s.speechScale(), s.speechOpacity(),
-                    !s.speechVisible(), s.automaticRemarksEnabled(), s.minIntervalMinutes()));
+                    !s.speechVisible(), s.automaticRemarksEnabled(), s.minIntervalMinutes(), s.speechHorizontal(), s.speechVertical()));
             button.setMessage(toggle("speech_visible", !s.speechVisible()));
-        }).bounds(x, y + 72, w, 20).tooltip(Tooltip.create(JournalTexts.tr("settings.speech_visible_hint"))).build());
+        }).bounds(x, y + 120, w, 20).tooltip(Tooltip.create(JournalTexts.tr("settings.speech_visible_hint"))).build());
         addRenderableWidget(JournalButton.colored(toggle("automatic", p.automaticRemarksEnabled()), button -> {
             var s = ClientUiSettings.snapshot();
             ClientUiSettings.update(new ClientUiSettings.Preferences(s.journalScale(), s.speechScale(), s.speechOpacity(),
-                    s.speechVisible(), !s.automaticRemarksEnabled(), s.minIntervalMinutes()));
+                    s.speechVisible(), !s.automaticRemarksEnabled(), s.minIntervalMinutes(), s.speechHorizontal(), s.speechVertical()));
             button.setMessage(toggle("automatic", !s.automaticRemarksEnabled()));
-        }).bounds(x, y + 96, w, 20).tooltip(Tooltip.create(JournalTexts.tr("settings.automatic_hint"))).build());
-        slider(x, y + 120, w, "interval", p.minIntervalMinutes(), 2, 30, true, value -> {
+        }).bounds(x, y + 144, w, 20).tooltip(Tooltip.create(JournalTexts.tr("settings.automatic_hint"))).build());
+        slider(x, y + 168, w, "interval", p.minIntervalMinutes(), 2, 30, true, value -> {
             var s = ClientUiSettings.snapshot();
             ClientUiSettings.update(new ClientUiSettings.Preferences(s.journalScale(), s.speechScale(), s.speechOpacity(),
-                    s.speechVisible(), s.automaticRemarksEnabled(), (int) Math.round(value)));
+                    s.speechVisible(), s.automaticRemarksEnabled(), (int) Math.round(value), s.speechHorizontal(), s.speechVertical()));
         });
         int footer = top() + panelHeight() - 29;
         addRenderableWidget(JournalButton.colored(JournalTexts.tr("settings.reset"), button -> {
@@ -80,20 +90,18 @@ final class JournalSettingsScreen extends Screen {
 
     @Override public boolean isPauseScreen() { return false; }
 
-    @Override public void extractBackground(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
-        super.extractBackground(g, mouseX, mouseY, delta);
+    @Override protected void extractJournalBackground(GuiGraphicsExtractor g) {
         int x = left(), y = top(), w = panelWidth(), h = panelHeight();
         g.fill(x - 2, y - 2, x + w + 2, y + h + 2, 0xFF67524A);
         g.fill(x, y, x + w, y + h, 0xFFF1E5CD);
         g.fill(x + 3, y + 3, x + 6, y + h - 3, 0xFF668976);
     }
 
-    @Override public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
+    @Override protected void extractJournalContents(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
         g.text(font, title, left() + 12, top() + 11, SpiritDialogScreen.INK, false);
         var caption = JournalTexts.tr(ClientUiSettings.saveFailed() ? "settings.save_failed" : "settings.local");
         g.text(font, font.plainSubstrByWidth(caption.getString(), panelWidth() - 24),
                 left() + 12, top() + 24, SpiritDialogScreen.MUTED, false);
-        super.extractRenderState(g, mouseX, mouseY, delta);
     }
 
     private static final class SettingSlider extends AbstractSliderButton {
