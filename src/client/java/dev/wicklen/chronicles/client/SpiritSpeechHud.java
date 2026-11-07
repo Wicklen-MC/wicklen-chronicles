@@ -96,14 +96,19 @@ final class SpiritSpeechHud {
         var key=journalKey==null?Component.literal("G"):journalKey.getTranslatedKeyMessage();
         g.text(font,Component.translatable("hud.wicklen_chronicles.history",key),x+12,y+h-13,tint(0xB7B5A2,opacity),false);
     }
-    /** Tiny front portrait repeats the in-world companion's crown, fins, two eyes and tapering tail. */
+    /** Compact hood portrait uses the same cloth, patch, lining and persona-eye palette as the model. */
     private static void portrait(GuiGraphicsExtractor g,int x,int y,int color,float alpha) {
-        int body=tint(lighten(color),alpha),shadow=tint(color,alpha),eye=tint(0x252437,alpha);
-        g.fill(x+4,y+3,x+14,y+12,body);
-        g.fill(x+2,y+6,x+4,y+9,shadow);g.fill(x+14,y+6,x+16,y+9,shadow);
-        g.fill(x+6,y+12,x+12,y+15,shadow);g.fill(x+8,y+15,x+10,y+17,shadow);
-        g.fill(x+6,y+6,x+8,y+9,eye);g.fill(x+11,y+6,x+13,y+9,eye);
-        g.fill(x+3,y,x+15,y+1,body);g.fill(x+3,y,x+4,y+3,body);g.fill(x+14,y,x+15,y+3,body);
+        int cloth=tint(SpiritMaterials.CLOTH,alpha),patch=tint(SpiritMaterials.PATCH,alpha);
+        int lining=tint(SpiritMaterials.LINING,alpha),eye=tint(color,alpha);
+        g.fill(x+5,y,x+13,y+2,cloth);
+        g.fill(x+3,y+2,x+15,y+11,cloth);
+        g.fill(x+5,y+4,x+13,y+10,lining);
+        g.fill(x+6,y+6,x+8,y+8,eye);g.fill(x+10,y+6,x+12,y+8,eye);
+        g.fill(x+13,y+2,x+15,y+6,patch);
+        g.fill(x+4,y+11,x+14,y+15,cloth);
+        g.fill(x+3,y+14,x+7,y+17,cloth);g.fill(x+10,y+14,x+14,y+16,cloth);
+        g.fill(x+11,y+12,x+14,y+14,patch);
+        g.fill(x+8,y+12,x+9,y+15,tint(SpiritMaterials.STITCH,alpha));
     }
     private static int lighten(int rgb) {
         int r=((rgb>>16)&255),green=((rgb>>8)&255),blue=(rgb&255);

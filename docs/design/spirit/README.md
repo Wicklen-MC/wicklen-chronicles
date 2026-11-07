@@ -13,7 +13,9 @@ The maintainer prefers **5 — cloth wanderer**, and also likes **3 — woodland
 Keep the wanderer's small off-white hood, recessed dark face, warm eyes, teal
 patches and trailing cloth as the main identity. Subtle woodland details are an
 optional variation, not a decision to replace the cloth with leaves. No A/B/C
-refinement from the third sheet has been chosen yet.
+refinement was explicitly selected separately. Implementation proceeds from
+**A**, the closest match to the preferred option 5, after the request to proceed.
+See the [native model, screenshots and video](../../development/wanderer/README.md).
 
 | Sheet | Contents |
 | --- | --- |
@@ -38,6 +40,7 @@ unchanged in this directory. [Prompts](prompts.md) preserve the generation brief
 relationships and the selection state. Files contain no credentials or personal
 machine paths.
 
-The earlier [native development prototype](../../development/spirit-knowledge.md)
-is documented separately. Its real captures do not depict the newly selected
-cloth-wanderer concept. Saving these sheets does not implement or release it.
+The earlier [halo-wisp development prototype](../../development/spirit-knowledge.md)
+is documented separately. The newer [cloth-wanderer implementation](../../development/wanderer/README.md)
+has its own native captures. All images on this concept page remain generated
+explorations; the production mod has not been updated by these development changes.

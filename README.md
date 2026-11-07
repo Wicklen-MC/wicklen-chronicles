@@ -17,6 +17,8 @@ and production pack **0.4.3** remain separate from this unreleased work.
 
 [Spirit design explorations](docs/design/spirit/README.md) preserve all concept
 sheets and the selected cloth-wanderer direction.
+The [native cloth-wanderer preview](docs/development/wanderer/README.md) includes
+actual in-game screenshots and a short MP4 recording of the implemented model.
 
 - One animated spirit per player, with four personalities and colours. It follows
   you quietly through walls, with no movement sounds or block effects.

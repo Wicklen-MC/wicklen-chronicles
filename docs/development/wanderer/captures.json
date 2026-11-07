@@ -1,0 +1,118 @@
+{
+  "date": "2026-11-07",
+  "mod_version": "0.4.3-SNAPSHOT",
+  "minecraft_version": "26.3",
+  "kind": "Real native Minecraft development captures, isolated local test world",
+  "concept_basis": "Preferred option 5, refinement A as the closest implementation baseline",
+  "scene": "Controlled pose/rotation; vanilla test props; manual speech through the actual HUD protocol; not an LLM answer",
+  "image_processing": "Four original framebuffer screenshot PNGs copied unchanged",
+  "native_full_check_log": "build/spirit-wanderer-native-final.log",
+  "final_capture_log": "build/spirit-wanderer-capture-final.log",
+  "command": "./gradlew --offline --no-daemon --no-configuration-cache -PspiritVideo=true -PspiritVisualOnly=true runClientGameTest",
+  "images": [
+    {
+      "file": "images/front-day.png",
+      "source": "build/client-gametest/screenshots/spirit-wanderer/spirit-front-day.png",
+      "width": 1280,
+      "height": 800,
+      "bytes": 775707,
+      "sha256": "49213e4711a0cc8d6f589933415f1fb1aff2e8ac1cbb977400f2040088f9102a"
+    },
+    {
+      "file": "images/side-day.png",
+      "source": "build/client-gametest/screenshots/spirit-wanderer/spirit-side-day.png",
+      "width": 1280,
+      "height": 800,
+      "bytes": 776485,
+      "sha256": "4dc26c0c8a95f661893d03a4c7579281378477582749994e084187d4624a125b"
+    },
+    {
+      "file": "images/back-day.png",
+      "source": "build/client-gametest/screenshots/spirit-wanderer/spirit-back-day.png",
+      "width": 1280,
+      "height": 800,
+      "bytes": 776776,
+      "sha256": "3e386c0095e286cad90d7db8bc6ad7094b19e1a2cde43b9d076ba58c452dd144"
+    },
+    {
+      "file": "images/front-night.png",
+      "source": "build/client-gametest/screenshots/spirit-wanderer/spirit-front-night.png",
+      "width": 1280,
+      "height": 800,
+      "bytes": 738916,
+      "sha256": "0ade4d3664ae7f01e1626b9f4dc889bb23a8ac17ffee608dc904c15b8ab07305"
+    }
+  ],
+  "video": {
+    "file": "video/spirit-wanderer.mp4",
+    "bytes": 1608211,
+    "sha256": "ef7824f0bcbc5b3f02ae628cb96bb0833cdc3107cf8d195cf3ddd646416b5454",
+    "media": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 800,
+          "pix_fmt": "yuv420p",
+          "avg_frame_rate": "20/1"
+        }
+      ],
+      "format": {
+        "duration": "24.000000",
+        "size": "1608211"
+      }
+    },
+    "recording": {
+      "kind": "native Minecraft framebuffer recording",
+      "fps": 20,
+      "seconds": 24,
+      "width": 1280,
+      "height": 800,
+      "captured_frames": 480,
+      "output_frames": 480
+    },
+    "audio": false,
+    "timeline_seconds": {
+      "0-4": "front, warm eyes",
+      "4-12": "full rotation and native idle animation",
+      "13-17": "night, blue eyes",
+      "18-24": "day, Russian speech HUD and new hood portrait"
+    }
+  },
+  "source_files": [
+    {
+      "file": "src/client/java/dev/wicklen/chronicles/client/SpiritModel.java",
+      "sha256": "2f3116e59dfbcd9b8f8d2b0b6674a06f38fe1b4f6ab4c91410844dc33465354e"
+    },
+    {
+      "file": "src/client/java/dev/wicklen/chronicles/client/SpiritMaterials.java",
+      "sha256": "d1d95f2f10dc065398ae927af1fa0776e62b58f1f89d09b39811f76f09ae6751"
+    },
+    {
+      "file": "src/client/java/dev/wicklen/chronicles/client/SpiritRenderer.java",
+      "sha256": "77ea2def88b9a7c45833567b7d86f909281fe9dd18af53e722a525e432a01c65"
+    },
+    {
+      "file": "src/client/java/dev/wicklen/chronicles/client/SpiritSpeechHud.java",
+      "sha256": "cd633339081a890432e9b26c8e0f9e5f1cc8a8c7aa8dba8f6a4c53bf869827f5"
+    },
+    {
+      "file": "src/clientGameTest/java/dev/wicklen/chronicles/client/SpiritModelVisualChecks.java",
+      "sha256": "866f9066c94ec649197209c37df2679f957f6f0489afa9a3b624b22de8bf685f"
+    },
+    {
+      "file": "src/clientGameTest/java/dev/wicklen/chronicles/client/NativeGameVideo.java",
+      "sha256": "fd7270e470ee8b2ee671b95a30a0cc972c6c44c497e767de160ca8dd30461e17"
+    },
+    {
+      "file": "src/clientGameTest/java/dev/wicklen/chronicles/client/SpiritClientGameTest.java",
+      "sha256": "46708b24f1e347e1c91d1b1fa3abd45b8e9f97c8e435c7e045ecff5fc317e47e"
+    },
+    {
+      "file": "fabric/build.gradle",
+      "sha256": "1a44e1215b600a240e989908fc5a5df52fd81df3e7958178fa1c2649c128b9c0"
+    }
+  ]
+}

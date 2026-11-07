@@ -6,7 +6,8 @@
   "selection": {
     "primary_direction": "Variant 5: cloth wanderer, sheets 01 and 02",
     "also_liked": "Variant 3: woodland hood, sheets 01 and 02",
-    "abc_detail_selection": "Not chosen yet; sheet 03 is a refinement proposal"
+    "abc_detail_selection": "Not chosen yet; sheet 03 is a refinement proposal",
+    "implementation_baseline": "A, closest to preferred option 5, used after the request to proceed; native capture page: ../../development/wanderer/README.md"
   },
   "images": [
     {

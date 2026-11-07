@@ -198,6 +198,14 @@ loom {
 			if (System.getProperty('os.name').toLowerCase(java.util.Locale.ROOT).contains('mac')) vmArg '-XstartOnFirstThread'
 			runDir rootProject.file(clientRunPath).absolutePath
 			if (verifyCombatClient) vmArg '-Dwicklen.chronicles.client.verifyCombat=true'
+			if (providers.gradleProperty('spiritVisualOnly').map { it.toBoolean() }.getOrElse(false)) vmArg '-Dwicklen.spirit.visualOnly=true'
+			if (providers.gradleProperty('spiritVideo').map { it.toBoolean() }.getOrElse(false)) {
+				vmArg '-Dwicklen.spirit.video=true'
+				programArg '--width'
+				programArg '1280'
+				programArg '--height'
+				programArg '800'
+			}
 			vmArg '-Dfabric.client.gametest'
 			vmArg '-Dfabric.client.gametest.testModResourcesPath=' + rootProject.file('src/clientGameTest/resources').absolutePath
 		}

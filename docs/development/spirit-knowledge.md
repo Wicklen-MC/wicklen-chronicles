@@ -1,5 +1,10 @@
 # Spirit knowledge — development slice
 
+The visual screenshots at the end of this page archive the earlier halo-wisp
+prototype. The subsequent selected [cloth-wanderer model](wanderer/README.md)
+has separate native screenshots and video; the knowledge functionality below
+is independent of that visual change.
+
 This is source work for **0.4.3-SNAPSHOT**, separate from published mod 0.4.2
 and production **pack** 0.4.3. No production pack or world is changed by building it.
 

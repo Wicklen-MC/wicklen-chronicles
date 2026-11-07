@@ -69,6 +69,7 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
             connection.waitForClientboundPackets();
             context.waitFor(client -> !DialogHistory.lines().isEmpty());
             SpiritModelVisualChecks.capture(context, world);
+            if (Boolean.getBoolean("wicklen.spirit.visualOnly")) return;
             verifyGhostInsideSolidBlocks(context, world);
             context.setScreen(SpiritDialogScreen::new);
             context.waitFor(client -> JournalClientState.view()!=null && !JournalClientState.busy());
