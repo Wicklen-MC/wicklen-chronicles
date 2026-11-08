@@ -19,14 +19,16 @@ public final class AnnotationUiChecks {
         context.waitFor(c->AnnotationClientState.lookup(key)!=null&&!AnnotationClientState.busy());
         click(context,"annotation.edit");
         context.waitFor(c->c.gui.screen() instanceof AnnotationEditScreen&&!AnnotationClientState.busy());
-        context.runOnClient(c->setFields(c,"Луговые коровы","Мирное стадо. Это запись о виде."));
+        String personalName=ScreenshotUiChecks.text("Meadow cows","Луговые коровы");
+        String personalNote=ScreenshotUiChecks.text("A peaceful herd. This is a species record.","Мирное стадо. Это запись о виде.");
+        context.runOnClient(c->setFields(c,personalName,personalNote));
         context.takeScreenshot("annotation-editor");
         click(context,"annotation.save");
         context.waitFor(c->c.gui.screen() instanceof SpiritDialogScreen&&!AnnotationClientState.busy());
         context.runOnClient(c->{
-            require(AnnotationClientState.lookup(key).label().equals("Луговые коровы"),"real save response updates alias cache");
+            require(AnnotationClientState.lookup(key).label().equals(personalName),"real save response updates alias cache");
             var entry=JournalClientState.view().discoveries().stream().filter(e->e.key().equals(key)).findFirst().orElseThrow();
-            require(JournalTexts.discovery(entry).getString().equals("Луговые коровы")&&!JournalTexts.canonicalDiscovery(entry).getString().equals("Луговые коровы"),"personal title and canonical species remain separate");
+            require(JournalTexts.discovery(entry).getString().equals(personalName)&&!JournalTexts.canonicalDiscovery(entry).getString().equals(personalName),"personal title and canonical species remain separate");
         });
         context.takeScreenshot("annotation-record-personal-name");
         ScreenshotUiChecks.capture(context, "annotation-record-personal-name");

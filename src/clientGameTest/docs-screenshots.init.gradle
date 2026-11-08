@@ -1,13 +1,17 @@
 gradle.projectsEvaluated {
     def fabricProject = gradle.rootProject.project(':fabric')
-    def docsDirectory = gradle.rootProject.file('build/client-docs-screenshots')
+    def language = gradle.rootProject.findProperty('docsLanguage') ?: 'ru_ru'
+    if (!(language in ['en_us', 'ru_ru'])) throw new GradleException('docsLanguage must be en_us or ru_ru')
+    def docsDirectory = gradle.rootProject.file('build/client-docs-screenshots-' + language)
     fabricProject.loom.runs.named('clientGameTest') {
         runDir docsDirectory.absolutePath
         vmArg '-Dwicklen.docs.screenshots=true'
+        vmArg '-Dwicklen.docs.language=' + language
     }
     fabricProject.tasks.named('runClientGameTest', JavaExec) {
         workingDir docsDirectory
         systemProperty 'wicklen.docs.screenshots', 'true'
+        systemProperty 'wicklen.docs.language', language
         doFirst {
             def runArguments = args.toList()
             def index = runArguments.indexOf('--gameDir')

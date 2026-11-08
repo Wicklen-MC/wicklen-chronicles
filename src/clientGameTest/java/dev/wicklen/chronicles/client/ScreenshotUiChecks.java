@@ -38,6 +38,17 @@ public final class ScreenshotUiChecks {
 
     public static boolean enabled() { return Boolean.getBoolean("wicklen.docs.screenshots"); }
 
+    public static String language() { return System.getProperty("wicklen.docs.language", "ru_ru"); }
+
+    public static String text(String english, String russian) {
+        return language().equals("en_us") ? english : russian;
+    }
+
+    public static String version() {
+        return net.fabricmc.loader.api.FabricLoader.getInstance().getModContainer("wicklen_chronicles")
+                .orElseThrow().getMetadata().getVersion().getFriendlyString();
+    }
+
     public static void capture(ClientGameTestContext context, String source) {
         if (!enabled()) return;
         String name = SHOTS.get(source);
@@ -50,6 +61,7 @@ public final class ScreenshotUiChecks {
             if (name.equals("wayfarer-lantern") && client.player != null) {
                 pitch.set(client.player.getXRot());
                 client.player.setXRot(8);
+                SpiritSpeechHud.clear();
             }
             ClientUiSettings.update(ClientUiSettings.DEFAULTS);
             client.gui.toastManager().clear();
@@ -149,8 +161,20 @@ public final class ScreenshotUiChecks {
     }
 
     private static void photograph(ClientGameTestContext context, String name) {
-        context.takeScreenshot(TestScreenshotOptions.of(name).disableCounterPrefix()
-                .withDestinationDir(Path.of("screenshots", "docs-0.4.2")).withSize(1280, 800));
-        System.out.println("DOCS_SCREENSHOT: " + name + " native0.4.2 1280x800");
+        var size = context.computeOnClient(client -> new int[]{client.getWindow().getWidth(), client.getWindow().getHeight()});
+        context.runOnClient(client -> ((net.fabricmc.fabric.impl.client.gametest.util.WindowHooks) (Object) client.getWindow())
+                .fabric_resize(1280, 800));
+        try {
+            // Extract several complete native frames at the final size before reading the framebuffer.
+            // A one-frame screenshot resize can retain a smaller HUD/menu overlay on Minecraft 26.3.
+            context.waitTicks(4);
+            context.takeScreenshot(TestScreenshotOptions.of(name).disableCounterPrefix()
+                    .withDestinationDir(Path.of("screenshots", "docs-" + version() + "-" + language())));
+        } finally {
+            context.runOnClient(client -> ((net.fabricmc.fabric.impl.client.gametest.util.WindowHooks) (Object) client.getWindow())
+                    .fabric_resize(size[0], size[1]));
+            context.waitTicks(2);
+        }
+        System.out.println("DOCS_SCREENSHOT: " + name + " native " + version() + " " + language() + " 1280x800");
     }
 }

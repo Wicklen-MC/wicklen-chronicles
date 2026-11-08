@@ -27,7 +27,7 @@ final class SpiritModelVisualChecks {
         var horizontalOffset = new AtomicReference<>(0.0);
         var reload = new AtomicReference<java.util.concurrent.CompletableFuture<Void>>();
         context.runOnClient(client -> {
-            client.getLanguageManager().setSelected("ru_ru");
+            client.getLanguageManager().setSelected(ScreenshotUiChecks.language());
             reload.set(client.reloadResourcePacks());
         });
         context.waitFor(client -> reload.get().isDone() && client.gui.overlay() == null);

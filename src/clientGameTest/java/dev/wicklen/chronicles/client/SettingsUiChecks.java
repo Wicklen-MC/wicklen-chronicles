@@ -120,7 +120,9 @@ public final class SettingsUiChecks {
             });
             context.runOnClient(client -> {
                 ClientUiSettings.update(new ClientUiSettings.Preferences(0.85, 0.65, 0.25, true, false, 2));
-                SpiritSpeechHud.accept("Дух", 0x86C9B0, "Станция записана. Теперь можно разведать окрестности или пройти испытание во дворе.", 12000);
+                SpiritSpeechHud.accept(ScreenshotUiChecks.text("Spirit", "Дух"), 0x86C9B0,
+                        ScreenshotUiChecks.text("Waystation recorded. Now you can survey the surroundings or try the courtyard trial.",
+                                "Станция записана. Теперь можно разведать окрестности или пройти испытание во дворе."), 12000);
                 SpiritSpeechHud.tick(client);
                 require(SpiritSpeechHud.size() == 1, "visible HUD accepts manual replies even with automatic remarks off");
                 near(SpiritSpeechHud.effectiveScale(320, 240), 0.65, "speech has a separate presentation scale");

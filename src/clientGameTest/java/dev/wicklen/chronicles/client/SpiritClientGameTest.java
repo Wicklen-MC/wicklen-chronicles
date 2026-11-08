@@ -78,7 +78,7 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
             captureJournal(context,"journal-first-step");
             var languageReload=new AtomicReference<java.util.concurrent.CompletableFuture<Void>>();
             context.runOnClient(client->{
-                client.getLanguageManager().setSelected("ru_ru");
+                client.getLanguageManager().setSelected(ScreenshotUiChecks.language());
                 languageReload.set(client.reloadResourcePacks());
             });
             context.waitFor(client->languageReload.get().isDone() && client.gui.overlay()==null);
@@ -846,7 +846,9 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
 
     private static void verifySpeechHud(ClientGameTestContext context,
             net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext world) {
-        String spoken="Давай начнём с окрестностей: запишем, кого встретим, и отметим места, куда захочется вернуться.";
+        String spoken=ScreenshotUiChecks.text(
+            "Let's explore nearby: record the wildlife we meet and mark places worth visiting again.",
+            "Давай начнём с окрестностей: запишем, кого встретим, и отметим места, куда захочется вернуться.");
         context.runOnClient(client->{
             SpiritSpeechHud.clear();
             var queue=new SpiritSpeechQueue();
@@ -864,7 +866,16 @@ public final class SpiritClientGameTest implements FabricClientGameTest {
                 require(b.x()+b.width()<width/2 && b.y()+b.height()<=240-92,"speech avoids crosshair, actionbar and hotbar at supported GUI scales");
             }
         });
-        world.getServer().runOnServer(server->SpiritBubbles.speak(world.getConnection().getServerPlayer(),spoken));
+        world.getServer().runOnServer(server->{
+            var player=world.getConnection().getServerPlayer();
+            if(ScreenshotUiChecks.enabled() && ScreenshotUiChecks.language().equals("en_us")) {
+                var persona=dev.wicklen.chronicles.ai.SpiritPersonas.of(player.getUUID());
+                // The demo line and its English speaker label travel through the actual game protocol.
+                SpiritBubbles.sendDialog(player,"Firefly",persona.color(),spoken);
+                net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send(player,
+                        new dev.wicklen.chronicles.net.SpiritSpeechS2CPayload("Firefly",persona.color(),spoken,12000));
+            } else SpiritBubbles.speak(player,spoken);
+        });
         world.getConnection().waitForClientboundPackets();
         context.waitFor(client->SpiritSpeechHud.texts().contains(spoken));
         context.runOnClient(client->{
