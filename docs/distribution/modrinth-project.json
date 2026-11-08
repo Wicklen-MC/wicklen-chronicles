@@ -1,0 +1,59 @@
+{
+  "title": "Wicklen: Chronicles",
+  "slug": "wicklen-chronicles",
+  "summary": "Explore with a spirit companion: record wildlife, name discoveries, map your travels and follow a short expedition.",
+  "project_type": "mod",
+  "intended_visibility": "unlisted",
+  "license": "MIT",
+  "categories": [
+    "adventure",
+    "quests"
+  ],
+  "client_side": "required",
+  "server_side": "required",
+  "content_disclosures": [
+    "AI-generated content: code, text and assets",
+    "AI functionality: optional LLM dialogue and game help"
+  ],
+  "source_url": "https://github.com/Wicklen-MC/wicklen-chronicles",
+  "issues_url": "https://github.com/Wicklen-MC/wicklen-chronicles/issues",
+  "description_file": "modrinth-description.md",
+  "version": {
+    "name": "Wicklen: Chronicles 0.4.3",
+    "number": "0.4.3",
+    "type": "beta",
+    "loaders": [
+      "fabric"
+    ],
+    "game_versions": [
+      "26.3"
+    ],
+    "java": ">=25",
+    "fabric_loader": ">=0.20.1",
+    "tested_fabric_api": "0.165.0+26.3",
+    "dependencies": [
+      {
+        "slug": "fabric-api",
+        "type": "required"
+      },
+      {
+        "project_id": "Z7xAH01M",
+        "name": "Gateway of Doom",
+        "type": "optional"
+      },
+      {
+        "project_id": "72RRCWM6",
+        "name": "Field Guide",
+        "type": "optional"
+      }
+    ],
+    "filename": "wicklen-chronicles-0.4.3.jar",
+    "download_url": "https://github.com/Wicklen-MC/wicklen-chronicles/releases/download/v0.4.3/wicklen-chronicles-0.4.3.jar",
+    "bytes": 832514,
+    "sha256": "bae7899020c43fb0b7b05b2221fbb58174a69b475eac5da8bb79452ce1c95b6e",
+    "changelog_file": "../releases/0.4.3.md",
+    "modrinth_version_id": "fQmjVwvT"
+  },
+  "project_id": "SfE0Z0Lb",
+  "project_url": "https://modrinth.com/mod/wicklen-chronicles"
+}

@@ -78,31 +78,32 @@ is part of the journal. Combat balance still needs playtesting with the full pac
 
 ## In-game screenshots
 
-Native Minecraft 0.4.2 captures in a test world; these are game screens, not design mockups.
+Native Minecraft 0.4.3 captures with the English interface in local test worlds.
+[Capture provenance](docs/images/en/README.md).
 
-[Your next step](docs/images/journal-next.png) — The journal proposes a concrete action.
+[Your next step](docs/images/en/journal-next.png) — The journal proposes a concrete action.
 
-[Spyglass observation](docs/images/spyglass-observation.png) — Vanilla spyglass, target and confirmed-focus progress.
+[Spyglass observation](docs/images/en/spyglass-observation.png) — Vanilla spyglass, target and confirmed-focus progress.
 
-[Personal names and notes](docs/images/personal-notes.png) — Your label stays separate from the canonical species/place.
+[Personal names and notes](docs/images/en/personal-notes.png) — Your label stays separate from the canonical species/place.
 
-![Personal terrain atlas](docs/images/terrain-map.png)
+![Personal terrain atlas](docs/images/en/terrain-map.png)
 
 Actual sampled test terrain, personal labels and fog; this scene is a test world.
 
-![First Light](docs/images/first-light.png)
+![First Light](docs/images/en/first-light.png)
 
 The short expedition offers explicit approaches and progress.
 
-[Courtyard trial](docs/images/courtyard-trial.png) — The optional courtyard encounter page; Gateway is required for battles.
+[Courtyard trial](docs/images/en/courtyard-trial.png) — The optional courtyard encounter page; Gateway is required for battles.
 
-[Field desk](docs/images/field-desk.png) — A notebook binds an ordinary cartography table for personal resupply.
+[Field desk](docs/images/en/field-desk.png) — A notebook binds an ordinary cartography table for personal resupply.
 
-![Journal settings](docs/images/journal-settings.png)
+![Journal settings](docs/images/en/journal-settings.png)
 
 Local scale, speech visibility and automatic-remark controls.
 
-![Spirit speech](docs/images/spirit-speech.png)
+![Spirit speech](docs/images/en/spirit-speech.png)
 
 A compact speech card; the complete text remains in journal history.
 
@@ -386,6 +387,15 @@ External-provider verification is opt-in and reads an existing private config:
 
 It makes a real request, never prints credentials and does not change the config.
 It is deliberately excluded from `build` / `check`.
+
+## AI development disclosure
+
+The main implementation was generated with AI coding tools from the maintainer's
+instructions. AI also assisted with documentation and translations, and generated
+the spirit design concepts. Optional in-game dialogue uses a configured LLM.
+The gameplay captures in this repository are actual Minecraft screenshots.
+See the [Modrinth publication materials](docs/distribution/README.md) for the
+intended unlisted distribution and complete player-facing disclosure.
 
 ## Architecture
 

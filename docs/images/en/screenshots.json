@@ -1,0 +1,136 @@
+{
+  "version": "0.4.3",
+  "minecraft": "26.3",
+  "fabric_loader": "0.20.1",
+  "language": "en_us",
+  "captured_on": "2026-11-09",
+  "capture_source_revision": "7981be33ede432b2b734f88cd40f267b1e88c5a3",
+  "runtime_source_revision": "e02aa7b467ca1047f9177853454793ea4a8d9c35",
+  "capture_size": [
+    1280,
+    800
+  ],
+  "journal_scale": 0.85,
+  "renderer": "Native Minecraft framebuffer, no compositing, edits, upscaling or generated imagery",
+  "environment": "Isolated local game-test worlds; no production-server connection or player saves",
+  "optional_test_dependencies": [
+    "Gateway of Doom 2.3.6",
+    "SIHYWTCAMD 1.11.2+26.3"
+  ],
+  "capture_command": "./gradlew --offline --no-daemon --no-configuration-cache -I src/clientGameTest/docs-screenshots.init.gradle -PverifyCombatClient=true -PdocsLanguage=en_us runClientGameTest",
+  "run_directory": "build/client-docs-screenshots-en_us",
+  "run_log": "build/docs-screenshots-0.4.3-en_us.log",
+  "run_result": "BUILD SUCCESSFUL; full native client, optional combat, reward and persistence scenario passed",
+  "run_log_sha256": "f9db629d39d8ae7b19e588ecc573ffbb7ff2a0caf5eb2e8a3818ec99b3bdb17a",
+  "fixture_source_sha256": {
+    "src/clientGameTest/docs-screenshots.init.gradle": "1e863818690b558c038c60c29154e7aae81dc251212217bbebd6b7d02532a958",
+    "src/clientGameTest/java/dev/wicklen/chronicles/client/AnnotationUiChecks.java": "fd0d07be23dbb6bb7fe65a91ee74e635fd2d02950668d0ccf956af29476f39c4",
+    "src/clientGameTest/java/dev/wicklen/chronicles/client/CampGameChecks.java": "fd3aef66347e1935404b8f7cdc26c3c4afb9f35b22f4747baf7a292b9114366f",
+    "src/clientGameTest/java/dev/wicklen/chronicles/client/FirstLightUiChecks.java": "36f386494eae4e6f94de6c95a767c675c0c85ea5b3b3d7b4faa57c30242af7a8",
+    "src/clientGameTest/java/dev/wicklen/chronicles/client/GatewayWaveProbe.java": "f68727f113f6b44a1e52d5b7ee6976a36b92350cbbc4a8b8448b2900b041fb71",
+    "src/clientGameTest/java/dev/wicklen/chronicles/client/GuidanceUiChecks.java": "d9867ca731178ac51a6d2994046156611aeb389edc6a93d9057b5afd9cb25062",
+    "src/clientGameTest/java/dev/wicklen/chronicles/client/NativeGameVideo.java": "fd7270e470ee8b2ee671b95a30a0cc972c6c44c497e767de160ca8dd30461e17",
+    "src/clientGameTest/java/dev/wicklen/chronicles/client/ScreenshotUiChecks.java": "adc843b0368025e1558a2eda581d0c81b00c7fe8f9aced69c4daa24198d4307c",
+    "src/clientGameTest/java/dev/wicklen/chronicles/client/SettingsUiChecks.java": "5a7abc454ff3ef66229cec7124563efe58b4434ff2289613b31e3116492d667d",
+    "src/clientGameTest/java/dev/wicklen/chronicles/client/SpiritClientGameTest.java": "828d721995f2812a2ace6041eadf6110bfde03f1945a14f680390086315a935d",
+    "src/clientGameTest/java/dev/wicklen/chronicles/client/SpiritModelVisualChecks.java": "f91e1410f288d0665b5508c89c3a00fb726bf1c79ede11891f0488b23c4a7136",
+    "src/clientGameTest/java/dev/wicklen/chronicles/client/TerrainMapCameraChecks.java": "99a71cb8ea3f013417ec297fe32d1f61cb2e1ff9d3279aecae362cd1b6c83dd0",
+    "src/clientGameTest/java/dev/wicklen/chronicles/client/TerrainMapGestureUiChecks.java": "e45a5a3e86e834b8f00027ec0815542e0f34642d5bd6585ae5163bfd74d19d7b",
+    "src/clientGameTest/java/dev/wicklen/chronicles/client/TerrainMapUiChecks.java": "8e94774ae0d8add29523aa941b04d46c685175e58ec7b6356ecb0fd81b87c5b9",
+    "src/clientGameTest/java/dev/wicklen/chronicles/client/WorldStructureUiChecks.java": "b425f34a4de809f2203e47d73ae2facd1c4f3b4764c0181e4a3afc9c2099f03c"
+  },
+  "dialogue": "The English demonstration line and Firefly speaker label are test input sent through the actual game protocol, not a live LLM response.",
+  "keyboard": "The journal key label reflects the native OS keyboard layout used during capture.",
+  "assets": [
+    {
+      "file": "journal-next.png",
+      "width": 1280,
+      "height": 800,
+      "sha256": "c561bf09a6bf4d86c8e9b866b6328f0be3744e1e6299e19b367f38c93dc0dcea",
+      "source_png": "build/client-docs-screenshots-en_us/screenshots/docs-0.4.3-en_us/journal-next.png",
+      "native": true,
+      "edited_or_upscaled": false
+    },
+    {
+      "file": "spyglass-observation.png",
+      "width": 1280,
+      "height": 800,
+      "sha256": "dd082571bb1b78dd51782671e5103a0f4f993c5a1fe2e0bf632e6a100d308506",
+      "source_png": "build/client-docs-screenshots-en_us/screenshots/docs-0.4.3-en_us/spyglass-observation.png",
+      "native": true,
+      "edited_or_upscaled": false
+    },
+    {
+      "file": "personal-notes.png",
+      "width": 1280,
+      "height": 800,
+      "sha256": "fba720a6cdd60045076efde8dc2ff44444d5634e17859d9bf1bb8358c5126acd",
+      "source_png": "build/client-docs-screenshots-en_us/screenshots/docs-0.4.3-en_us/personal-notes.png",
+      "native": true,
+      "edited_or_upscaled": false
+    },
+    {
+      "file": "terrain-map.png",
+      "width": 1280,
+      "height": 800,
+      "sha256": "89aba00192d7d67fce16987542eb6757fb00cc0977842a031c3d9a7a0e5ffbe2",
+      "source_png": "build/client-docs-screenshots-en_us/screenshots/docs-0.4.3-en_us/terrain-map.png",
+      "native": true,
+      "edited_or_upscaled": false
+    },
+    {
+      "file": "first-light.png",
+      "width": 1280,
+      "height": 800,
+      "sha256": "345ca1bafeaf49f0de5ef5f8a5807f95c73a8f6a98191e3b604592466d61a502",
+      "source_png": "build/client-docs-screenshots-en_us/screenshots/docs-0.4.3-en_us/first-light.png",
+      "native": true,
+      "edited_or_upscaled": false
+    },
+    {
+      "file": "courtyard-trial.png",
+      "width": 1280,
+      "height": 800,
+      "sha256": "f65f115a75286de6ccc7a56f6981485f79963f7a6458e57ba65e26a9545793b2",
+      "source_png": "build/client-docs-screenshots-en_us/screenshots/docs-0.4.3-en_us/courtyard-trial.png",
+      "native": true,
+      "edited_or_upscaled": false
+    },
+    {
+      "file": "field-desk.png",
+      "width": 1280,
+      "height": 800,
+      "sha256": "4c5f637dc2951b08ba4cc04bc1b7c8114ef5e3c23ea405a917d23f8fbf80ee06",
+      "source_png": "build/client-docs-screenshots-en_us/screenshots/docs-0.4.3-en_us/field-desk.png",
+      "native": true,
+      "edited_or_upscaled": false
+    },
+    {
+      "file": "journal-settings.png",
+      "width": 1280,
+      "height": 800,
+      "sha256": "ad1fecd82dafac79a58c1eaac814c65f07234d34a8f7792426dc4acca6100b02",
+      "source_png": "build/client-docs-screenshots-en_us/screenshots/docs-0.4.3-en_us/journal-settings.png",
+      "native": true,
+      "edited_or_upscaled": false
+    },
+    {
+      "file": "spirit-speech.png",
+      "width": 1280,
+      "height": 800,
+      "sha256": "045f07e3aa7f422d0a7c2c831cf36463665db8720c8b756bdece457d5ac48312",
+      "source_png": "build/client-docs-screenshots-en_us/screenshots/docs-0.4.3-en_us/spirit-speech.png",
+      "native": true,
+      "edited_or_upscaled": false
+    },
+    {
+      "file": "wayfarer-lantern.png",
+      "width": 1280,
+      "height": 800,
+      "sha256": "414d5a2d26495f72d2227de0017413567e73e9bf0f9574cdebc667495119a9f3",
+      "source_png": "build/client-docs-screenshots-en_us/screenshots/docs-0.4.3-en_us/wayfarer-lantern.png",
+      "native": true,
+      "edited_or_upscaled": false
+    }
+  ]
+}

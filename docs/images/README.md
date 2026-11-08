@@ -1,5 +1,10 @@
 # Real Wicklen: Chronicles screenshots
 
+## Current English captures
+
+The public site and distribution pages now use the [English 0.4.3 capture set](en/README.md).
+The files and provenance below describe the original Russian 0.4.2 set.
+
 Captured on **2026-11-06**, with **Chronicles 0.4.2**, Minecraft 26.3 and Fabric
 Loader 0.20.1. Every PNG is an actual **1280 × 800 native game capture** from
 isolated local test worlds. Journal photographs use the default **85%** size.

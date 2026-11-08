@@ -1,0 +1,108 @@
+{
+  "project_id": "SfE0Z0Lb",
+  "project_url": "https://modrinth.com/mod/wicklen-chronicles",
+  "version_id": "fQmjVwvT",
+  "version_number": "0.4.3",
+  "status": "processing",
+  "requested_status": "unlisted",
+  "queued": "2026-11-08T12:49:52.773331Z",
+  "approved": null,
+  "jar": {
+    "filename": "wicklen-chronicles-0.4.3.jar",
+    "bytes": 832514,
+    "sha256": "bae7899020c43fb0b7b05b2221fbb58174a69b475eac5da8bb79452ce1c95b6e",
+    "sha512": "0f888806e64d07d9c312c6a76c1661b541b02c0b93c5151554675ca26b8bcc871b8d6bc795f4ef7ee0ff37cb58cf82d565ebd70b4c7f54389450f09b163c896d"
+  },
+  "gallery_count": 15,
+  "gallery": [
+    {
+      "title": "Cloth wanderer companion",
+      "url": "https://cdn.modrinth.com/data/SfE0Z0Lb/images/178b7858b951f98be0fdf7326628aaf2e7da9ea2_350.webp",
+      "description": "Native Minecraft capture in a local test world, Chronicles 0.4.3."
+    },
+    {
+      "title": "Journal and speech settings",
+      "url": "https://cdn.modrinth.com/data/SfE0Z0Lb/images/2a711b934c47ee552b9757200d73e586753fcc20.png",
+      "description": "Native Minecraft capture showing local spirit speech placement, Chronicles 0.4.3."
+    },
+    {
+      "title": "Personal terrain atlas",
+      "url": "https://cdn.modrinth.com/data/SfE0Z0Lb/images/f051bc3f6adad5b985773b935bcfcd12adc741d8_350.webp",
+      "description": "Native Minecraft capture of sampled terrain and unexplored fog in a local test world, captured in Chronicles 0.4.2."
+    },
+    {
+      "title": "Spyglass observation",
+      "url": "https://cdn.modrinth.com/data/SfE0Z0Lb/images/9bb5c14450a3c6470eafcc313cb4831fe66109a0_350.webp",
+      "description": "Native Minecraft capture of wildlife observation in a local test world, captured in Chronicles 0.4.2."
+    },
+    {
+      "title": "Your next step",
+      "url": "https://cdn.modrinth.com/data/SfE0Z0Lb/images/318cb6004a2831388e1af3956b63e57d9981e114_350.webp",
+      "description": "The journal suggests a first observation. Captured in a local Minecraft test world with Chronicles 0.4.2."
+    },
+    {
+      "title": "Names and field notes",
+      "url": "https://cdn.modrinth.com/data/SfE0Z0Lb/images/d7e87c90a43ebed2d15e3252e6f789cd7b6e1c94_350.webp",
+      "description": "Give a discovery your own name and add a note. Captured in a local Minecraft test world with Chronicles 0.4.2."
+    },
+    {
+      "title": "First Light expedition",
+      "url": "https://cdn.modrinth.com/data/SfE0Z0Lb/images/914edb52df8ea7689d1e4f1acdb75aed5bcda21b_350.webp",
+      "description": "Choose how to continue a short expedition and see its reward. Captured in a local Minecraft test world with Chronicles 0.4.2."
+    },
+    {
+      "title": "Preparing a courtyard trial",
+      "url": "https://cdn.modrinth.com/data/SfE0Z0Lb/images/42d8aae6d6f3fc44fcf279c711d0fc504e4cceea_350.webp",
+      "description": "Check the participants, difficulty and reward before starting. Gateway of Doom is required for battles. Captured in a local test world with Chronicles 0.4.2."
+    },
+    {
+      "title": "Your field desk",
+      "url": "https://cdn.modrinth.com/data/SfE0Z0Lb/images/7892093e2c407fa1a2807adb8ad1d54f38444ad7_350.webp",
+      "description": "Use the Field Notebook on a vanilla cartography table to set up a personal field desk. Captured in a local test world with Chronicles 0.4.2; this frame shows the earlier companion appearance."
+    },
+    {
+      "title": "Journal settings in 0.4.2",
+      "url": "https://cdn.modrinth.com/data/SfE0Z0Lb/images/12416a2ce55306a79cbb48ac6df8035e750cbda3_350.webp",
+      "description": "Adjust the journal, speech cards and automatic remarks. Captured in a local test world with Chronicles 0.4.2; the separate 0.4.3 settings image also shows speech-position sliders."
+    },
+    {
+      "title": "Spirit speech card",
+      "url": "https://cdn.modrinth.com/data/SfE0Z0Lb/images/cbdac09ebf7180621db101f10d8d4ca29a48d7e6_350.webp",
+      "description": "A speech card above the game world, with the conversation kept in the journal. Captured in 0.4.2 with the earlier companion appearance; the line is test text, not a live LLM response."
+    },
+    {
+      "title": "Wayfarer's Lantern",
+      "url": "https://cdn.modrinth.com/data/SfE0Z0Lb/images/9f41a1ccbda2a7614df4d8246adf39c68e6cd3bb_350.webp",
+      "description": "The reusable reward from a successful courtyard trial grants brief absorption and speed. Native Minecraft capture in a local test world, Chronicles 0.4.2."
+    },
+    {
+      "title": "The wanderer from the side",
+      "url": "https://cdn.modrinth.com/data/SfE0Z0Lb/images/e9696e492c6470b2e07c0397304b381c093a7b6b_350.webp",
+      "description": "The cloth hood, layered cloak and ribbons in Minecraft. Native capture in a local test world, Chronicles 0.4.3."
+    },
+    {
+      "title": "Cloak and ribbons",
+      "url": "https://cdn.modrinth.com/data/SfE0Z0Lb/images/d533ddf95c26bc355ea1d26be4fd1eeb73a0423c_350.webp",
+      "description": "A rear view of the cloth wanderer companion. Native Minecraft capture in a local test world, Chronicles 0.4.3."
+    },
+    {
+      "title": "The wanderer at night",
+      "url": "https://cdn.modrinth.com/data/SfE0Z0Lb/images/ab01d758f2e02cfd274c3fe94ac11128de097ffc_350.webp",
+      "description": "The companion at night, with blue eyes and vanilla lantern lighting. Native Minecraft capture in a local test world, Chronicles 0.4.3."
+    }
+  ],
+  "description_sha256": "6e481f0098f49aa6d9e4d471333cc2cf1e0e18d2e1b69295eb442820cb0450e9",
+  "description_edit_skill": "de-ai-ify",
+  "inline_image_count": 9,
+  "inline_image_urls": [
+    "https://cdn.modrinth.com/data/SfE0Z0Lb/images/178b7858b951f98be0fdf7326628aaf2e7da9ea2.png",
+    "https://cdn.modrinth.com/data/SfE0Z0Lb/images/318cb6004a2831388e1af3956b63e57d9981e114.png",
+    "https://cdn.modrinth.com/data/SfE0Z0Lb/images/9bb5c14450a3c6470eafcc313cb4831fe66109a0.png",
+    "https://cdn.modrinth.com/data/SfE0Z0Lb/images/d7e87c90a43ebed2d15e3252e6f789cd7b6e1c94.png",
+    "https://cdn.modrinth.com/data/SfE0Z0Lb/images/f051bc3f6adad5b985773b935bcfcd12adc741d8.png",
+    "https://cdn.modrinth.com/data/SfE0Z0Lb/images/914edb52df8ea7689d1e4f1acdb75aed5bcda21b.png",
+    "https://cdn.modrinth.com/data/SfE0Z0Lb/images/7892093e2c407fa1a2807adb8ad1d54f38444ad7.png",
+    "https://cdn.modrinth.com/data/SfE0Z0Lb/images/42d8aae6d6f3fc44fcf279c711d0fc504e4cceea.png",
+    "https://cdn.modrinth.com/data/SfE0Z0Lb/images/2a711b934c47ee552b9757200d73e586753fcc20.png"
+  ]
+}
