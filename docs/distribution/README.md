@@ -1,4 +1,4 @@
-# Modrinth publication
+# Distribution publication
 
 The first Modrinth submission uses the existing, immutable **0.4.3** GitHub
 release. Do not rebuild or replace it under the same version. This publication
@@ -8,8 +8,9 @@ does not update the Wicklen modpack or any game server.
 
 - `modrinth-description.md` is the English project description, including the
   maintainer-confirmed AI authorship and optional-provider data disclosure.
-  It embeds nine full-resolution screenshots from Modrinth's CDN alongside the
-  relevant sections; the separate gallery contains fifteen images.
+  It embeds nine full-resolution screenshots alongside the relevant sections:
+  eight English UI captures hosted on wicklen.link and one textless companion
+  portrait from Modrinth. The separate gallery contains fourteen images.
 - `modrinth-project.json` records the intended form values and verified GitHub
   release identity. It is an editorial manifest, not a Modrinth API payload.
   Optional project IDs come from the pinned production profile; verify their
@@ -32,17 +33,16 @@ Use original Minecraft framebuffer captures, with no generative edits:
 | File relative to the mod repository | Caption |
 | --- | --- |
 | `docs/development/wanderer/images/front-day.png` | Cloth wanderer companion in a local Minecraft test world, 0.4.3. |
-| `docs/releases/images/0.4.3-settings.png` | Journal settings and spirit speech placement, 0.4.3. |
-| `docs/images/terrain-map.png` | Personal terrain atlas in a local test world, captured in 0.4.2. |
-| `docs/images/spyglass-observation.png` | Native spyglass observation in a local test world, captured in 0.4.2. |
-| `docs/images/journal-next.png` | Journal next step, captured in 0.4.2. |
-| `docs/images/personal-notes.png` | Personal discovery names and notes, captured in 0.4.2. |
-| `docs/images/first-light.png` | First Light approaches and reward, captured in 0.4.2. |
-| `docs/images/courtyard-trial.png` | Courtyard trial preparation with optional Gateway, captured in 0.4.2. |
-| `docs/images/field-desk.png` | Field Notebook and cartography desk, captured in 0.4.2 with the earlier spirit. |
-| `docs/images/journal-settings.png` | Historical 0.4.2 settings, labelled separately from 0.4.3 sliders. |
-| `docs/images/spirit-speech.png` | Speech card in 0.4.2 with the earlier spirit and supplied test dialogue. |
-| `docs/images/wayfarer-lantern.png` | The earned lantern in use, captured in 0.4.2. |
+| `docs/images/en/journal-next.png` | Journal next step, native English 0.4.3 capture. |
+| `docs/images/en/spyglass-observation.png` | Spyglass observation, native English 0.4.3 capture. |
+| `docs/images/en/personal-notes.png` | Personal names and notes, native English 0.4.3 capture. |
+| `docs/images/en/terrain-map.png` | Terrain atlas, native English 0.4.3 capture. |
+| `docs/images/en/first-light.png` | First Light approaches, native English 0.4.3 capture. |
+| `docs/images/en/courtyard-trial.png` | Courtyard preparation with optional Gateway, native English 0.4.3 capture. |
+| `docs/images/en/field-desk.png` | Field Notebook and cartography desk, native English 0.4.3 capture. |
+| `docs/images/en/journal-settings.png` | Journal settings and speech-position sliders, native English 0.4.3 capture. |
+| `docs/images/en/spirit-speech.png` | Speech card with supplied test dialogue, native English 0.4.3 capture. |
+| `docs/images/en/wayfarer-lantern.png` | The earned lantern in use, native English 0.4.3 capture. |
 | `docs/development/wanderer/images/side-day.png` | Side view of the 0.4.3 cloth wanderer. |
 | `docs/development/wanderer/images/back-day.png` | Rear view of the 0.4.3 cloth wanderer. |
 | `docs/development/wanderer/images/front-night.png` | The 0.4.3 cloth wanderer at night. |
@@ -51,8 +51,8 @@ For the icon, select the native front-day companion capture and use the site's
 ordinary crop control if available. Do not substitute generated spirit concepts
 or generated organisation artwork. Provenance is recorded in
 `docs/development/wanderer/captures.json`, `docs/releases/images/0.4.3-captures.json`
-and `docs/images/README.md`. Keeping design concepts in the source repository is
-not the same as uploading them as project-page imagery.
+and `docs/images/en/screenshots.json`. Keeping design concepts in the source
+repository is not the same as uploading them as project-page imagery.
 
 ## Submit and record
 
@@ -84,3 +84,30 @@ The description was revised using the maintainer's original Claude
 `de-ai-ify` command, installed as a Codex skill. The original text and the
 `modrinth-description-HUMAN.md` result are kept in the ignored publication
 workspace. AI authorship and provider data disclosures remain explicit.
+
+## English screenshots and CurseForge
+
+On 9 November 2026, ten original 1280 × 800 screenshots were recaptured with
+`en_us` in isolated native game-test worlds. The native scenario passed. The
+English originals and their SHA-256/provenance manifest are in `docs/images/en/`.
+The same bytes are published on wicklen.link and in both platform galleries.
+Historical Russian frames remain in the source documentation, outside the current
+project pages. Demonstration speech uses supplied fixture text through the real
+protocol, rather than a live provider response.
+
+[CurseForge project](https://www.curseforge.com/minecraft/mc-mods/wicklen-chronicles):
+project `1792673`, beta file `9517164`. Its description contains nine inline
+images and its separate gallery contains ten English captures. The source URL
+and MIT license were saved and Fabric API (`306612`) is a required default
+and file relation. Minecraft 26.3, Java 25, Fabric, Client and Server were verified in the
+file list. Optional Gateway of Doom and Field Guide integrations are described;
+no unverified CurseForge project IDs were linked.
+
+The file was uploaded through the Authors website after the Upload API rejected
+its catalogue Minecraft version ID without creating a file. The ForgeCDN download
+matches the immutable GitHub/Modrinth JAR SHA-256. The project is awaiting moderator
+approval and the file was **Processing** at verification. This is not an approved
+public release. `curseforge-publication.json` records that readback.
+
+The website build and packaging tests passed, its automatic deployment completed,
+and all ten public English image URLs were checked against the original hashes.

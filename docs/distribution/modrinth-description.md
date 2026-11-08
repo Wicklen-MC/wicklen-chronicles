@@ -15,12 +15,12 @@ spirit and asking it for game help need a separately configured language model.
 Press **G** to open the journal. It shows your next step, discoveries, tasks and
 map. Use `/spirit summon` to show your companion.
 
-![The journal suggests a next step. Captured in 0.4.2.](https://cdn.modrinth.com/data/SfE0Z0Lb/images/318cb6004a2831388e1af3956b63e57d9981e114.png)
+![The journal suggests a next step. Captured in 0.4.3.](https://wicklen.link/images/chronicles/en/journal-next.png)
 
 Hold a vanilla spyglass on a visible creature or supported place for about two
 seconds.
 
-![Watching a cow through the vanilla spyglass. Captured in 0.4.2.](https://cdn.modrinth.com/data/SfE0Z0Lb/images/9bb5c14450a3c6470eafcc313cb4831fe66109a0.png)
+![Watching a cow through the vanilla spyglass. Captured in 0.4.3.](https://wicklen.link/images/chronicles/en/spyglass-observation.png)
 
 Once the observation is recorded, open **Records** to give it a name or write a note. You could call a species “Moss Cows” or leave yourself a reminder
 about a place you want to revisit.
@@ -28,7 +28,7 @@ about a place you want to revisit.
 Your notes are personal. Naming a species in the journal does not rename the
 animals in the world.
 
-![Personal discovery names and notes in the journal. Captured in 0.4.2.](https://cdn.modrinth.com/data/SfE0Z0Lb/images/d7e87c90a43ebed2d15e3252e6f789cd7b6e1c94.png)
+![Personal discovery names and notes in the journal. Captured in 0.4.3.](https://wicklen.link/images/chronicles/en/personal-notes.png)
 
 ## Make a map of your travels
 
@@ -38,7 +38,7 @@ choose **Follow** for a direction and distance; you can stop following it at any
 time. The dotted line points towards the destination, so you still need to find
 your own way around cliffs and other obstacles.
 
-![Your map fills in as you travel. Captured in 0.4.2.](https://cdn.modrinth.com/data/SfE0Z0Lb/images/f051bc3f6adad5b985773b935bcfcd12adc741d8.png)
+![Your map fills in as you travel. Captured in 0.4.3.](https://wicklen.link/images/chronicles/en/terrain-map.png)
 
 ## Find your first expedition
 
@@ -50,7 +50,7 @@ courtyard battle when the optional combat mod is installed. The journal tracks
 your progress and shows the reward. After finishing, return to the task page to
 claim your supplies. There is no time limit.
 
-![Choose an approach in First Light. Captured in 0.4.2.](https://cdn.modrinth.com/data/SfE0Z0Lb/images/914edb52df8ea7689d1e4f1acdb75aed5bcda21b.png)
+![Choose an approach in First Light. Captured in 0.4.3.](https://wicklen.link/images/chronicles/en/first-light.png)
 
 First Light is a short introduction. Longer story chains are still planned.
 Waystations do not get added to chunks that already exist.
@@ -60,13 +60,13 @@ Waystations do not get added to chunks that already exist.
 Use a **Field Notebook** on a vanilla cartography table to make a personal field
 desk. Every three new discoveries earn you a supply kit for another trip.
 
-![The Field Notebook and a cartography table. Captured in 0.4.2 with the earlier spirit appearance.](https://cdn.modrinth.com/data/SfE0Z0Lb/images/7892093e2c407fa1a2807adb8ad1d54f38444ad7.png)
+![The Field Notebook and a cartography table. Captured in 0.4.3.](https://wicklen.link/images/chronicles/en/field-desk.png)
 
 Win a courtyard trial to earn the **Wayfarer's Lantern**. It gives brief
 absorption and speed, can be used again after 60 seconds, and is not consumed.
 Courtyard battles require **Gateway of Doom**.
 
-![Preparing a courtyard battle with the optional Gateway of Doom mod. Captured in 0.4.2.](https://cdn.modrinth.com/data/SfE0Z0Lb/images/42d8aae6d6f3fc44fcf279c711d0fc504e4cceea.png)
+![Preparing a courtyard battle with the optional Gateway of Doom mod. Captured in 0.4.3.](https://wicklen.link/images/chronicles/en/courtyard-trial.png)
 
 ## Installation
 
@@ -95,7 +95,7 @@ appears in a small card over the world, and the conversation stays in the journa
 Journal settings let you move the card, adjust the interface and control automatic
 remarks.
 
-![Journal settings and movable speech cards. Captured in 0.4.3.](https://cdn.modrinth.com/data/SfE0Z0Lb/images/2a711b934c47ee552b9757200d73e586753fcc20.png)
+![Journal settings and movable speech cards. Captured in 0.4.3.](https://wicklen.link/images/chronicles/en/journal-settings.png)
 
 Free-form conversations and vanilla-game help need an AI provider. Configure it
 in `config/wicklen-chronicles.json` on the server, or in your single-player
@@ -125,9 +125,9 @@ instructions. AI also helped with documentation and translations and was used to
 create the spirit design concepts. The project has been submitted for unlisted
 distribution.
 
-The gallery contains real Minecraft screenshots from local test worlds. Captions
-identify frames from 0.4.2, which show the earlier companion appearance, and the
-new cloth wanderer in 0.4.3. The screenshots use the Russian interface.
+The screenshots show the English interface of Chronicles 0.4.3 in local test
+worlds. They are original game captures. The demonstration dialogue is supplied
+test text sent through the real game protocol, not a recorded AI response.
 
 [Source code](https://github.com/Wicklen-MC/wicklen-chronicles)
 · [Report a bug](https://github.com/Wicklen-MC/wicklen-chronicles/issues)
