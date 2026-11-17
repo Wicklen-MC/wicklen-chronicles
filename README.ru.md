@@ -1,7 +1,8 @@
 # Wicklen: Chronicles
 
-Версия **0.4.3**: тканевый странник, настройка положения реплик и ванильная
-справка с рецептами текущего сервера. [Релиз](docs/releases/0.4.3.md) ·
+Версия **0.4.4**: парящий дух остаётся бесшумным с установленным Presence
+Footsteps. Тканевый странник, настройка положения реплик и ванильная справка
+сохраняются. [Релиз](docs/releases/0.4.4.md) ·
 [Границы справки](docs/development/spirit-knowledge.md). Версии мода и сборки различаются:
 для входа на сервер используйте именно выбранный им комплект.
 
@@ -214,7 +215,7 @@ LLM может написать вступление по факту найде�
 [Выпуск через workflow](docs/releases/README.md)
 
 Установите Fabric Loader и Fabric API, затем положите
-`wicklen-chronicles-0.4.3.jar` в `mods/` сервера и клиента. Сначала удалите
+`wicklen-chronicles-0.4.4.jar` в `mods/` сервера и клиента. Сначала удалите
 старые копии этого мода. Версии на клиенте и сервере должны совпадать:
 в 0.2.1 изменился сетевой namespace. `-sources.jar` нужен разработчикам.
 
@@ -363,7 +364,7 @@ join <id>`, `/spirit encounter start <id>`, `/spirit encounter leave <id>`,
 
 ```sh
 ./gradlew build
-# build/libs/wicklen-chronicles-0.4.3.jar
+# build/libs/wicklen-chronicles-0.4.4.jar
 ./gradlew -p core check
 ./gradlew runServerSmoke
 ./gradlew runClientGameTest

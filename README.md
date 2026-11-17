@@ -10,8 +10,9 @@ Loader 0.20.1+, Fabric API 0.165.0+26.3 and Java 25**.
 
 ## What works today
 
-Version **0.4.3** adds the cloth wanderer spirit, movable speech cards and vanilla
-help using recipes from the running server. See [release notes](docs/releases/0.4.3.md)
+Version **0.4.4** keeps the floating spirit silent when Presence Footsteps is
+installed. The cloth wanderer, movable speech cards and vanilla game help remain
+available. See [release notes](docs/releases/0.4.4.md)
 and the [game-help scope](docs/development/spirit-knowledge.md). Mod and modpack
 versions are separate: use the exact pack selected by your server when joining it.
 
@@ -169,7 +170,7 @@ activate it if you prefer keyboard navigation.
 [Release workflow](docs/releases/README.md)
 
 Install Fabric Loader and Fabric API, then put
-`wicklen-chronicles-0.4.3.jar` in `mods/` on both server and client. Remove
+`wicklen-chronicles-0.4.4.jar` in `mods/` on both server and client. Remove
 older copies of this mod first. Use matching client/server versions; the
 0.2.1 networking namespace changed. The `-sources.jar` is for developers.
 
@@ -354,7 +355,7 @@ no personal cache path, local server configuration or external LLM key is needed
 
 ```sh
 ./gradlew build
-# build/libs/wicklen-chronicles-0.4.3.jar
+# build/libs/wicklen-chronicles-0.4.4.jar
 ./gradlew -p core check
 ./gradlew runServerSmoke
 ./gradlew runClientGameTest
