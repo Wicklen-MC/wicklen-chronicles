@@ -1,0 +1,25 @@
+{
+  "version": "0.4.4",
+  "source_commit": "c8f3cd790dd6e1d106b1034ff52e00edcb18926c",
+  "github_url": "https://github.com/Wicklen-MC/wicklen-chronicles/releases/tag/v0.4.4",
+  "workflow_url": "https://github.com/Wicklen-MC/wicklen-chronicles/actions/runs/44170971879",
+  "github_state": "published",
+  "jar": {
+    "filename": "wicklen-chronicles-0.4.4.jar",
+    "bytes": 833061,
+    "sha256": "42bea2a77caa95f13fe678d0d0c57b865400dc67316b79a01598e569af966a71",
+    "sha512": "6903ea1b4bc3803515b1913949746ee0dbf5c7da634c5dce8aca6822b9c522290140adf98fafa2531919d18ae82e0542446b0fd88eb82071eb847e9192dfa898"
+  },
+  "modrinth": {
+    "project_id": "SfE0Z0Lb",
+    "version_id": "j3pMm30M",
+    "url": "https://modrinth.com/mod/wicklen-chronicles/version/j3pMm30M",
+    "version_type": "beta",
+    "project_status": "processing",
+    "requested_status": "unlisted"
+  },
+  "curseforge": {
+    "project_id": 1792673,
+    "state": "pending upload; Authors UI requires maintainer Cloudflare verification"
+  }
+}

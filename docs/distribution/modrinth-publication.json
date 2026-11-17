@@ -1,17 +1,17 @@
 {
   "project_id": "SfE0Z0Lb",
   "project_url": "https://modrinth.com/mod/wicklen-chronicles",
-  "version_id": "fQmjVwvT",
-  "version_number": "0.4.3",
+  "version_id": "j3pMm30M",
+  "version_number": "0.4.4",
   "status": "processing",
   "requested_status": "unlisted",
   "queued": "2026-11-08T12:49:52.773331Z",
   "approved": null,
   "jar": {
-    "filename": "wicklen-chronicles-0.4.3.jar",
-    "bytes": 832514,
-    "sha256": "bae7899020c43fb0b7b05b2221fbb58174a69b475eac5da8bb79452ce1c95b6e",
-    "sha512": "0f888806e64d07d9c312c6a76c1661b541b02c0b93c5151554675ca26b8bcc871b8d6bc795f4ef7ee0ff37cb58cf82d565ebd70b4c7f54389450f09b163c896d"
+    "filename": "wicklen-chronicles-0.4.4.jar",
+    "bytes": 833061,
+    "sha256": "42bea2a77caa95f13fe678d0d0c57b865400dc67316b79a01598e569af966a71",
+    "sha512": "6903ea1b4bc3803515b1913949746ee0dbf5c7da634c5dce8aca6822b9c522290140adf98fafa2531919d18ae82e0542446b0fd88eb82071eb847e9192dfa898"
   },
   "gallery_count": 14,
   "gallery": [
@@ -100,7 +100,7 @@
       "description": "The companion at night, with blue eyes and vanilla lantern lighting. Native Minecraft capture in a local test world, Chronicles 0.4.3."
     }
   ],
-  "description_sha256": "22adb5bdc1de6555087fc06b19e4f93f8c241e225f897c05582d67e650233a08",
+  "description_sha256": "d417b12defe7c582cdb241a66cdda5fcf8cea8ae8505e81daf81f9e9b9d88855",
   "description_edit_skill": "de-ai-ify",
   "inline_image_count": 9,
   "inline_image_urls": [
@@ -114,7 +114,7 @@
     "https://wicklen.link/images/chronicles/en/courtyard-trial.png",
     "https://wicklen.link/images/chronicles/en/journal-settings.png"
   ],
-  "checked_at": "2026-11-08T21:35:09.682341+00:00",
+  "checked_at": "2026-11-17T20:41:09.899967+00:00",
   "screenshot_language": "en_us",
   "screenshot_manifest": "../images/en/screenshots.json"
 }

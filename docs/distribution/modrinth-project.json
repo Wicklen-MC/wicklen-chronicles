@@ -19,8 +19,8 @@
   "issues_url": "https://github.com/Wicklen-MC/wicklen-chronicles/issues",
   "description_file": "modrinth-description.md",
   "version": {
-    "name": "Wicklen: Chronicles 0.4.3",
-    "number": "0.4.3",
+    "name": "Wicklen: Chronicles 0.4.4",
+    "number": "0.4.4",
     "type": "beta",
     "loaders": [
       "fabric"
@@ -47,12 +47,12 @@
         "type": "optional"
       }
     ],
-    "filename": "wicklen-chronicles-0.4.3.jar",
-    "download_url": "https://github.com/Wicklen-MC/wicklen-chronicles/releases/download/v0.4.3/wicklen-chronicles-0.4.3.jar",
-    "bytes": 832514,
-    "sha256": "bae7899020c43fb0b7b05b2221fbb58174a69b475eac5da8bb79452ce1c95b6e",
-    "changelog_file": "../releases/0.4.3.md",
-    "modrinth_version_id": "fQmjVwvT"
+    "filename": "wicklen-chronicles-0.4.4.jar",
+    "download_url": "https://github.com/Wicklen-MC/wicklen-chronicles/releases/download/v0.4.4/wicklen-chronicles-0.4.4.jar",
+    "bytes": 833061,
+    "sha256": "42bea2a77caa95f13fe678d0d0c57b865400dc67316b79a01598e569af966a71",
+    "changelog_file": "../releases/0.4.4.md",
+    "modrinth_version_id": "j3pMm30M"
   },
   "project_id": "SfE0Z0Lb",
   "project_url": "https://modrinth.com/mod/wicklen-chronicles"

@@ -10,6 +10,9 @@ spirit and asking it for game help need a separately configured language model.
 
 ![The cloth wanderer companion in Minecraft. Captured in 0.4.3.](https://cdn.modrinth.com/data/SfE0Z0Lb/images/178b7858b951f98be0fdf7326628aaf2e7da9ea2.png)
 
+**New in 0.4.4:** the floating spirit stays silent with Presence Footsteps installed.
+Presence Footsteps is optional.
+
 ## Start with a spyglass
 
 Press **G** to open the journal. It shows your next step, discoveries, tasks and
@@ -73,7 +76,7 @@ Courtyard battles require **Gateway of Doom**.
 You need **Minecraft 26.3**, **Java 25**, **Fabric Loader 0.20.1 or newer**, and
 **Fabric API**. The tested Fabric API version is **0.165.0+26.3**.
 
-Put `wicklen-chronicles-0.4.3.jar` in your instance's `mods/` folder. For
+Put `wicklen-chronicles-0.4.4.jar` in your instance's `mods/` folder. For
 multiplayer, install the same version on the server and every player's client.
 For single player, installing it in your client is enough. Remove older copies
 first; the `-sources.jar` is for developers.
@@ -131,6 +134,6 @@ test text sent through the real game protocol, not a recorded AI response.
 
 [Source code](https://github.com/Wicklen-MC/wicklen-chronicles)
 · [Report a bug](https://github.com/Wicklen-MC/wicklen-chronicles/issues)
-· [Release notes](https://github.com/Wicklen-MC/wicklen-chronicles/releases/tag/v0.4.3)
+· [Release notes](https://github.com/Wicklen-MC/wicklen-chronicles/releases/tag/v0.4.4)
 
 Project code is licensed under MIT.

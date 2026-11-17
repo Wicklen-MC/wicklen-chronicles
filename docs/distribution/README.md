@@ -111,3 +111,21 @@ public release. `curseforge-publication.json` records that readback.
 
 The website build and packaging tests passed, its automatic deployment completed,
 and all ten public English image URLs were checked against the original hashes.
+
+## Chronicles 0.4.4 — 17 November 2026
+
+[GitHub 0.4.4](https://github.com/Wicklen-MC/wicklen-chronicles/releases/tag/v0.4.4)
+is published from `c8f3cd790dd6e1d106b1034ff52e00edcb18926c` after the local
+build, nine release-tool checks and the successful Release workflow. Its
+canonical player JAR is 833061 bytes, SHA-256
+`42bea2a77caa95f13fe678d0d0c57b865400dc67316b79a01598e569af966a71`.
+It contains the optional Presence Footsteps locomotion resource for both spirit
+IDs. No new required mod dependency was added.
+
+Modrinth version `j3pMm30M` is uploaded as beta with the same bytes and existing
+required/optional dependencies. The project is still processing with requested
+unlisted visibility. The description now links 0.4.4; screenshots remain genuine
+0.4.3 captures. The current `modrinth-publication.json` records this readback.
+CurseForge upload is pending the maintainer's Cloudflare verification in the
+Authors UI; its existing 0.4.3 file and description are retained meanwhile.
+See `../releases/0.4.4-publication.json` for the current publication record.
