@@ -132,6 +132,8 @@ public class SpiritEntity extends PathfinderMob {
 
     // --- дух неуязвим и не взаимодействует ---
 
+    // Presence Footsteps generates sounds independently of these vanilla flags;
+    // the client locomotionmap.json also disables its generator for both spirit IDs.
     @Override
     public boolean isSilent() {
         return true;
